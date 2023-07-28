@@ -10,10 +10,11 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 
 class LoginController extends AbstractController
+
 {
     #[Route('/login', name: 'login')]
     public function index(
-        #[CurrentUser] ?User $user
+        #[CurrentUser] ?User $user,
     ): Response
     {
         if (null === $user) {

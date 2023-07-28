@@ -3,6 +3,7 @@
 namespace App\Controller\Security;
 
 use App\Entity\User;
+use App\Service\ActionLoggerService;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -10,6 +11,9 @@ use App\Service\UserService;
 use App\Service\ValidatorOutputFormatter;
 use Doctrine\ORM\EntityManagerInterface;
 use Exception;
+use Nelmio\ApiDocBundle\Annotation\Model;
+use Nelmio\ApiDocBundle\Annotation\Security;
+use OpenApi\Annotations as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -42,12 +46,27 @@ class UserController extends AbstractController
     }
 
 
-    #[Route('/backoffice/user', name: 'add_user', methods: ['POST'])]
+    /**
+     * @OA\Response(
+     *     response=200,
+     *     description="Returns a new User",
+     *     @OA\JsonContent(
+     *        type="array",
+     *        @OA\Items(ref=@Model(type=User::class, groups={"detail"}))
+     *     )
+     * )
+     *
+     * @OA\Tag(name="add_user")
+     * @Security(name="Bearer")
+     *
+     */
+    #[Route('/api/user', name: 'add_user', methods: ['POST'])]
     public function addUser(
         UserPasswordHasherInterface $passwordHasher,
         CreateMethodsByInput $createMethodsByInput,
         ValidatorInterface $validator,
         ValidatorOutputFormatter $validatorOutputFormatter,
+        ActionLoggerService $actionLoggerService,
     ): JsonResponse
     {
         $data = $this->request->getCurrentRequest()->request->all();
@@ -88,10 +107,12 @@ class UserController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse('indirizzo email già esistente',$e->getFile()));
         }
 
+        $actionLoggerService->logAction('add_new_user', $this->groupSerializer->serializeGroup($user, 'detail'));
+
         return new JsonResponse($this->doResponse->doResponse(['id' => $user->getId()]));
     }
 
-    #[Route('/whoami', name: 'whoami', methods: ['GET'])]
+    #[Route('/api/whoami', name: 'whoami', methods: ['GET'])]
     public function whoami(): JsonResponse
     {
         $user = $this->userService->getCurrentUser();

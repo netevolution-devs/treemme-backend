@@ -39,7 +39,7 @@ security:
             entry_point: jwt
             jwt: ~
             refresh_jwt:
-                check_path: /token/refresh
+                check_path: /api/token/refresh
 
     # Easy way to control access for large sections of your site
     # Note: Only the *first* access control that matches will be used
