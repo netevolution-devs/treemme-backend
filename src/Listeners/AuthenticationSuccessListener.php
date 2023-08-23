@@ -1,12 +1,12 @@
 <?php
-// src/EventListener/LoginSuccessListener.php
-namespace App\EventListener;
+// src/Listeners/AuthenticationSuccessListener.php
+namespace App\Listeners;
 
 use Lexik\Bundle\JWTAuthenticationBundle\Event\AuthenticationSuccessEvent;
 use Symfony\Component\HttpFoundation\Cookie;
 
 
-class LoginSuccessListener
+class AuthenticationSuccessListener
 {
     private $secure = false;
 
@@ -14,7 +14,6 @@ class LoginSuccessListener
     {
 
     }
-
 
     /**
      * @throws \Exception
@@ -25,11 +24,14 @@ class LoginSuccessListener
         $data = $event->getData();
 
         $token = $data['token'];
-        unset($data['token']);
+        // unset($data['token']);
         $event->setData($data);
 
+        // todo set the interval time using token_ttl value in lexik_jwt_authentication.yaml
+        // https://github.com/konshensx16/symfony-todo-backend
+
         $response->headers->setCookie(
-            new Cookie('BEARER', $token, (new \DateTime())->add(new \DateInterval('PT3600S')), '/', null, $this->secure)
+            new Cookie('BEARER', $token, (new \DateTime())->add(new \DateInterval('PT86400S')), '/', null, $this->secure)
         );
 
     }
