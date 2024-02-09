@@ -24,7 +24,7 @@ class AuthenticationSuccessListener
         $data = $event->getData();
 
         $token = $data['token'];
-        // unset($data['token']);
+        unset($data['token']);
         $event->setData($data);
 
         // todo set the interval time using token_ttl value in lexik_jwt_authentication.yaml
