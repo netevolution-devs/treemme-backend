@@ -25,9 +25,16 @@ class RefreshedTokenListener implements EventSubscriberInterface
         // https://github.com/konshensx16/symfony-todo-backend
 
         if ($refreshToken) {
-            $response->headers->setCookie(new Cookie('REFRESH_TOKEN', $refreshToken, (
-            new \DateTime())
-                ->add(new \DateInterval('PT86400S')), '/', null, $this->cookieSecure));
+            $response->headers->setCookie(new Cookie('REFRESH_TOKEN',
+                $refreshToken,
+                (new \DateTime())->add(new \DateInterval('PT86400S')),
+                '/',
+                null,
+                true,
+                true,
+                true,
+                'None'
+            ));
         }
     }
 

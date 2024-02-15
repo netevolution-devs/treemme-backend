@@ -31,9 +31,18 @@ class AuthenticationSuccessListener
         // https://github.com/konshensx16/symfony-todo-backend
 
         $response->headers->setCookie(
-            new Cookie('BEARER', $token, (new \DateTime())->add(new \DateInterval('PT86400S')), '/', null, $this->secure)
+            new Cookie(
+                'BEARER',
+                $token,
+                (new \DateTime())->add(new \DateInterval('PT86400S')),
+                '/',
+                null,
+                true,
+                true,
+                true,
+                'None'
+            )
         );
-
     }
 
 }

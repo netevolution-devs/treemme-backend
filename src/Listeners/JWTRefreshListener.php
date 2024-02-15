@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Listeners;
+
 use Symfony\Component\HttpFoundation\Response;
 use App\Service\UserService;
 use Symfony\Component\HttpFoundation\Cookie;
@@ -12,8 +13,6 @@ class JWTRefreshListener
 {
     private JWTTokenManagerInterface $tokenManager;
     private UserService $userService;
-
-
 
 
     public function __construct(JWTTokenManagerInterface $tokenManager, UserService $userService)
@@ -29,18 +28,28 @@ class JWTRefreshListener
      */
     public function onJWTExpired(JWTExpiredEvent $event)
     {
-            $request = $event->getRequest();
-            $refreshToken = $request->cookies->get('REFRESH_TOKEN');
-            $user = $this->getUserFromRefreshToken($refreshToken);
+        $request = $event->getRequest();
+        $refreshToken = $request->cookies->get('REFRESH_TOKEN');
+        $user = $this->getUserFromRefreshToken($refreshToken);
 
-            $newToken = $this->refreshToken($user);
+        $newToken = $this->refreshToken($user);
 
-            $newResponse = new Response();
-            $newResponse->headers->setCookie(
-                new Cookie('BEARER', $newToken, (new \DateTime())->add(new \DateInterval('PT86400S')), '/', null, false, false)
-            );
+        $newResponse = new Response();
+        $newResponse->headers->setCookie(
+            new Cookie(
+                'BEARER',
+                $newToken,
+                (new \DateTime())->add(new \DateInterval('PT86400S')),
+                '/',
+                null,
+                true,
+                true,
+                true,
+                'None'
+            )
+        );
 
-            $event->setResponse($newResponse);
+        $event->setResponse($newResponse);
     }
 
 
