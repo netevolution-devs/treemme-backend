@@ -5,7 +5,7 @@ namespace App\Service;
 use App\Entity\RefreshToken;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\Security\Core\Security;
+use Symfony\Bundle\SecurityBundle\Security;
 
 class UserService
 {
@@ -13,7 +13,7 @@ class UserService
     private EntityManagerInterface $doctrine;
 
     public function __construct(
-        Security $security,
+        Security               $security,
         EntityManagerInterface $entityManager,
     )
     {
@@ -21,27 +21,25 @@ class UserService
         $this->doctrine = $entityManager;
     }
 
-    public function getCurrentUser(): User
+    public function getCurrentUser(): ?User
     {
-
         return $this->security->getUser();
     }
 
-    public function getUserByRefreshToken($refreshToken): User | null
+    public function getUserByRefreshToken($refreshToken): ?User
     {
         $refreshTokenObj = $this->doctrine
             ->getRepository(RefreshToken::class)
             ->findOneBy(['refreshToken' => $refreshToken]);
 
-        if($refreshTokenObj) {
+        if ($refreshTokenObj) {
             $user = $this->doctrine
                 ->getRepository(User::class)
                 ->findOneBy(['email' => $refreshTokenObj->getUsername()]);
 
-
-            if($user){
-
-                return $user;}
+            if ($user) {
+                return $user;
+            }
         }
 
         return null;
