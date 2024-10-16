@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\PaymentRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: PaymentRepository::class)]
 class Payment
@@ -12,96 +13,127 @@ class Payment
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['list', 'detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['list', 'detail'])]
     private ?string $trip_type = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['list', 'detail'])]
     private ?string $destination = null;
 
     #[ORM\Column(type: Types::DATE_MUTABLE)]
+    #[Groups(['list', 'detail'])]
     private ?\DateTimeInterface $trip_date = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['list', 'detail'])]
     private ?string $user_name = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['list', 'detail'])]
     private ?string $email = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['detail'])]
     private ?string $phone = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['detail'])]
     private ?string $contractor_name = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['list', 'detail'])]
     private ?string $contractor_address = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['list', 'detail'])]
     private ?string $contractor_fiscal_code = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['list', 'detail'])]
     private ?int $adults_number = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['list', 'detail'])]
     private ?int $children_number = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['detail'])]
     private ?string $participants_names = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['detail'])]
     private ?string $lunch = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['detail'])]
     private ?string $pref_bus_seat = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['detail'])]
     private ?string $start_point = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['detail'])]
     private ?string $note = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['detail'])]
     private ?string $payment_type = null;
 
     #[ORM\Column(length: 50, nullable: true)]
+    #[Groups(['detail'])]
     private ?string $case_number = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['detail'])]
     private ?string $case_note = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, nullable: true)]
+    #[Groups(['detail'])]
     private ?string $value = null;
 
     #[ORM\Column]
+    #[Groups(['list', 'detail'])]
     private ?bool $email_sent = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
+    #[Groups(['list', 'detail'])]
     private ?\DateTimeInterface $created_at = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['detail'])]
     private ?bool $ok = null;
 
     #[ORM\Column(length: 20, nullable: true)]
+    #[Groups(['detail'])]
     private ?string $payment = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    #[Groups(['detail'])]
     private ?\DateTimeInterface $payment_date = null;
 
     #[ORM\Column(length: 15, nullable: true)]
+    #[Groups(['detail'])]
     private ?string $ip = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['detail'])]
     private ?bool $execute_error = null;
 
     #[ORM\Column]
+    #[Groups(['list', 'detail'])]
     private ?bool $vis = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['list', 'detail'])]
     private ?string $shop_id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['list', 'detail'])]
     private ?string $uni_link = null;
 
     public function getId(): ?int
