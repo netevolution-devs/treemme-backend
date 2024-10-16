@@ -24,9 +24,9 @@ class Payment
     #[Groups(['list', 'detail'])]
     private ?string $destination = null;
 
-    #[ORM\Column(type: Types::DATE_MUTABLE)]
+    #[ORM\Column(type: Types::STRING)]
     #[Groups(['list', 'detail'])]
-    private ?\DateTimeInterface $trip_date = null;
+    private ?string $trip_date = null;
 
     #[ORM\Column(length: 255)]
     #[Groups(['list', 'detail'])]
@@ -136,6 +136,9 @@ class Payment
     #[Groups(['list', 'detail'])]
     private ?string $uni_link = null;
 
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $cc_payment_id = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -165,12 +168,12 @@ class Payment
         return $this;
     }
 
-    public function getTripDate(): ?\DateTimeInterface
+    public function getTripDate(): ?string
     {
         return $this->trip_date;
     }
 
-    public function setTripDate(\DateTimeInterface $trip_date): static
+    public function setTripDate(string $trip_date): static
     {
         $this->trip_date = $trip_date;
 
@@ -497,6 +500,18 @@ class Payment
     public function setUniLink(string $uni_link): static
     {
         $this->uni_link = $uni_link;
+
+        return $this;
+    }
+
+    public function getCcPaymentId(): ?string
+    {
+        return $this->cc_payment_id;
+    }
+
+    public function setCcPaymentId(?string $cc_payment_id): static
+    {
+        $this->cc_payment_id = $cc_payment_id;
 
         return $this;
     }
