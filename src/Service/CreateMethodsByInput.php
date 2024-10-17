@@ -57,6 +57,7 @@ class CreateMethodsByInput
                 $value = is_numeric($value_to_number) ? (float)$value_to_number : $value;
             }
 
+
             $entity->{$method}($value);
         }
 
