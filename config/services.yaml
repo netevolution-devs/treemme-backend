@@ -42,6 +42,11 @@ services:
     tags:
       - { name: kernel.event_listener, event: kernel.exception }
 
+  App\Service\MailerService:
+    arguments:
+      $mailer_reply_to: '%env(MAILER_REPLY_TO)%'
+      $mailer_sender: '%env(MAILER_SENDER)%'
+
 
 #  App\Listeners\LocaleListener:
 #    tags:
