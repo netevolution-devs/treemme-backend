@@ -22,3 +22,4 @@ access_control:
 - { path: ^/,       roles: PUBLIC_ACCESS }
 ```
 and post the first user using Postman
+
