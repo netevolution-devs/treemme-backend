@@ -4,10 +4,12 @@ set a .env.local file with these params:
 DATABASE_URL="mysql://websites:password@host:3306/dbname?mariadb"
 DATABASE_LOGGER_URL="mysql://websites:password@host:3306/dbname_logger?mariadb"
 ```
-IMPORTANT: the next 2 command must also be launched with an already existing database
+
 ### `composer install`
+
 ### `php bin/console lexik:jwt:generate-keypair`
 
+if the databese is new continue below
 
 ### `php bin/console doctrine:migrations:migrate`
 
