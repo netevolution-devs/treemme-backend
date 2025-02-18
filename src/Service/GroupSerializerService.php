@@ -16,11 +16,16 @@ class GroupSerializerService
         $this->serializer = $serializer;
     }
 
-    public function serializeGroup($item, string $group)
+    public function serializeGroup($item, string|array $group)
     {
         $context = new SerializationContext();
         $context->setSerializeNull(true);
-        $context->setGroups(array($group));
+
+        if (is_string($group)) {
+            $group = array($group);
+        }
+
+        $context->setGroups($group);
 
         return json_decode($this->serializer->serialize($item,'json', $context), true);
     }
