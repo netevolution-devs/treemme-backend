@@ -55,6 +55,10 @@ class JWTRefreshListener
 
     private function refreshToken($user)
     {
+        if ($user === null) {
+            return null;
+        }
+
         $newToken = $this->tokenManager->create($user);
 
         return $newToken;
