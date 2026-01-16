@@ -23,6 +23,15 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['list','detail'])]
     private ?string $email = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $totpSecret = null;
+
+    #[ORM\Column(type: 'boolean')]
+    private bool $totpEnabled = false;
+
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $totpEnabledAt = null;
+
     #[ORM\Column]
     #[Groups(['list','detail'])]
     private array $roles = [];
@@ -32,6 +41,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     #[ORM\Column]
     private ?string $password = null;
+
+    #[ORM\Column(length: 255)]
+    private ?string $user_code = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $last_access = null;
 
     public function getId(): ?int
     {
@@ -94,12 +109,66 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    /**
-     * @see UserInterface
-     */
+    public function getTotpSecret(): ?string
+    {
+        return $this->totpSecret;
+    }
+
+    public function setTotpSecret(?string $totpSecret): self
+    {
+        $this->totpSecret = $totpSecret;
+        return $this;
+    }
+
+    public function isTotpEnabled(): bool
+    {
+        return $this->totpEnabled;
+    }
+
+    public function setTotpEnabled(bool $totpEnabled): self
+    {
+        $this->totpEnabled = $totpEnabled;
+        return $this;
+    }
+
+    public function getTotpEnabledAt(): ?\DateTimeImmutable
+    {
+        return $this->totpEnabledAt;
+    }
+
+    public function setTotpEnabledAt(?\DateTimeImmutable $totpEnabledAt): self
+    {
+        $this->totpEnabledAt = $totpEnabledAt;
+        return $this;
+    }
+
     public function eraseCredentials(): void
     {
         // If you store any temporary, sensitive data on the user, clear it here
         // $this->plainPassword = null;
+    }
+
+    public function getUserCode(): ?string
+    {
+        return $this->user_code;
+    }
+
+    public function setUserCode(string $user_code): static
+    {
+        $this->user_code = $user_code;
+
+        return $this;
+    }
+
+    public function getLastAccess(): ?\DateTimeImmutable
+    {
+        return $this->last_access;
+    }
+
+    public function setLastAccess(?\DateTimeImmutable $last_access): static
+    {
+        $this->last_access = $last_access;
+
+        return $this;
     }
 }

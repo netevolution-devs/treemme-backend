@@ -17,7 +17,7 @@ class RequestListener implements EventSubscriberInterface
         $request->attributes->set('refresh_token', $request->cookies->get('REFRESH_TOKEN'));
     }
 
-    public static function getSubscribedEvents()
+    public static function getSubscribedEvents(): array
     {
         return [
             KernelEvents::REQUEST => [

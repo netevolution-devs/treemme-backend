@@ -4,6 +4,7 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+  app_name: 'Net-evolution Default'
 
 services:
   # default configuration for services in *this* file
@@ -46,6 +47,10 @@ services:
     arguments:
       $mailer_reply_to: '%env(MAILER_REPLY_TO)%'
       $mailer_sender: '%env(MAILER_SENDER)%'
+
+  App\Service\TotpService:
+    arguments:
+      $appName: '%app_name%'
 
 
 #  App\Listeners\LocaleListener:

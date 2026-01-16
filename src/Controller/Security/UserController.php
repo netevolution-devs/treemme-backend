@@ -84,9 +84,12 @@ class UserController extends AbstractController
             $password
         );
 
+        $code = substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, 9);
+
         $user->setEmail($email)
             ->setPassword($hashedPassword)
-            ->setRoles($roles);
+            ->setRoles($roles)
+            ->setUserCode($code);
 
         unset($data['password']);
 
