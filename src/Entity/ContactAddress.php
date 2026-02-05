@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Repository\ContactAddressRepository;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ContactAddressRepository::class)]
 class ContactAddress
@@ -11,29 +12,43 @@ class ContactAddress
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'contactAddresses')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['contact_address_list', 'contact_address_detail'])]
     private ?Contact $contact = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail'])]
     private ?string $address_1 = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail'])]
     private ?string $address_2 = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail'])]
     private ?string $address_3 = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail'])]
     private ?string $address_4 = null;
 
     #[ORM\Column(length: 10, nullable: true)]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail'])]
     private ?string $postal_code = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['contact_address_list', 'contact_address_detail'])]
     private ?int $weight = null;
+
+    #[ORM\Column]
+    private ?\DateTimeImmutable $created_at = null;
+
+    #[ORM\Column]
+    private ?\DateTimeImmutable $updated_at = null;
 
     public function getId(): ?int
     {
@@ -120,6 +135,30 @@ class ContactAddress
     public function setWeight(?int $weight): static
     {
         $this->weight = $weight;
+
+        return $this;
+    }
+
+    public function getCreatedAt(): ?\DateTimeImmutable
+    {
+        return $this->created_at;
+    }
+
+    public function setCreatedAt(\DateTimeImmutable $created_at): static
+    {
+        $this->created_at = $created_at;
+
+        return $this;
+    }
+
+    public function getUpdatedAt(): ?\DateTimeImmutable
+    {
+        return $this->updated_at;
+    }
+
+    public function setUpdatedAt(\DateTimeImmutable $updated_at): static
+    {
+        $this->updated_at = $updated_at;
 
         return $this;
     }

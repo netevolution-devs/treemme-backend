@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ProductRepository::class)]
 class Product
@@ -14,71 +15,98 @@ class Product
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['product_list', 'product_detail', 'supplier_detail', 'product_type_detail', 'measurement_unit_detail', 'color_detail', 'material_bill_list', 'material_bill_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 50, nullable: true)]
+    #[Groups(['product_list', 'product_detail', 'supplier_detail', 'product_type_detail', 'measurement_unit_detail', 'color_detail', 'material_bill_list', 'material_bill_detail'])]
     private ?string $product_code = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['product_list', 'product_detail', 'supplier_detail', 'product_type_detail', 'measurement_unit_detail', 'color_detail', 'material_bill_list', 'material_bill_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['product_list', 'product_detail'])]
     private ?string $internal_name = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['product_list', 'product_detail'])]
     private ?string $external_name = null;
 
     #[ORM\Column(length: 50, nullable: true)]
+    #[Groups(['product_list', 'product_detail'])]
     private ?string $vendor_code = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['product_detail'])]
     private ?string $product_note = null;
 
     #[ORM\Column]
+    #[Groups(['product_list', 'product_detail'])]
     private ?bool $exclude_mrp = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['product_list', 'product_detail'])]
     private ?int $alarm = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['product_list', 'product_detail'])]
     private ?float $stock = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['product_list', 'product_detail'])]
     private ?float $weight = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['product_list', 'product_detail'])]
     private ?float $thickness = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['product_list', 'product_detail'])]
     private ?float $use_coefficient = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['product_list', 'product_detail'])]
     private ?float $bill_of_material_quantity = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['product_detail'])]
     private ?float $last_cost = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['product_detail'])]
     private ?float $last_price = null;
 
     #[ORM\ManyToOne(inversedBy: 'products')]
+    #[Groups(['product_list', 'product_detail'])]
     private ?ProductType $product_type = null;
 
     #[ORM\ManyToOne(inversedBy: 'products')]
+    #[Groups(['product_list', 'product_detail'])]
     private ?Supplier $supplier = null;
 
     #[ORM\ManyToOne(inversedBy: 'products')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['product_list', 'product_detail'])]
     private ?MeasurementUnit $measurement_unit = null;
 
     #[ORM\ManyToOne(inversedBy: 'products')]
+    #[Groups(['product_list', 'product_detail'])]
     private ?Color $color = null;
 
     /**
      * @var Collection<int, MaterialBill>
      */
     #[ORM\OneToMany(mappedBy: 'product', targetEntity: MaterialBill::class)]
+    #[Groups(['product_detail'])]
     private Collection $materialBills;
+
+    #[ORM\Column]
+    private ?\DateTimeImmutable $created_at = null;
+
+    #[ORM\Column]
+    private ?\DateTimeImmutable $updated_at = null;
 
     public function __construct()
     {
@@ -344,6 +372,30 @@ class Product
                 $materialBill->setProduct(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getCreatedAt(): ?\DateTimeImmutable
+    {
+        return $this->created_at;
+    }
+
+    public function setCreatedAt(\DateTimeImmutable $created_at): static
+    {
+        $this->created_at = $created_at;
+
+        return $this;
+    }
+
+    public function getUpdatedAt(): ?\DateTimeImmutable
+    {
+        return $this->updated_at;
+    }
+
+    public function setUpdatedAt(\DateTimeImmutable $updated_at): static
+    {
+        $this->updated_at = $updated_at;
 
         return $this;
     }

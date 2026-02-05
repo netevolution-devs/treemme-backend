@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: GroupRepository::class)]
 #[ORM\Table(name: '`group`')]
@@ -15,12 +16,15 @@ class Group
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['group_list','group_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['group_list','group_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['group_list','group_detail'])]
     private ?string $description = null;
 
     #[ORM\Column]
@@ -33,6 +37,7 @@ class Group
      * @var Collection<int, GroupUser>
      */
     #[ORM\OneToMany(mappedBy: 'groupp', targetEntity: GroupUser::class, orphanRemoval: true)]
+    #[Groups(['group_list','group_detail'])]
     private Collection $groupUsers;
 
     public function __construct()

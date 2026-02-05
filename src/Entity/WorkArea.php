@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\WorkAreaRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: WorkAreaRepository::class)]
 class WorkArea
@@ -12,12 +13,15 @@ class WorkArea
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['work_area_list','work_area_detail','group_role_work_area_list','group_role_work_area_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['work_area_list','work_area_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['work_area_detail'])]
     private ?string $description = null;
 
     #[ORM\Column]

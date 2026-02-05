@@ -6,6 +6,7 @@ use App\Repository\ProductTypeRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ProductTypeRepository::class)]
 class ProductType
@@ -13,19 +14,29 @@ class ProductType
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['product_type_list', 'product_type_detail', 'product_list', 'product_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['product_type_list', 'product_type_detail', 'product_list', 'product_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 50)]
+    #[Groups(['product_type_list', 'product_type_detail', 'product_list', 'product_detail'])]
     private ?string $code = null;
 
     /**
      * @var Collection<int, Product>
      */
     #[ORM\OneToMany(mappedBy: 'product_type', targetEntity: Product::class)]
+    #[Groups(['product_type_detail'])]
     private Collection $products;
+
+    #[ORM\Column]
+    private ?\DateTimeImmutable $created_at = null;
+
+    #[ORM\Column]
+    private ?\DateTimeImmutable $updated_at = null;
 
     public function __construct()
     {
@@ -87,6 +98,30 @@ class ProductType
                 $product->setProductType(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getCreatedAt(): ?\DateTimeImmutable
+    {
+        return $this->created_at;
+    }
+
+    public function setCreatedAt(\DateTimeImmutable $created_at): static
+    {
+        $this->created_at = $created_at;
+
+        return $this;
+    }
+
+    public function getUpdatedAt(): ?\DateTimeImmutable
+    {
+        return $this->updated_at;
+    }
+
+    public function setUpdatedAt(\DateTimeImmutable $updated_at): static
+    {
+        $this->updated_at = $updated_at;
 
         return $this;
     }

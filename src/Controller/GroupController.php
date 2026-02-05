@@ -58,7 +58,7 @@ final class GroupController extends AbstractController
             $group = $groupRepository->findBy([], ['id' => 'DESC']);
         }
 
-        $results = $this->groupSerializer->serializeGroup($group, 'list');
+        $results = $this->groupSerializer->serializeGroup($group, $id ? 'group_detail' : 'group_list');
 
         if ($id) {
             return new JsonResponse($this->doResponse->doResponse($results[0]));
@@ -100,7 +100,7 @@ final class GroupController extends AbstractController
             $em->persist($group);
             $em->flush();
 
-            $result = $this->groupSerializer->serializeGroup($group, 'detail');
+            $result = $this->groupSerializer->serializeGroup($group, 'group_detail');
 
             return new JsonResponse($this->doResponse->doResponse($result));
 
@@ -141,7 +141,7 @@ final class GroupController extends AbstractController
         $em->persist($group);
         $em->flush();
 
-        $result = $this->groupSerializer->serializeGroup($group, 'detail');
+        $result = $this->groupSerializer->serializeGroup($group, 'group_detail');
 
         return new JsonResponse($this->doResponse->doResponse($result));
     }

@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Repository\GroupRoleWorkAreaRepository;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: GroupRoleWorkAreaRepository::class)]
 class GroupRoleWorkArea
@@ -11,18 +12,22 @@ class GroupRoleWorkArea
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['group_role_work_area_list', 'group_role_work_area_detail', 'group_detail'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['group_role_work_area_list', 'group_role_work_area_detail'])]
     private ?Group $groupp = null;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['group_role_work_area_list', 'group_role_work_area_detail', 'group_detail'])]
     private ?Role $role = null;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['group_role_work_area_list', 'group_role_work_area_detail', 'group_detail'])]
     private ?WorkArea $workArea = null;
 
     #[ORM\Column]

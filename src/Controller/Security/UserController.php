@@ -110,7 +110,7 @@ class UserController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse('indirizzo email già esistente',$e->getFile()));
         }
 
-        $actionLoggerService->logAction('add_new_user', $this->groupSerializer->serializeGroup($user, 'detail'));
+        $actionLoggerService->logAction('add_new_user', $this->groupSerializer->serializeGroup($user, 'user_detail'));
 
         return new JsonResponse($this->doResponse->doResponse(['id' => $user->getId()]));
     }
@@ -120,6 +120,6 @@ class UserController extends AbstractController
     {
         $user = $this->userService->getCurrentUser();
 
-        return new JsonResponse($this->doResponse->doResponse($this->groupSerializer->serializeGroup($user,'detail')));
+        return new JsonResponse($this->doResponse->doResponse($this->groupSerializer->serializeGroup($user,'user_detail')));
     }
 }

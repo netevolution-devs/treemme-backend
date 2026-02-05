@@ -2,7 +2,7 @@
 
 namespace App\Controller;
 
-use App\Entity\WorkArea;
+use App\Entity\ContactType;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -15,7 +15,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-class WorkAreaController extends AbstractController
+final class ContactTypeController extends AbstractController
 {
     public function __construct(
         CreateMethodsByInput     $createMethodsByInput,
@@ -32,59 +32,55 @@ class WorkAreaController extends AbstractController
         $this->validatorOutputFormatter = $validatorOutputFormatter;
     }
 
-    #[Route('/work/area/{id}',
-        name: 'get_work_area',
+    #[Route('/contact-type/{id}',
+        name: 'get_contact_type',
         defaults: ['id' => null],
         requirements: ['id' => '\d*'],
         methods: ['GET', 'HEAD'])]
-    public function getWorkArea(
+    public function getContactType(
         ?int            $id,
     ): JsonResponse
     {
+        $contactTypeRepository = $this->doctrine->getRepository(ContactType::class);
 
-        $workAreaRepository = $this->doctrine
-            ->getRepository(WorkArea::class);
-        
-        if ($id) {
-            $workArea = [$workAreaRepository->find($id)];
-            if (!$workArea[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('WorkArea not found', '404'));
+        if($id) {
+            $contactType = [$contactTypeRepository->find($id)];
+            if (!$contactType[0]) {
+                return new JsonResponse($this->doResponse->doErrorResponse('ContactType not found', 404));
             }
         } else {
-            $workArea = $workAreaRepository->findBy([], ['id' => 'DESC']);
+            $contactType = $contactTypeRepository->findBy([], ['id' => 'DESC']);
         }
-
-        $results = $this->groupSerializer->serializeGroup($workArea, $id ? 'work_area_detail' : 'work_area_list');
+        $results = $this->groupSerializer->serializeGroup($contactType, $id ? 'contact_type_detail' : 'contact_type_list');
 
         if ($id) {
             return new JsonResponse($this->doResponse->doResponse($results[0]));
-        } else {
-            return new JsonResponse($this->doResponse->doResponse($results));
         }
+        return new JsonResponse($this->doResponse->doResponse($results));
     }
 
-    #[Route('/backoffice/work/area',
-        name: 'post_work_area',
+    #[Route('/contact-type',
+        name: 'post_contact_type',
         methods: ['POST'])]
-    public function AddWorkArea(
+    public function postContactType(
         Request            $request,
         ValidatorInterface $validator,
     ): JsonResponse
     {
         $data = $request->request->all();
 
-        $workArea = new WorkArea();
+        $contactType = new ContactType();
 
         try {
 
-            $workArea = $this->createMethodsByInput->createMethods($workArea, $data);
+            $contactType = $this->createMethodsByInput->createMethods($contactType, $data);
 
             $now = new \DateTimeImmutable();
 
-            $workArea->setCreatedAt($now);
-            $workArea->setUpdatedAt($now);
+            $contactType->setCreatedAt($now);
+            $contactType->setUpdatedAt($now);
 
-            $errors = $validator->validate($workArea);
+            $errors = $validator->validate($contactType);
 
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
@@ -93,10 +89,10 @@ class WorkAreaController extends AbstractController
             }
 
             $em = $this->doctrine;
-            $em->persist($workArea);
+            $em->persist($contactType);
             $em->flush();
 
-            $result = $this->groupSerializer->serializeGroup($workArea, 'work_area_detail');
+            $result = $this->groupSerializer->serializeGroup($contactType, 'contact_type_detail');
 
             return new JsonResponse($this->doResponse->doResponse($result));
 
@@ -104,10 +100,10 @@ class WorkAreaController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
         }
     }
-    #[Route('/backoffice/work/area/{id}',
-        name: 'put_work_area',
+    #[Route('/contact-type/{id}',
+        name: 'put_contact_type',
         methods: ['PUT'])]
-    public function modifyWorkArea(
+    public function modifyContactType(
         Request            $request,
         ValidatorInterface $validator,
         int                $id
@@ -115,48 +111,43 @@ class WorkAreaController extends AbstractController
     {
         $data = $request->toArray();
 
-        $workArea = $this->doctrine->getRepository(WorkArea::class)->find($id);
-
-        if (!$workArea) {
-            return new JsonResponse($this->doResponse->doErrorResponse('WorkArea not found', 404));
+        $contactType = $this->doctrine->getRepository(ContactType::class)->find($id);
+        if (!$contactType) {
+            return new JsonResponse($this->doResponse->doErrorResponse('ContactType not found', 404));
         }
 
-        $workArea = $this->createMethodsByInput->createMethods($workArea, $data);
+        $contactType = $this->createMethodsByInput->createMethods($contactType, $data);
 
         $now = new \DateTimeImmutable();
 
-        $workArea->setUpdatedAt($now);
+        $contactType->setUpdatedAt($now);
 
-        $errors = $validator->validate($workArea);
+        $errors = $validator->validate($contactType);
+
         if (count($errors) > 0) {
             $errors = $this->validatorOutputFormatter->formatOutput($errors);
+
             return new JsonResponse($this->doResponse->doErrorResponse($errors));
         }
+        $this->doctrine->persist($contactType);
+        $this->doctrine->flush();
 
-        $em = $this->doctrine;
-        $em->persist($workArea);
-        $em->flush();
-
-        $result = $this->groupSerializer->serializeGroup($workArea, 'work_area_detail');
+        $result = $this->groupSerializer->serializeGroup($contactType, 'contact_type_detail');
 
         return new JsonResponse($this->doResponse->doResponse($result));
     }
-    #[Route('/backoffice/work/area/{id}',
-        name: 'delete_work_area',
-        methods: ['DELETE'])]
-    public function deleteWorkArea(
-        int $id
-    ): JsonResponse
-    {
-        $workArea = $this->doctrine->getRepository(WorkArea::class)->find($id);
 
-        if (!$workArea) {
-            return new JsonResponse($this->doResponse->doErrorResponse('WorkArea not found', 404));
+    #[Route('/contact-type/{id}',
+        name: 'delete_contact_type',
+        methods: ['DELETE'])]
+    public function deleteContactType(int $id): Response
+    {
+        $contactType = $this->doctrine->getRepository(ContactType::class)->find($id);
+        if (!$contactType) {
+            return new JsonResponse($this->doResponse->doErrorResponse('ContactType not found', 404));
         }
 
-        $em = $this->doctrine;
-        $em->remove($workArea);
-        $em->flush();
+        $this->doctrine->remove($contactType);
 
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
     }

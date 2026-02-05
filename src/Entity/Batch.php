@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\BatchRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: BatchRepository::class)]
 class Batch
@@ -12,64 +13,90 @@ class Batch
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['batch_list', 'batch_detail', 'batch_type_detail', 'measurement_unit_detail', 'user_detail'])]
     private ?int $id = null;
 
     #[ORM\Column]
+    #[Groups(['batch_list', 'batch_detail'])]
     private ?bool $completed = null;
 
     #[ORM\Column]
+    #[Groups(['batch_list', 'batch_detail'])]
     private ?bool $checked = null;
 
     #[ORM\ManyToOne(inversedBy: 'batches')]
+    #[Groups(['batch_list', 'batch_detail'])]
     private ?BatchType $batch_type = null;
 
     #[ORM\Column(length: 50)]
+    #[Groups(['batch_list', 'batch_detail'])]
     private ?string $batch_code = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['batch_list', 'batch_detail'])]
     private ?\DateTime $batch_date = null;
 
     #[ORM\Column]
+    #[Groups(['batch_list', 'batch_detail'])]
     private ?int $pieces = null;
 
     #[ORM\ManyToOne(inversedBy: 'batches')]
+    #[Groups(['batch_list', 'batch_detail'])]
     private ?MeasurementUnit $measurement_unit = null;
 
     #[ORM\Column]
+    #[Groups(['batch_list', 'batch_detail'])]
     private ?float $quantity = null;
 
     #[ORM\Column]
+    #[Groups(['batch_list', 'batch_detail'])]
     private ?float $stock_items = null;
 
     #[ORM\Column]
+    #[Groups(['batch_list', 'batch_detail'])]
     private ?float $storage = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['batch_detail'])]
     private ?string $selection_note = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['batch_detail'])]
     private ?string $batch_note = null;
 
     #[ORM\Column]
+    #[Groups(['batch_list', 'batch_detail'])]
     private ?bool $sampling = null;
 
     #[ORM\Column]
+    #[Groups(['batch_list', 'batch_detail'])]
     private ?bool $split_selected = null;
 
     #[ORM\Column]
+    #[Groups(['batch_list', 'batch_detail'])]
     private ?float $sq_ft_avarage_expected = null;
 
     #[ORM\Column]
+    #[Groups(['batch_list', 'batch_detail'])]
     private ?float $sq_ft_avarage_found = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['batch_detail'])]
     private ?\DateTime $check_date = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['batch_detail'])]
     private ?string $check_note = null;
 
     #[ORM\ManyToOne(inversedBy: 'batches')]
+    #[Groups(['batch_detail'])]
     private ?User $check_user = null;
+
+    #[ORM\Column]
+    private ?\DateTimeImmutable $created_at = null;
+
+    #[ORM\Column]
+    private ?\DateTimeImmutable $updated_at = null;
 
 
     public function getId(): ?int
@@ -301,6 +328,30 @@ class Batch
     public function setCheckUser(?User $check_user): static
     {
         $this->check_user = $check_user;
+
+        return $this;
+    }
+
+    public function getCreatedAt(): ?\DateTimeImmutable
+    {
+        return $this->created_at;
+    }
+
+    public function setCreatedAt(\DateTimeImmutable $created_at): static
+    {
+        $this->created_at = $created_at;
+
+        return $this;
+    }
+
+    public function getUpdatedAt(): ?\DateTimeImmutable
+    {
+        return $this->updated_at;
+    }
+
+    public function setUpdatedAt(\DateTimeImmutable $updated_at): static
+    {
+        $this->updated_at = $updated_at;
 
         return $this;
     }

@@ -18,11 +18,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['list','detail'])]
+    #[Groups(['user_list','user_detail','group_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 180, unique: true)]
-    #[Groups(['list','detail'])]
+    #[Groups(['user_list','user_detail','group_detail'])]
     private ?string $email = null;
 
     #[ORM\Column(length: 255, nullable: true)]
@@ -35,7 +35,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?\DateTimeImmutable $totpEnabledAt = null;
 
     #[ORM\Column]
-    #[Groups(['list','detail'])]
+    #[Groups(['user_list','user_detail'])]
     private array $roles = [];
 
     /**
@@ -45,9 +45,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $password = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['user_list','user_detail','group_detail'])]
     private ?string $user_code = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['user_list','user_detail','group_detail'])]
     private ?\DateTimeImmutable $last_access = null;
 
     /**
