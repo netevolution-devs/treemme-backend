@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\ProductRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -61,6 +63,27 @@ class Product
 
     #[ORM\ManyToOne(inversedBy: 'products')]
     private ?ProductType $product_type = null;
+
+    #[ORM\ManyToOne(inversedBy: 'products')]
+    private ?Supplier $supplier = null;
+
+    #[ORM\ManyToOne(inversedBy: 'products')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?MeasurementUnit $measurement_unit = null;
+
+    #[ORM\ManyToOne(inversedBy: 'products')]
+    private ?Color $color = null;
+
+    /**
+     * @var Collection<int, MaterialBill>
+     */
+    #[ORM\OneToMany(mappedBy: 'product', targetEntity: MaterialBill::class)]
+    private Collection $materialBills;
+
+    public function __construct()
+    {
+        $this->materialBills = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -255,6 +278,72 @@ class Product
     public function setProductType(?ProductType $product_type): static
     {
         $this->product_type = $product_type;
+
+        return $this;
+    }
+
+    public function getSupplier(): ?Supplier
+    {
+        return $this->supplier;
+    }
+
+    public function setSupplier(?Supplier $supplier): static
+    {
+        $this->supplier = $supplier;
+
+        return $this;
+    }
+
+    public function getMeasurementUnit(): ?MeasurementUnit
+    {
+        return $this->measurement_unit;
+    }
+
+    public function setMeasurementUnit(?MeasurementUnit $measurement_unit): static
+    {
+        $this->measurement_unit = $measurement_unit;
+
+        return $this;
+    }
+
+    public function getColor(): ?Color
+    {
+        return $this->color;
+    }
+
+    public function setColor(?Color $color): static
+    {
+        $this->color = $color;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, MaterialBill>
+     */
+    public function getMaterialBills(): Collection
+    {
+        return $this->materialBills;
+    }
+
+    public function addMaterialBill(MaterialBill $materialBill): static
+    {
+        if (!$this->materialBills->contains($materialBill)) {
+            $this->materialBills->add($materialBill);
+            $materialBill->setProduct($this);
+        }
+
+        return $this;
+    }
+
+    public function removeMaterialBill(MaterialBill $materialBill): static
+    {
+        if ($this->materialBills->removeElement($materialBill)) {
+            // set the owning side to null (unless already changed)
+            if ($materialBill->getProduct() === $this) {
+                $materialBill->setProduct(null);
+            }
+        }
 
         return $this;
     }
