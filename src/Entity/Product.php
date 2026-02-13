@@ -114,6 +114,12 @@ class Product
     #[ORM\OneToMany(mappedBy: 'product', targetEntity: ClientOrderRow::class)]
     private Collection $clientOrderRows;
 
+    #[ORM\ManyToOne(inversedBy: 'weightProducts')]
+    private ?MeasurementUnit $weight_measurement_unit = null;
+
+    #[ORM\ManyToOne(inversedBy: 'thicknessProducts')]
+    private ?MeasurementUnit $thickness_measurement_unit = null;
+
     public function __construct()
     {
         $this->materialBills = new ArrayCollection();
@@ -433,6 +439,30 @@ class Product
                 $clientOrderRow->setProduct(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getWeightMeasurementUnit(): ?MeasurementUnit
+    {
+        return $this->weight_measurement_unit;
+    }
+
+    public function setWeightMeasurementUnit(?MeasurementUnit $weight_measurement_unit): static
+    {
+        $this->weight_measurement_unit = $weight_measurement_unit;
+
+        return $this;
+    }
+
+    public function getThicknessMeasurementUnit(): ?MeasurementUnit
+    {
+        return $this->thickness_measurement_unit;
+    }
+
+    public function setThicknessMeasurementUnit(?MeasurementUnit $thickness_measurement_unit): static
+    {
+        $this->thickness_measurement_unit = $thickness_measurement_unit;
 
         return $this;
     }

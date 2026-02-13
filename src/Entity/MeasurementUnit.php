@@ -51,11 +51,25 @@ class MeasurementUnit
     #[ORM\OneToMany(mappedBy: 'measurement_unit', targetEntity: ClientOrderRow::class)]
     private Collection $clientOrderRows;
 
+    /**
+     * @var Collection<int, Product>
+     */
+    #[ORM\OneToMany(mappedBy: 'weight_measurement_unit', targetEntity: Product::class)]
+    private Collection $weightProducts;
+
+    /**
+     * @var Collection<int, Product>
+     */
+    #[ORM\OneToMany(mappedBy: 'thickness_measurement_unit', targetEntity: Product::class)]
+    private Collection $thicknessProducts;
+
     public function __construct()
     {
         $this->batches = new ArrayCollection();
         $this->products = new ArrayCollection();
         $this->clientOrderRows = new ArrayCollection();
+        $this->weightProducts = new ArrayCollection();
+        $this->thicknessProducts = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -195,6 +209,66 @@ class MeasurementUnit
             // set the owning side to null (unless already changed)
             if ($clientOrderRow->getMeasurementUnit() === $this) {
                 $clientOrderRow->setMeasurementUnit(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Product>
+     */
+    public function getWeightProducts(): Collection
+    {
+        return $this->weightProducts;
+    }
+
+    public function addWeightProduct(Product $weightProduct): static
+    {
+        if (!$this->weightProducts->contains($weightProduct)) {
+            $this->weightProducts->add($weightProduct);
+            $weightProduct->setWeightMeasurementUnit($this);
+        }
+
+        return $this;
+    }
+
+    public function removeWeightProduct(Product $weightProduct): static
+    {
+        if ($this->weightProducts->removeElement($weightProduct)) {
+            // set the owning side to null (unless already changed)
+            if ($weightProduct->getWeightMeasurementUnit() === $this) {
+                $weightProduct->setWeightMeasurementUnit(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Product>
+     */
+    public function getThicknessProducts(): Collection
+    {
+        return $this->thicknessProducts;
+    }
+
+    public function addThicknessProduct(Product $thicknessProduct): static
+    {
+        if (!$this->thicknessProducts->contains($thicknessProduct)) {
+            $this->thicknessProducts->add($thicknessProduct);
+            $thicknessProduct->setThicknessMeasurementUnit($this);
+        }
+
+        return $this;
+    }
+
+    public function removeThicknessProduct(Product $thicknessProduct): static
+    {
+        if ($this->thicknessProducts->removeElement($thicknessProduct)) {
+            // set the owning side to null (unless already changed)
+            if ($thicknessProduct->getThicknessMeasurementUnit() === $this) {
+                $thicknessProduct->setThicknessMeasurementUnit(null);
             }
         }
 
