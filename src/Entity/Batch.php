@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\BatchRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\Serializer\Annotation\Groups;
@@ -97,6 +99,31 @@ class Batch
 
     #[ORM\Column]
     private ?\DateTimeImmutable $updated_at = null;
+
+    /**
+     * @var Collection<int, BatchCost>
+     */
+    #[ORM\OneToMany(mappedBy: 'batch', targetEntity: BatchCost::class, orphanRemoval: true)]
+    private Collection $batchCosts;
+
+    /**
+     * @var Collection<int, BatchComposition>
+     */
+    #[ORM\OneToMany(mappedBy: 'batch', targetEntity: BatchComposition::class, orphanRemoval: true)]
+    private Collection $batchCompositions;
+
+    /**
+     * @var Collection<int, BatchComposition>
+     */
+    #[ORM\OneToMany(mappedBy: 'father_batch', targetEntity: BatchComposition::class)]
+    private Collection $sonBatches;
+
+    public function __construct()
+    {
+        $this->batchCosts = new ArrayCollection();
+        $this->batchCompositions = new ArrayCollection();
+        $this->sonBatches = new ArrayCollection();
+    }
 
 
     public function getId(): ?int
@@ -352,6 +379,96 @@ class Batch
     public function setUpdatedAt(\DateTimeImmutable $updated_at): static
     {
         $this->updated_at = $updated_at;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, BatchCost>
+     */
+    public function getBatchCosts(): Collection
+    {
+        return $this->batchCosts;
+    }
+
+    public function addBatchCost(BatchCost $batchCost): static
+    {
+        if (!$this->batchCosts->contains($batchCost)) {
+            $this->batchCosts->add($batchCost);
+            $batchCost->setBatch($this);
+        }
+
+        return $this;
+    }
+
+    public function removeBatchCost(BatchCost $batchCost): static
+    {
+        if ($this->batchCosts->removeElement($batchCost)) {
+            // set the owning side to null (unless already changed)
+            if ($batchCost->getBatch() === $this) {
+                $batchCost->setBatch(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, BatchComposition>
+     */
+    public function getBatchCompositions(): Collection
+    {
+        return $this->batchCompositions;
+    }
+
+    public function addBatchComposition(BatchComposition $batchComposition): static
+    {
+        if (!$this->batchCompositions->contains($batchComposition)) {
+            $this->batchCompositions->add($batchComposition);
+            $batchComposition->setBatch($this);
+        }
+
+        return $this;
+    }
+
+    public function removeBatchComposition(BatchComposition $batchComposition): static
+    {
+        if ($this->batchCompositions->removeElement($batchComposition)) {
+            // set the owning side to null (unless already changed)
+            if ($batchComposition->getBatch() === $this) {
+                $batchComposition->setBatch(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, BatchComposition>
+     */
+    public function getSonBatches(): Collection
+    {
+        return $this->sonBatches;
+    }
+
+    public function addSonBatch(BatchComposition $sonBatch): static
+    {
+        if (!$this->sonBatches->contains($sonBatch)) {
+            $this->sonBatches->add($sonBatch);
+            $sonBatch->setFatherBatch($this);
+        }
+
+        return $this;
+    }
+
+    public function removeSonBatch(BatchComposition $sonBatch): static
+    {
+        if ($this->sonBatches->removeElement($sonBatch)) {
+            // set the owning side to null (unless already changed)
+            if ($sonBatch->getFatherBatch() === $this) {
+                $sonBatch->setFatherBatch(null);
+            }
+        }
 
         return $this;
     }

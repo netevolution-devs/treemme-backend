@@ -45,10 +45,17 @@ class MeasurementUnit
     #[ORM\Column]
     private ?\DateTimeImmutable $updated_at = null;
 
+    /**
+     * @var Collection<int, ClientOrderRow>
+     */
+    #[ORM\OneToMany(mappedBy: 'measurement_unit', targetEntity: ClientOrderRow::class)]
+    private Collection $clientOrderRows;
+
     public function __construct()
     {
         $this->batches = new ArrayCollection();
         $this->products = new ArrayCollection();
+        $this->clientOrderRows = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -160,6 +167,36 @@ class MeasurementUnit
     public function setUpdatedAt(\DateTimeImmutable $updated_at): static
     {
         $this->updated_at = $updated_at;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ClientOrderRow>
+     */
+    public function getClientOrderRows(): Collection
+    {
+        return $this->clientOrderRows;
+    }
+
+    public function addClientOrderRow(ClientOrderRow $clientOrderRow): static
+    {
+        if (!$this->clientOrderRows->contains($clientOrderRow)) {
+            $this->clientOrderRows->add($clientOrderRow);
+            $clientOrderRow->setMeasurementUnit($this);
+        }
+
+        return $this;
+    }
+
+    public function removeClientOrderRow(ClientOrderRow $clientOrderRow): static
+    {
+        if ($this->clientOrderRows->removeElement($clientOrderRow)) {
+            // set the owning side to null (unless already changed)
+            if ($clientOrderRow->getMeasurementUnit() === $this) {
+                $clientOrderRow->setMeasurementUnit(null);
+            }
+        }
 
         return $this;
     }

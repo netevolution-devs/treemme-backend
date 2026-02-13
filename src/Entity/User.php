@@ -64,10 +64,24 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(mappedBy: 'user', targetEntity: GroupUser::class, orphanRemoval: true)]
     private Collection $groupUsers;
 
+    /**
+     * @var Collection<int, Client>
+     */
+    #[ORM\OneToMany(mappedBy: 'check_user', targetEntity: Client::class)]
+    private Collection $clients;
+
+    /**
+     * @var Collection<int, ClientOrder>
+     */
+    #[ORM\OneToMany(mappedBy: 'check_user', targetEntity: ClientOrder::class)]
+    private Collection $clientOrders;
+
     public function __construct()
     {
         $this->batches = new ArrayCollection();
         $this->groupUsers = new ArrayCollection();
+        $this->clients = new ArrayCollection();
+        $this->clientOrders = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -248,6 +262,66 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             // set the owning side to null (unless already changed)
             if ($groupUser->getUser() === $this) {
                 $groupUser->setUser(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Client>
+     */
+    public function getClients(): Collection
+    {
+        return $this->clients;
+    }
+
+    public function addClient(Client $client): static
+    {
+        if (!$this->clients->contains($client)) {
+            $this->clients->add($client);
+            $client->setCheckUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeClient(Client $client): static
+    {
+        if ($this->clients->removeElement($client)) {
+            // set the owning side to null (unless already changed)
+            if ($client->getCheckUser() === $this) {
+                $client->setCheckUser(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ClientOrder>
+     */
+    public function getClientOrders(): Collection
+    {
+        return $this->clientOrders;
+    }
+
+    public function addClientOrder(ClientOrder $clientOrder): static
+    {
+        if (!$this->clientOrders->contains($clientOrder)) {
+            $this->clientOrders->add($clientOrder);
+            $clientOrder->setCheckUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeClientOrder(ClientOrder $clientOrder): static
+    {
+        if ($this->clientOrders->removeElement($clientOrder)) {
+            // set the owning side to null (unless already changed)
+            if ($clientOrder->getCheckUser() === $this) {
+                $clientOrder->setCheckUser(null);
             }
         }
 
