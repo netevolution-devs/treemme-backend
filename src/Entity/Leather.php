@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\LeatherRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: LeatherRepository::class)]
@@ -53,7 +55,50 @@ class Leather
     private ?float $crust_revenue_expected = null;
 
     #[ORM\ManyToOne(inversedBy: 'leather')]
+    #[ORM\JoinColumn(nullable: false)]
     private ?LeatherWeight $weight = null;
+
+    #[ORM\ManyToOne(inversedBy: 'leather')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?LeatherSpecies $species = null;
+
+    #[ORM\ManyToOne(inversedBy: 'leather')]
+    private ?Contact $contact = null;
+
+    #[ORM\ManyToOne(inversedBy: 'leather')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?LeatherThickness $thickness = null;
+
+    #[ORM\ManyToOne(inversedBy: 'leather')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Supplier $supplier = null;
+
+    #[ORM\ManyToOne(inversedBy: 'leather')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?LeatherFlay $flay = null;
+
+    #[ORM\ManyToOne(inversedBy: 'leather')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?LeatherProvenance $provenance = null;
+
+    #[ORM\ManyToOne(inversedBy: 'leather')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?LeatherType $type = null;
+
+    #[ORM\ManyToOne(inversedBy: 'leather')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?LeatherStatus $status = null;
+
+    /**
+     * @var Collection<int, Batch>
+     */
+    #[ORM\OneToMany(mappedBy: 'leather', targetEntity: Batch::class, orphanRemoval: true)]
+    private Collection $batches;
+
+    public function __construct()
+    {
+        $this->batches = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -224,6 +269,132 @@ class Leather
     public function setWeight(?LeatherWeight $weight): static
     {
         $this->weight = $weight;
+
+        return $this;
+    }
+
+    public function getSpecies(): ?LeatherSpecies
+    {
+        return $this->species;
+    }
+
+    public function setSpecies(?LeatherSpecies $species): static
+    {
+        $this->species = $species;
+
+        return $this;
+    }
+
+    public function getContact(): ?Contact
+    {
+        return $this->contact;
+    }
+
+    public function setContact(?Contact $contact): static
+    {
+        $this->contact = $contact;
+
+        return $this;
+    }
+
+    public function getThickness(): ?LeatherThickness
+    {
+        return $this->thickness;
+    }
+
+    public function setThickness(?LeatherThickness $thickness): static
+    {
+        $this->thickness = $thickness;
+
+        return $this;
+    }
+
+    public function getSupplier(): ?Supplier
+    {
+        return $this->supplier;
+    }
+
+    public function setSupplier(?Supplier $supplier): static
+    {
+        $this->supplier = $supplier;
+
+        return $this;
+    }
+
+    public function getFlay(): ?LeatherFlay
+    {
+        return $this->flay;
+    }
+
+    public function setFlay(?LeatherFlay $flay): static
+    {
+        $this->flay = $flay;
+
+        return $this;
+    }
+
+    public function getProvenance(): ?LeatherProvenance
+    {
+        return $this->provenance;
+    }
+
+    public function setProvenance(?LeatherProvenance $provenance): static
+    {
+        $this->provenance = $provenance;
+
+        return $this;
+    }
+
+    public function getType(): ?LeatherType
+    {
+        return $this->type;
+    }
+
+    public function setType(?LeatherType $type): static
+    {
+        $this->type = $type;
+
+        return $this;
+    }
+
+    public function getStatus(): ?LeatherStatus
+    {
+        return $this->status;
+    }
+
+    public function setStatus(?LeatherStatus $status): static
+    {
+        $this->status = $status;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Batch>
+     */
+    public function getBatches(): Collection
+    {
+        return $this->batches;
+    }
+
+    public function addBatch(Batch $batch): static
+    {
+        if (!$this->batches->contains($batch)) {
+            $this->batches->add($batch);
+            $batch->setLeather($this);
+        }
+
+        return $this;
+    }
+
+    public function removeBatch(Batch $batch): static
+    {
+        if ($this->batches->removeElement($batch)) {
+            // set the owning side to null (unless already changed)
+            if ($batch->getLeather() === $this) {
+                $batch->setLeather(null);
+            }
+        }
 
         return $this;
     }

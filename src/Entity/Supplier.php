@@ -38,9 +38,16 @@ class Supplier
     #[ORM\Column]
     private ?\DateTimeImmutable $updated_at = null;
 
+    /**
+     * @var Collection<int, Leather>
+     */
+    #[ORM\OneToMany(mappedBy: 'supplier', targetEntity: Leather::class)]
+    private Collection $leather;
+
     public function __construct()
     {
         $this->products = new ArrayCollection();
+        $this->leather = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -122,6 +129,36 @@ class Supplier
     public function setUpdatedAt(\DateTimeImmutable $updated_at): static
     {
         $this->updated_at = $updated_at;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Leather>
+     */
+    public function getLeather(): Collection
+    {
+        return $this->leather;
+    }
+
+    public function addLeather(Leather $leather): static
+    {
+        if (!$this->leather->contains($leather)) {
+            $this->leather->add($leather);
+            $leather->setSupplier($this);
+        }
+
+        return $this;
+    }
+
+    public function removeLeather(Leather $leather): static
+    {
+        if ($this->leather->removeElement($leather)) {
+            // set the owning side to null (unless already changed)
+            if ($leather->getSupplier() === $this) {
+                $leather->setSupplier(null);
+            }
+        }
 
         return $this;
     }

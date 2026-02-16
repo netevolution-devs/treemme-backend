@@ -118,6 +118,10 @@ class Batch
     #[ORM\OneToMany(mappedBy: 'father_batch', targetEntity: BatchComposition::class)]
     private Collection $sonBatches;
 
+    #[ORM\ManyToOne(inversedBy: 'batches')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Leather $leather = null;
+
     public function __construct()
     {
         $this->batchCosts = new ArrayCollection();
@@ -469,6 +473,18 @@ class Batch
                 $sonBatch->setFatherBatch(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getLeather(): ?Leather
+    {
+        return $this->leather;
+    }
+
+    public function setLeather(?Leather $leather): static
+    {
+        $this->leather = $leather;
 
         return $this;
     }

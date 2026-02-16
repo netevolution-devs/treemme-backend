@@ -27,9 +27,16 @@ class LeatherThickness
     #[ORM\OneToMany(mappedBy: 'thickness', targetEntity: LeatherType::class)]
     private Collection $leatherTypes;
 
+    /**
+     * @var Collection<int, Leather>
+     */
+    #[ORM\OneToMany(mappedBy: 'thickness', targetEntity: Leather::class)]
+    private Collection $leather;
+
     public function __construct()
     {
         $this->leatherTypes = new ArrayCollection();
+        $this->leather = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -85,6 +92,36 @@ class LeatherThickness
             // set the owning side to null (unless already changed)
             if ($leatherType->getThickness() === $this) {
                 $leatherType->setThickness(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Leather>
+     */
+    public function getLeather(): Collection
+    {
+        return $this->leather;
+    }
+
+    public function addLeather(Leather $leather): static
+    {
+        if (!$this->leather->contains($leather)) {
+            $this->leather->add($leather);
+            $leather->setThickness($this);
+        }
+
+        return $this;
+    }
+
+    public function removeLeather(Leather $leather): static
+    {
+        if ($this->leather->removeElement($leather)) {
+            // set the owning side to null (unless already changed)
+            if ($leather->getThickness() === $this) {
+                $leather->setThickness(null);
             }
         }
 

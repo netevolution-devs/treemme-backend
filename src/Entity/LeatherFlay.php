@@ -2,13 +2,13 @@
 
 namespace App\Entity;
 
-use App\Repository\NationRepository;
+use App\Repository\LeatherFlayRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity(repositoryClass: NationRepository::class)]
-class Nation
+#[ORM\Entity(repositoryClass: LeatherFlayRepository::class)]
+class LeatherFlay
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -18,21 +18,24 @@ class Nation
     #[ORM\Column(length: 255)]
     private ?string $name = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $code = null;
+
     /**
-     * @var Collection<int, ContactAddress>
+     * @var Collection<int, Leather>
      */
-    #[ORM\OneToMany(mappedBy: 'nation', targetEntity: ContactAddress::class)]
-    private Collection $contactAddress;
+    #[ORM\OneToMany(mappedBy: 'flay', targetEntity: Leather::class)]
+    private Collection $leather;
 
     /**
      * @var Collection<int, LeatherProvenance>
      */
-    #[ORM\OneToMany(mappedBy: 'nation', targetEntity: LeatherProvenance::class)]
+    #[ORM\OneToMany(mappedBy: 'flay', targetEntity: LeatherProvenance::class)]
     private Collection $leatherProvenances;
 
     public function __construct()
     {
-        $this->contactAddress = new ArrayCollection();
+        $this->leather = new ArrayCollection();
         $this->leatherProvenances = new ArrayCollection();
     }
 
@@ -53,30 +56,42 @@ class Nation
         return $this;
     }
 
-    /**
-     * @return Collection<int, ContactAddress>
-     */
-    public function getContactAddress(): Collection
+    public function getCode(): ?string
     {
-        return $this->contactAddress;
+        return $this->code;
     }
 
-    public function addContactAddress(ContactAddress $contactAddress): static
+    public function setCode(?string $code): static
     {
-        if (!$this->contactAddress->contains($contactAddress)) {
-            $this->contactAddress->add($contactAddress);
-            $contactAddress->setNation($this);
+        $this->code = $code;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Leather>
+     */
+    public function getLeather(): Collection
+    {
+        return $this->leather;
+    }
+
+    public function addLeather(Leather $leather): static
+    {
+        if (!$this->leather->contains($leather)) {
+            $this->leather->add($leather);
+            $leather->setFlay($this);
         }
 
         return $this;
     }
 
-    public function removeContactAddress(ContactAddress $contactAddress): static
+    public function removeLeather(Leather $leather): static
     {
-        if ($this->contactAddress->removeElement($contactAddress)) {
+        if ($this->leather->removeElement($leather)) {
             // set the owning side to null (unless already changed)
-            if ($contactAddress->getNation() === $this) {
-                $contactAddress->setNation(null);
+            if ($leather->getFlay() === $this) {
+                $leather->setFlay(null);
             }
         }
 
@@ -95,7 +110,7 @@ class Nation
     {
         if (!$this->leatherProvenances->contains($leatherProvenance)) {
             $this->leatherProvenances->add($leatherProvenance);
-            $leatherProvenance->setNation($this);
+            $leatherProvenance->setFlay($this);
         }
 
         return $this;
@@ -105,8 +120,8 @@ class Nation
     {
         if ($this->leatherProvenances->removeElement($leatherProvenance)) {
             // set the owning side to null (unless already changed)
-            if ($leatherProvenance->getNation() === $this) {
-                $leatherProvenance->setNation(null);
+            if ($leatherProvenance->getFlay() === $this) {
+                $leatherProvenance->setFlay(null);
             }
         }
 

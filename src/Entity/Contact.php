@@ -54,11 +54,18 @@ class Contact
     #[ORM\OneToMany(mappedBy: 'contact', targetEntity: Client::class)]
     private Collection $clients;
 
+    /**
+     * @var Collection<int, Leather>
+     */
+    #[ORM\OneToMany(mappedBy: 'contact', targetEntity: Leather::class)]
+    private Collection $leather;
+
     public function __construct()
     {
         $this->contactAddresses = new ArrayCollection();
         $this->suppliers = new ArrayCollection();
         $this->clients = new ArrayCollection();
+        $this->leather = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -210,6 +217,36 @@ class Contact
             // set the owning side to null (unless already changed)
             if ($client->getContact() === $this) {
                 $client->setContact(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Leather>
+     */
+    public function getLeather(): Collection
+    {
+        return $this->leather;
+    }
+
+    public function addLeather(Leather $leather): static
+    {
+        if (!$this->leather->contains($leather)) {
+            $this->leather->add($leather);
+            $leather->setContact($this);
+        }
+
+        return $this;
+    }
+
+    public function removeLeather(Leather $leather): static
+    {
+        if ($this->leather->removeElement($leather)) {
+            // set the owning side to null (unless already changed)
+            if ($leather->getContact() === $this) {
+                $leather->setContact(null);
             }
         }
 

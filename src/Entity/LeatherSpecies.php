@@ -2,13 +2,13 @@
 
 namespace App\Entity;
 
-use App\Repository\LeatherTypeRepository;
+use App\Repository\LeatherSpeciesRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity(repositoryClass: LeatherTypeRepository::class)]
-class LeatherType
+#[ORM\Entity(repositoryClass: LeatherSpeciesRepository::class)]
+class LeatherSpecies
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -21,13 +21,10 @@ class LeatherType
     #[ORM\Column(length: 255)]
     private ?string $code = null;
 
-    #[ORM\ManyToOne(inversedBy: 'leatherTypes')]
-    private ?LeatherThickness $thickness = null;
-
     /**
      * @var Collection<int, Leather>
      */
-    #[ORM\OneToMany(mappedBy: 'type', targetEntity: Leather::class)]
+    #[ORM\OneToMany(mappedBy: 'species', targetEntity: Leather::class)]
     private Collection $leather;
 
     public function __construct()
@@ -45,7 +42,7 @@ class LeatherType
         return $this->name;
     }
 
-    public function setName(?string $name): static
+    public function setName(string $name): static
     {
         $this->name = $name;
 
@@ -64,18 +61,6 @@ class LeatherType
         return $this;
     }
 
-    public function getThickness(): ?LeatherThickness
-    {
-        return $this->thickness;
-    }
-
-    public function setThickness(?LeatherThickness $thickness): static
-    {
-        $this->thickness = $thickness;
-
-        return $this;
-    }
-
     /**
      * @return Collection<int, Leather>
      */
@@ -88,7 +73,7 @@ class LeatherType
     {
         if (!$this->leather->contains($leather)) {
             $this->leather->add($leather);
-            $leather->setType($this);
+            $leather->setSpecies($this);
         }
 
         return $this;
@@ -98,8 +83,8 @@ class LeatherType
     {
         if ($this->leather->removeElement($leather)) {
             // set the owning side to null (unless already changed)
-            if ($leather->getType() === $this) {
-                $leather->setType(null);
+            if ($leather->getSpecies() === $this) {
+                $leather->setSpecies(null);
             }
         }
 

@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\LeatherStatusRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: LeatherStatusRepository::class)]
@@ -24,6 +26,17 @@ class LeatherStatus
 
     #[ORM\Column(nullable: true)]
     private ?float $flower_yield_coefficient = null;
+
+    /**
+     * @var Collection<int, Leather>
+     */
+    #[ORM\OneToMany(mappedBy: 'status', targetEntity: Leather::class, orphanRemoval: true)]
+    private Collection $leather;
+
+    public function __construct()
+    {
+        $this->leather = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -74,6 +87,36 @@ class LeatherStatus
     public function setFlowerYieldCoefficient(?float $flower_yield_coefficient): static
     {
         $this->flower_yield_coefficient = $flower_yield_coefficient;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Leather>
+     */
+    public function getLeather(): Collection
+    {
+        return $this->leather;
+    }
+
+    public function addLeather(Leather $leather): static
+    {
+        if (!$this->leather->contains($leather)) {
+            $this->leather->add($leather);
+            $leather->setStatus($this);
+        }
+
+        return $this;
+    }
+
+    public function removeLeather(Leather $leather): static
+    {
+        if ($this->leather->removeElement($leather)) {
+            // set the owning side to null (unless already changed)
+            if ($leather->getStatus() === $this) {
+                $leather->setStatus(null);
+            }
+        }
 
         return $this;
     }
