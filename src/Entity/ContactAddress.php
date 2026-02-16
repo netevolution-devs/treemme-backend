@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\ContactAddressRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\Serializer\Annotation\Groups;
 
@@ -22,21 +23,21 @@ class ContactAddress
     #[Groups(['contact_address_list', 'contact_address_detail'])]
     private ?Contact $contact = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
     #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail'])]
-    private ?string $address_1 = null;
+    private ?string $address_note = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail'])]
-    private ?string $address_2 = null;
-
-    #[ORM\Column(length: 255)]
-    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail'])]
-    private ?string $address_3 = null;
+    private ?string $address = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail'])]
-    private ?string $address_4 = null;
+    private ?string $city = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail'])]
+    private ?string $province = null;
 
     #[ORM\Column(length: 10, nullable: true)]
     #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail'])]
@@ -57,6 +58,9 @@ class ContactAddress
      */
     #[ORM\OneToMany(mappedBy: 'address', targetEntity: Client::class)]
     private Collection $clients;
+
+    #[ORM\ManyToOne(inversedBy: 'contactAddress')]
+    private ?Nation $nation = null;
 
     public function __construct()
     {
@@ -80,50 +84,50 @@ class ContactAddress
         return $this;
     }
 
-    public function getAddress1(): ?string
+    public function getAddressNote(): ?string
     {
-        return $this->address_1;
+        return $this->address_note;
     }
 
-    public function setAddress1(?string $address_1): static
+    public function setAddressNote(?string $address_note): static
     {
-        $this->address_1 = $address_1;
+        $this->address_note = $address_note;
 
         return $this;
     }
 
-    public function getAddress2(): ?string
+    public function getAddress(): ?string
     {
-        return $this->address_2;
+        return $this->address;
     }
 
-    public function setAddress2(?string $address_2): static
+    public function setAddress(?string $address): static
     {
-        $this->address_2 = $address_2;
+        $this->address = $address;
 
         return $this;
     }
 
-    public function getAddress3(): ?string
+    public function getCity(): ?string
     {
-        return $this->address_3;
+        return $this->city;
     }
 
-    public function setAddress3(string $address_3): static
+    public function setCity(string $city): static
     {
-        $this->address_3 = $address_3;
+        $this->city = $city;
 
         return $this;
     }
 
-    public function getAddress4(): ?string
+    public function getProvince(): ?string
     {
-        return $this->address_4;
+        return $this->province;
     }
 
-    public function setAddress4(?string $address_4): static
+    public function setProvince(?string $province): static
     {
-        $this->address_4 = $address_4;
+        $this->province = $province;
 
         return $this;
     }
@@ -202,6 +206,18 @@ class ContactAddress
                 $client->setAddress(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getNation(): ?Nation
+    {
+        return $this->nation;
+    }
+
+    public function setNation(?Nation $nation): static
+    {
+        $this->nation = $nation;
 
         return $this;
     }

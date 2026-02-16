@@ -63,6 +63,12 @@ class MeasurementUnit
     #[ORM\OneToMany(mappedBy: 'thickness_measurement_unit', targetEntity: Product::class)]
     private Collection $thicknessProducts;
 
+    /**
+     * @var Collection<int, LeatherStatus>
+     */
+    #[ORM\OneToMany(mappedBy: 'measurement_unit', targetEntity: LeatherStatus::class)]
+    private Collection $leatherStatuses;
+
     public function __construct()
     {
         $this->batches = new ArrayCollection();
@@ -70,6 +76,7 @@ class MeasurementUnit
         $this->clientOrderRows = new ArrayCollection();
         $this->weightProducts = new ArrayCollection();
         $this->thicknessProducts = new ArrayCollection();
+        $this->leatherStatuses = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -269,6 +276,36 @@ class MeasurementUnit
             // set the owning side to null (unless already changed)
             if ($thicknessProduct->getThicknessMeasurementUnit() === $this) {
                 $thicknessProduct->setThicknessMeasurementUnit(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, LeatherStatus>
+     */
+    public function getLeatherStatuses(): Collection
+    {
+        return $this->leatherStatuses;
+    }
+
+    public function addLeatherStatus(LeatherStatus $leatherStatus): static
+    {
+        if (!$this->leatherStatuses->contains($leatherStatus)) {
+            $this->leatherStatuses->add($leatherStatus);
+            $leatherStatus->setMeasurementUnit($this);
+        }
+
+        return $this;
+    }
+
+    public function removeLeatherStatus(LeatherStatus $leatherStatus): static
+    {
+        if ($this->leatherStatuses->removeElement($leatherStatus)) {
+            // set the owning side to null (unless already changed)
+            if ($leatherStatus->getMeasurementUnit() === $this) {
+                $leatherStatus->setMeasurementUnit(null);
             }
         }
 
