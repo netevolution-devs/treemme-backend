@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\UserRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -16,11 +18,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['list','detail'])]
+    #[Groups(['user_list','user_detail','group_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 180, unique: true)]
-    #[Groups(['list','detail'])]
+    #[Groups(['user_list','user_detail','group_detail'])]
     private ?string $email = null;
 
     #[ORM\Column(length: 255, nullable: true)]
@@ -33,7 +35,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?\DateTimeImmutable $totpEnabledAt = null;
 
     #[ORM\Column]
-    #[Groups(['list','detail'])]
+    #[Groups(['user_list','user_detail'])]
     private array $roles = [];
 
     /**
@@ -43,10 +45,44 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $password = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['user_list','user_detail','group_detail'])]
     private ?string $user_code = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['user_list','user_detail','group_detail'])]
     private ?\DateTimeImmutable $last_access = null;
+
+    /**
+     * @var Collection<int, Batch>
+     */
+    #[ORM\OneToMany(mappedBy: 'check_user', targetEntity: Batch::class)]
+    private Collection $batches;
+
+    /**
+     * @var Collection<int, GroupUser>
+     */
+    #[ORM\OneToMany(mappedBy: 'user', targetEntity: GroupUser::class, orphanRemoval: true)]
+    private Collection $groupUsers;
+
+    /**
+     * @var Collection<int, Client>
+     */
+    #[ORM\OneToMany(mappedBy: 'check_user', targetEntity: Client::class)]
+    private Collection $clients;
+
+    /**
+     * @var Collection<int, ClientOrder>
+     */
+    #[ORM\OneToMany(mappedBy: 'check_user', targetEntity: ClientOrder::class)]
+    private Collection $clientOrders;
+
+    public function __construct()
+    {
+        $this->batches = new ArrayCollection();
+        $this->groupUsers = new ArrayCollection();
+        $this->clients = new ArrayCollection();
+        $this->clientOrders = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -168,6 +204,126 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setLastAccess(?\DateTimeImmutable $last_access): static
     {
         $this->last_access = $last_access;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Batch>
+     */
+    public function getBatches(): Collection
+    {
+        return $this->batches;
+    }
+
+    public function addBatch(Batch $batch): static
+    {
+        if (!$this->batches->contains($batch)) {
+            $this->batches->add($batch);
+            $batch->setCheckUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeBatch(Batch $batch): static
+    {
+        if ($this->batches->removeElement($batch)) {
+            // set the owning side to null (unless already changed)
+            if ($batch->getCheckUser() === $this) {
+                $batch->setCheckUser(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, GroupUser>
+     */
+    public function getGroupUsers(): Collection
+    {
+        return $this->groupUsers;
+    }
+
+    public function addGroupUser(GroupUser $groupUser): static
+    {
+        if (!$this->groupUsers->contains($groupUser)) {
+            $this->groupUsers->add($groupUser);
+            $groupUser->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeGroupUser(GroupUser $groupUser): static
+    {
+        if ($this->groupUsers->removeElement($groupUser)) {
+            // set the owning side to null (unless already changed)
+            if ($groupUser->getUser() === $this) {
+                $groupUser->setUser(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Client>
+     */
+    public function getClients(): Collection
+    {
+        return $this->clients;
+    }
+
+    public function addClient(Client $client): static
+    {
+        if (!$this->clients->contains($client)) {
+            $this->clients->add($client);
+            $client->setCheckUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeClient(Client $client): static
+    {
+        if ($this->clients->removeElement($client)) {
+            // set the owning side to null (unless already changed)
+            if ($client->getCheckUser() === $this) {
+                $client->setCheckUser(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ClientOrder>
+     */
+    public function getClientOrders(): Collection
+    {
+        return $this->clientOrders;
+    }
+
+    public function addClientOrder(ClientOrder $clientOrder): static
+    {
+        if (!$this->clientOrders->contains($clientOrder)) {
+            $this->clientOrders->add($clientOrder);
+            $clientOrder->setCheckUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeClientOrder(ClientOrder $clientOrder): static
+    {
+        if ($this->clientOrders->removeElement($clientOrder)) {
+            // set the owning side to null (unless already changed)
+            if ($clientOrder->getCheckUser() === $this) {
+                $clientOrder->setCheckUser(null);
+            }
+        }
 
         return $this;
     }
