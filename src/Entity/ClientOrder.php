@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ClientOrderRepository::class)]
 class ClientOrder
@@ -14,76 +15,99 @@ class ClientOrder
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
     private ?int $id = null;
 
     #[ORM\Column]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
     private ?bool $processed = null;
 
     #[ORM\Column]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
     private ?bool $cancelled = null;
 
     #[ORM\Column]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
     private ?bool $checked = null;
 
     #[ORM\ManyToOne(inversedBy: 'clientOrders')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['client_order_list', 'client_order_detail'])]
     private ?Client $client = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
     private ?string $order_number = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
     private ?\DateTime $order_date = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
     private ?float $percentage_agent = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
     private ?string $client_order_number = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
     private ?\DateTime $client_order_date = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
     private ?string $agent_order_number = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
     private ?\DateTime $agent_order_date = null;
 
     #[ORM\ManyToOne(inversedBy: 'clientOrders')]
+    #[Groups(['client_order_list', 'client_order_detail'])]
     private ?Payment $payment = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['client_order_list', 'client_order_detail'])]
     private ?float $percentage_tolerance_quantity = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['client_order_list', 'client_order_detail'])]
     private ?string $order_note = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['client_order_list', 'client_order_detail'])]
     private ?string $order_note_ISO = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['client_order_list', 'client_order_detail'])]
     private ?string $order_note_production = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['client_order_list', 'client_order_detail'])]
     private ?string $order_note_administration = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['client_order_list', 'client_order_detail'])]
     private ?\DateTime $check_date = null;
 
     #[ORM\ManyToOne(inversedBy: 'clientOrders')]
+    #[Groups(['client_order_list', 'client_order_detail'])]
     private ?User $check_user = null;
 
     #[ORM\Column]
+    #[Groups(['client_order_list', 'client_order_detail'])]
     private ?bool $printed = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['client_order_list', 'client_order_detail'])]
     private ?\DateTime $print_date = null;
 
     /**
      * @var Collection<int, ClientOrderRow>
      */
     #[ORM\OneToMany(mappedBy: 'client_order', targetEntity: ClientOrderRow::class, orphanRemoval: true)]
+    #[Groups(['client_order_detail'])]
     private Collection $clientOrderRows;
 
     public function __construct()

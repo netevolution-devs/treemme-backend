@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\BatchCostRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: BatchCostRepository::class)]
 class BatchCost
@@ -12,32 +13,41 @@ class BatchCost
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['batch_cost_list', 'batch_cost_detail'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'batchCosts')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['batch_cost_list', 'batch_cost_detail'])]
     private ?Batch $batch = null;
 
     #[ORM\ManyToOne(inversedBy: 'batchCosts')]
+    #[Groups(['batch_cost_list', 'batch_cost_detail'])]
     private ?BatchCostType $batch_cost_type = null;
 
     #[ORM\Column]
+    #[Groups(['batch_cost_list', 'batch_cost_detail'])]
     private ?\DateTime $date = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['batch_cost_list', 'batch_cost_detail'])]
     private ?float $cost = null;
 
     #[ORM\ManyToOne(inversedBy: 'batchCosts')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['batch_cost_list', 'batch_cost_detail'])]
     private ?Currency $currency = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['batch_cost_list', 'batch_cost_detail'])]
     private ?float $currency_cost = null;
 
     #[ORM\Column]
+    #[Groups(['batch_cost_list', 'batch_cost_detail'])]
     private ?float $currency_exchange = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['batch_cost_list', 'batch_cost_detail'])]
     private ?string $cost_note = null;
 
     public function getId(): ?int

@@ -6,6 +6,7 @@ use App\Repository\LeatherRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: LeatherRepository::class)]
 class Leather
@@ -13,80 +14,103 @@ class Leather
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['leather_list', 'leather_detail', 'batch_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['leather_list', 'leather_detail', 'batch_detail'])]
     private ?string $code = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['leather_list', 'leather_detail', 'batch_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['leather_list', 'leather_detail'])]
     private ?float $sqft_leather_min = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['leather_list', 'leather_detail'])]
     private ?float $sqft_leather_max = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['leather_list', 'leather_detail'])]
     private ?float $sqft_leather_media = null;
 
     #[ORM\Column]
+    #[Groups(['leather_list', 'leather_detail'])]
     private ?float $sqft_leather_expected = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['leather_list', 'leather_detail'])]
     private ?float $kg_leather_min = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['leather_list', 'leather_detail'])]
     private ?float $kg_leather_max = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['leather_list', 'leather_detail'])]
     private ?float $kg_leather_media = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['leather_list', 'leather_detail'])]
     private ?float $kg_leather_expected = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['leather_list', 'leather_detail'])]
     private ?int $container_piece = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['leather_list', 'leather_detail'])]
     private ?bool $statistic_update = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['leather_list', 'leather_detail'])]
     private ?float $crust_revenue_expected = null;
 
     #[ORM\ManyToOne(inversedBy: 'leather')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['leather_list', 'leather_detail'])]
     private ?LeatherWeight $weight = null;
 
     #[ORM\ManyToOne(inversedBy: 'leather')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['leather_list', 'leather_detail'])]
     private ?LeatherSpecies $species = null;
 
     #[ORM\ManyToOne(inversedBy: 'leather')]
+    #[Groups(['leather_list', 'leather_detail'])]
     private ?Contact $contact = null;
 
     #[ORM\ManyToOne(inversedBy: 'leather')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['leather_list', 'leather_detail'])]
     private ?LeatherThickness $thickness = null;
 
     #[ORM\ManyToOne(inversedBy: 'leather')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['leather_list', 'leather_detail'])]
     private ?Supplier $supplier = null;
 
     #[ORM\ManyToOne(inversedBy: 'leather')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['leather_list', 'leather_detail'])]
     private ?LeatherFlay $flay = null;
 
     #[ORM\ManyToOne(inversedBy: 'leather')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['leather_list', 'leather_detail'])]
     private ?LeatherProvenance $provenance = null;
 
     #[ORM\ManyToOne(inversedBy: 'leather')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['leather_list', 'leather_detail'])]
     private ?LeatherType $type = null;
 
     #[ORM\ManyToOne(inversedBy: 'leather')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['leather_list', 'leather_detail'])]
     private ?LeatherStatus $status = null;
 
     /**
