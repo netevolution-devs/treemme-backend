@@ -6,6 +6,7 @@ use App\Repository\TownRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: TownRepository::class)]
 class Town
@@ -13,16 +14,20 @@ class Town
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['town_list', 'town_detail', 'province_detail', 'contact_address_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['town_list', 'town_detail', 'province_detail', 'contact_address_detail'])]
     private ?string $cap = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['town_list', 'town_detail', 'province_detail', 'contact_address_detail'])]
     private ?string $name = null;
 
     #[ORM\ManyToOne(inversedBy: 'town')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['town_list', 'town_detail'])]
     private ?Province $province = null;
 
     /**
