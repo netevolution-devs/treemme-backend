@@ -6,6 +6,7 @@ use App\Repository\LeatherProvenanceRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: LeatherProvenanceRepository::class)]
 class LeatherProvenance
@@ -13,35 +14,45 @@ class LeatherProvenance
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['leather_provenance_list', 'leather_provenance_detail', 'leather_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['leather_provenance_list', 'leather_provenance_detail', 'leather_detail'])]
     private ?string $code = null;
 
     #[ORM\ManyToOne(inversedBy: 'leatherProvenances')]
+    #[Groups(['leather_provenance_list', 'leather_provenance_detail'])]
     private ?LeatherProvenanceArea $area = null;
 
     #[ORM\ManyToOne(inversedBy: 'leatherProvenances')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['leather_provenance_list', 'leather_provenance_detail'])]
     private ?Nation $nation = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['leather_provenance_list', 'leather_provenance_detail'])]
     private ?int $trip_day = null;
 
     #[ORM\ManyToOne(inversedBy: 'leatherProvenances')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['leather_provenance_list', 'leather_provenance_detail'])]
     private ?LeatherFlay $flay = null;
 
     #[ORM\Column]
+    #[Groups(['leather_provenance_list', 'leather_provenance_detail'])]
     private ?float $psp_yield_coefficent = null;
 
     #[ORM\Column]
+    #[Groups(['leather_provenance_list', 'leather_provenance_detail'])]
     private ?float $grain_yield_coefficent = null;
 
     #[ORM\Column]
+    #[Groups(['leather_provenance_list', 'leather_provenance_detail'])]
     private ?float $crust_yield_coefficent = null;
 
     #[ORM\Column]
+    #[Groups(['leather_provenance_list', 'leather_provenance_detail'])]
     private ?bool $sea_shipment = null;
 
     /**

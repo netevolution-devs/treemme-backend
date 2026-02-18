@@ -33,15 +33,15 @@ class ContactAddress
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail'])]
-    private ?string $city = null;
+    private ?string $address_2 = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail'])]
-    private ?string $province = null;
+    private ?string $address_3 = null;
 
     #[ORM\Column(length: 10, nullable: true)]
     #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail'])]
-    private ?string $postal_code = null;
+    private ?string $address_4 = null;
 
     #[ORM\Column(nullable: true)]
     #[Groups(['contact_address_list', 'contact_address_detail'])]
@@ -61,6 +61,9 @@ class ContactAddress
 
     #[ORM\ManyToOne(inversedBy: 'contactAddress')]
     private ?Nation $nation = null;
+
+    #[ORM\ManyToOne(inversedBy: 'contactAddresses')]
+    private ?Town $town = null;
 
     public function __construct()
     {
@@ -108,38 +111,38 @@ class ContactAddress
         return $this;
     }
 
-    public function getCity(): ?string
+    public function getAddress2(): ?string
     {
-        return $this->city;
+        return $this->address_2;
     }
 
-    public function setCity(string $city): static
+    public function setAddress2(string $address_2): static
     {
-        $this->city = $city;
+        $this->address_2 = $address_2;
 
         return $this;
     }
 
-    public function getProvince(): ?string
+    public function getAddress3(): ?string
     {
-        return $this->province;
+        return $this->address_3;
     }
 
-    public function setProvince(?string $province): static
+    public function setAddress3(?string $address_3): static
     {
-        $this->province = $province;
+        $this->address_3 = $address_3;
 
         return $this;
     }
 
-    public function getPostalCode(): ?string
+    public function getAddress4(): ?string
     {
-        return $this->postal_code;
+        return $this->address_4;
     }
 
-    public function setPostalCode(?string $postal_code): static
+    public function setAddress4(?string $address_4): static
     {
-        $this->postal_code = $postal_code;
+        $this->address_4 = $address_4;
 
         return $this;
     }
@@ -218,6 +221,18 @@ class ContactAddress
     public function setNation(?Nation $nation): static
     {
         $this->nation = $nation;
+
+        return $this;
+    }
+
+    public function getTown(): ?Town
+    {
+        return $this->town;
+    }
+
+    public function setTown(?Town $town): static
+    {
+        $this->town = $town;
 
         return $this;
     }

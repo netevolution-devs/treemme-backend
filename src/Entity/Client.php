@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ClientRepository::class)]
 class Client
@@ -14,51 +15,66 @@ class Client
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['client_list', 'client_detail', 'client_order_detail'])]
     private ?int $id = null;
 
     #[ORM\Column]
+    #[Groups(['client_list', 'client_detail', 'client_order_detail'])]
     private ?bool $suspended = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['client_list', 'client_detail', 'client_order_detail'])]
     private ?string $client_code = null;
 
     #[ORM\ManyToOne(inversedBy: 'clients')]
+    #[Groups(['client_list', 'client_detail'])]
     private ?Contact $contact = null;
 
     #[ORM\ManyToOne(inversedBy: 'clients')]
+    #[Groups(['client_list', 'client_detail'])]
     private ?ContactAddress $address = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['client_list', 'client_detail'])]
     private ?float $tolerance_quantity = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['client_list', 'client_detail'])]
     private ?string $client_note = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['client_list', 'client_detail'])]
     private ?string $client_shipment_note = null;
 
     #[ORM\Column]
+    #[Groups(['client_list', 'client_detail'])]
     private ?int $tolerance_start_days = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['client_list', 'client_detail'])]
     private ?bool $specific_order_reference = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['client_list', 'client_detail'])]
     private ?bool $checked = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['client_list', 'client_detail'])]
     private ?\DateTime $check_date = null;
 
     #[ORM\ManyToOne(inversedBy: 'clients')]
+    #[Groups(['client_list', 'client_detail'])]
     private ?User $check_user = null;
 
     #[ORM\ManyToOne(inversedBy: 'clients')]
+    #[Groups(['client_list', 'client_detail'])]
     private ?Payment $payment = null;
 
     /**
      * @var Collection<int, ClientOrder>
      */
     #[ORM\OneToMany(mappedBy: 'client', targetEntity: ClientOrder::class, orphanRemoval: true)]
+    #[Groups(['client_detail'])]
     private Collection $clientOrders;
 
     public function __construct()

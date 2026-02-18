@@ -6,6 +6,7 @@ use App\Repository\LeatherProvenanceAreaRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: LeatherProvenanceAreaRepository::class)]
 class LeatherProvenanceArea
@@ -13,9 +14,11 @@ class LeatherProvenanceArea
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['leather_provenance_area_list', 'leather_provenance_area_detail', 'leather_provenance_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['leather_provenance_area_list', 'leather_provenance_area_detail', 'leather_provenance_detail'])]
     private ?string $name = null;
 
     /**

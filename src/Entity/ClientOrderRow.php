@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\ClientOrderRowRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ClientOrderRowRepository::class)]
 class ClientOrderRow
@@ -12,72 +13,94 @@ class ClientOrderRow
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['client_order_row_list', 'client_order_row_detail'])]
     private ?ClientOrder $client_order = null;
 
     #[ORM\Column]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?bool $processed = null;
 
     #[ORM\Column]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?bool $cancelled = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?int $weight = null;
 
     #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?Product $product = null;
 
     #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?MeasurementUnit $measurement_unit = null;
 
     #[ORM\Column]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?int $quantity = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?float $price = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?float $total_price = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?float $currency_price = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?float $currency_exchange = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?float $total_currency_price = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?float $agent_percentage_row = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?float $tolerance_quantity_percentage = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?float $shipment_schedule = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?float $production_schedule = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?\DateTime $delivey_date_request = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?\DateTime $delivery_date_confirmed = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?string $iso_row_note = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?string $production_row_note = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?string $administration_row_note = null;
 
     public function getId(): ?int

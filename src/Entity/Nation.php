@@ -6,6 +6,7 @@ use App\Repository\NationRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: NationRepository::class)]
 class Nation
@@ -13,9 +14,11 @@ class Nation
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['nation_list', 'nation_detail', 'leather_provenance_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['nation_list', 'nation_detail', 'leather_provenance_detail'])]
     private ?string $name = null;
 
     /**

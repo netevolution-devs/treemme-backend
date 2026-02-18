@@ -6,6 +6,7 @@ use App\Repository\LeatherWeightRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: LeatherWeightRepository::class)]
 class LeatherWeight
@@ -13,24 +14,31 @@ class LeatherWeight
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['leather_weight_list', 'leather_weight_detail', 'leather_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['leather_weight_list', 'leather_weight_detail', 'leather_detail'])]
     private ?string $weight = null;
 
     #[ORM\Column]
+    #[Groups(['leather_weight_list', 'leather_weight_detail', 'leather_detail'])]
     private ?float $kg_weight = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['leather_weight_list', 'leather_weight_detail'])]
     private ?float $sqft_leather_expected = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['leather_weight_list', 'leather_weight_detail'])]
     private ?float $kg_leather_expected = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['leather_weight_list', 'leather_weight_detail'])]
     private ?float $cost_stripped_crust_various = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['leather_weight_list', 'leather_weight_detail'])]
     private ?float $cost_stripped_crust_manual = null;
 
     /**

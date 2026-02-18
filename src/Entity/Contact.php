@@ -60,12 +60,22 @@ class Contact
     #[ORM\OneToMany(mappedBy: 'contact', targetEntity: Leather::class)]
     private Collection $leather;
 
+    /**
+     * @var Collection<int, ContactDetail>
+     */
+    #[ORM\OneToMany(mappedBy: 'contact', targetEntity: ContactDetail::class, orphanRemoval: true)]
+    private Collection $contactDetails;
+
+    #[ORM\ManyToOne(inversedBy: 'contacts')]
+    private ?ContactTitle $contact_title = null;
+
     public function __construct()
     {
         $this->contactAddresses = new ArrayCollection();
         $this->suppliers = new ArrayCollection();
         $this->clients = new ArrayCollection();
         $this->leather = new ArrayCollection();
+        $this->contactDetails = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -249,6 +259,48 @@ class Contact
                 $leather->setContact(null);
             }
         }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ContactDetail>
+     */
+    public function getContactDetails(): Collection
+    {
+        return $this->contactDetails;
+    }
+
+    public function addContactDetail(ContactDetail $contactDetail): static
+    {
+        if (!$this->contactDetails->contains($contactDetail)) {
+            $this->contactDetails->add($contactDetail);
+            $contactDetail->setContact($this);
+        }
+
+        return $this;
+    }
+
+    public function removeContactDetail(ContactDetail $contactDetail): static
+    {
+        if ($this->contactDetails->removeElement($contactDetail)) {
+            // set the owning side to null (unless already changed)
+            if ($contactDetail->getContact() === $this) {
+                $contactDetail->setContact(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function getContactTitle(): ?ContactTitle
+    {
+        return $this->contact_title;
+    }
+
+    public function setContactTitle(?ContactTitle $contact_title): static
+    {
+        $this->contact_title = $contact_title;
 
         return $this;
     }

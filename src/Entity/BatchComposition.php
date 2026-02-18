@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\BatchCompositionRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: BatchCompositionRepository::class)]
 class BatchComposition
@@ -12,23 +13,29 @@ class BatchComposition
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['batch_composition_list', 'batch_composition_detail'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'batchCompositions')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['batch_composition_list', 'batch_composition_detail'])]
     private ?Batch $batch = null;
 
     #[ORM\ManyToOne(inversedBy: 'sonBatches')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['batch_composition_list', 'batch_composition_detail'])]
     private ?Batch $father_batch = null;
 
     #[ORM\Column]
+    #[Groups(['batch_composition_list', 'batch_composition_detail'])]
     private ?int $father_batch_piece = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['batch_composition_list', 'batch_composition_detail'])]
     private ?float $father_batch_quantity = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['batch_composition_list', 'batch_composition_detail'])]
     private ?string $composition_note = null;
 
     public function getId(): ?int

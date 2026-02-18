@@ -6,6 +6,7 @@ use App\Repository\LeatherStatusRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: LeatherStatusRepository::class)]
 class LeatherStatus
@@ -13,18 +14,23 @@ class LeatherStatus
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['leather_status_list', 'leather_status_detail', 'leather_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['leather_status_list', 'leather_status_detail', 'leather_detail'])]
     private ?string $name = null;
 
     #[ORM\ManyToOne(inversedBy: 'leatherStatuses')]
+    #[Groups(['leather_status_list', 'leather_status_detail'])]
     private ?MeasurementUnit $measurement_unit = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['leather_status_list', 'leather_status_detail', 'leather_detail'])]
     private ?string $code = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['leather_status_list', 'leather_status_detail'])]
     private ?float $flower_yield_coefficient = null;
 
     /**

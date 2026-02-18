@@ -6,6 +6,7 @@ use App\Repository\LeatherTypeRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: LeatherTypeRepository::class)]
 class LeatherType
@@ -13,15 +14,19 @@ class LeatherType
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['leather_type_list', 'leather_type_detail', 'leather_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['leather_type_list', 'leather_type_detail', 'leather_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['leather_type_list', 'leather_type_detail', 'leather_detail'])]
     private ?string $code = null;
 
     #[ORM\ManyToOne(inversedBy: 'leatherTypes')]
+    #[Groups(['leather_type_list', 'leather_type_detail'])]
     private ?LeatherThickness $thickness = null;
 
     /**
