@@ -6,6 +6,7 @@ use App\Repository\ProvinceRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ProvinceRepository::class)]
 class Province
@@ -13,18 +14,22 @@ class Province
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['province_list', 'province_detail', 'town_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 10)]
+    #[Groups(['province_list', 'province_detail', 'town_detail'])]
     private ?string $acronym = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['province_list', 'province_detail', 'town_detail'])]
     private ?string $name = null;
 
     /**
      * @var Collection<int, Town>
      */
     #[ORM\OneToMany(mappedBy: 'province', targetEntity: Town::class, orphanRemoval: true)]
+    #[Groups(['province_detail'])]
     private Collection $town;
 
     public function __construct()
