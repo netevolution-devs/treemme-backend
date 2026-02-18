@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Contact;
 use App\Entity\ContactType;
+use App\Entity\ContactTitle;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -83,6 +84,15 @@ final class ContactController extends AbstractController
                 $contact->setContactType($contactType);
                 unset($data['contact_type_id']);
             }
+            if (isset($data['contact_title_id'])) {
+                $contactTitle = $this->doctrine->getRepository(ContactTitle::class)->find($data['contact_title_id']);
+                if (!$contactTitle) {
+                    return new JsonResponse($this->doResponse->doErrorResponse('ContactTitle not found', 404));
+                }
+
+                $contact->setContactTitle($contactTitle);
+                unset($data['contact_title_id']);
+            }
 
             $contact = $this->createMethodsByInput->createMethods($contact, $data);
 
@@ -136,6 +146,15 @@ final class ContactController extends AbstractController
 
             $contact->setContactType($contactType);
             unset($data['contact_type_id']);
+        }
+        if (isset($data['contact_title_id'])) {
+            $contactTitle = $this->doctrine->getRepository(ContactTitle::class)->find($data['contact_title_id']);
+            if (!$contactTitle) {
+                return new JsonResponse($this->doResponse->doErrorResponse('ContactTitle not found', 404));
+            }
+
+            $contact->setContactTitle($contactTitle);
+            unset($data['contact_title_id']);
         }
 
         $contact = $this->createMethodsByInput->createMethods($contact, $data);
