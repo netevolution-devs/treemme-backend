@@ -122,11 +122,18 @@ class Batch
     #[ORM\JoinColumn(nullable: false)]
     private ?Leather $leather = null;
 
+    /**
+     * @var Collection<int, WarehouseMovement>
+     */
+    #[ORM\OneToMany(mappedBy: 'batch', targetEntity: WarehouseMovement::class, orphanRemoval: true)]
+    private Collection $warehouseMovements;
+
     public function __construct()
     {
         $this->batchCosts = new ArrayCollection();
         $this->batchCompositions = new ArrayCollection();
         $this->sonBatches = new ArrayCollection();
+        $this->warehouseMovements = new ArrayCollection();
     }
 
 
@@ -485,6 +492,36 @@ class Batch
     public function setLeather(?Leather $leather): static
     {
         $this->leather = $leather;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, WarehouseMovement>
+     */
+    public function getWarehouseMovements(): Collection
+    {
+        return $this->warehouseMovements;
+    }
+
+    public function addWarehouseMovement(WarehouseMovement $warehouseMovement): static
+    {
+        if (!$this->warehouseMovements->contains($warehouseMovement)) {
+            $this->warehouseMovements->add($warehouseMovement);
+            $warehouseMovement->setBatch($this);
+        }
+
+        return $this;
+    }
+
+    public function removeWarehouseMovement(WarehouseMovement $warehouseMovement): static
+    {
+        if ($this->warehouseMovements->removeElement($warehouseMovement)) {
+            // set the owning side to null (unless already changed)
+            if ($warehouseMovement->getBatch() === $this) {
+                $warehouseMovement->setBatch(null);
+            }
+        }
 
         return $this;
     }

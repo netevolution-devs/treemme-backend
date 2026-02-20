@@ -78,6 +78,20 @@ final class BatchController extends AbstractController
 
         try {
             $batch = $this->handleRelations($batch, $data);
+
+            if ($batch->getBatchType() && $batch->getBatchType()->getName() === 'Partita') {
+                $lastBatch = $this->doctrine->getRepository(Batch::class)->findOneBy(
+                    ['batchType' => $batch->getBatchType()],
+                    ['id' => 'DESC']
+                );
+
+                $lastCode = $lastBatch ? $lastBatch->getCode() : null;
+
+
+                $nextCode = $this->nextSequentialCode($lastCode, 'S', 4);
+                $batch->setBatchCode($nextCode);
+            }
+
             $batch = $this->createMethodsByInput->createMethods($batch, $data);
 
             $now = new \DateTimeImmutable();
@@ -181,5 +195,18 @@ final class BatchController extends AbstractController
         }
 
         return $batch;
+    }
+
+    private function nextSequentialCode(?string $lastCode, string $prefix, int $pad): string
+    {
+        $lastCode = $lastCode ? trim($lastCode) : '';
+
+        if ($lastCode === '' || !preg_match('/^' . preg_quote($prefix, '/') . '(\d+)$/', $lastCode, $m)) {
+            return $prefix . str_pad('1', $pad, '0', STR_PAD_LEFT);
+        }
+
+        $n = (int) $m[1] + 1;
+
+        return $prefix . str_pad((string) $n, $pad, '0', STR_PAD_LEFT);
     }
 }

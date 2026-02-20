@@ -14,15 +14,15 @@ class Province
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['province_list', 'province_detail', 'town_detail'])]
+    #[Groups(['province_list', 'province_detail', 'town_list', 'town_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 10)]
-    #[Groups(['province_list', 'province_detail', 'town_detail'])]
+    #[Groups(['province_list', 'province_detail', 'town_list', 'town_detail'])]
     private ?string $acronym = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['province_list', 'province_detail', 'town_detail'])]
+    #[Groups(['province_list', 'province_detail', 'town_list', 'town_detail'])]
     private ?string $name = null;
 
     /**
