@@ -4,6 +4,8 @@ namespace App\Controller;
 
 use App\Entity\Contact;
 use App\Entity\ContactAddress;
+use App\Entity\Nation;
+use App\Entity\Town;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -160,6 +162,22 @@ final class ContactAddressController extends AbstractController
                 $address->setContact($contact);
             }
             unset($data['contact_id']);
+        }
+
+        if (isset($data['nation_id'])) {
+            $nation = $this->doctrine->getRepository(Nation::class)->find($data['nation_id']);
+            if ($nation) {
+                $address->setNation($nation);
+            }
+            unset($data['nation_id']);
+        }
+
+        if (isset($data['town_id'])) {
+            $town = $this->doctrine->getRepository(Town::class)->find($data['town_id']);
+            if ($town) {
+                $address->setTown($town);
+            }
+            unset($data['town_id']);
         }
 
         return $address;

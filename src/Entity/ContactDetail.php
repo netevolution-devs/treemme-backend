@@ -25,7 +25,7 @@ class ContactDetail
     private ?string $note = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['contact_detail_list','contact_detail_detail'])]
+    #[Groups(['contact_detail_list','contact_detail'])]
     private ?int $weight = null;
 
     #[ORM\ManyToOne(inversedBy: 'contactDetails')]
