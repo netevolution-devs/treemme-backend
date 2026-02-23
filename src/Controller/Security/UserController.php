@@ -15,6 +15,7 @@ use Nelmio\ApiDocBundle\Annotation\Model;
 use Nelmio\ApiDocBundle\Annotation\Security;
 use OpenApi\Annotations as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -121,5 +122,32 @@ class UserController extends AbstractController
         $user = $this->userService->getCurrentUser();
 
         return new JsonResponse($this->doResponse->doResponse($this->groupSerializer->serializeGroup($user,'user_detail')));
+    }
+
+    #[Route('/logout', name: 'logout')]
+    public function logout(): JsonResponse
+    {
+        $bearerCookie = Cookie::create('BEARER')
+            ->withValue('')
+            ->withExpires(new \DateTime('-1 day'))
+            ->withPath('/')
+            ->withHttpOnly(true)
+            ->withSameSite('None')
+            ->withSecure(true);
+
+        $refreshTokenCookie = Cookie::create('REFRESH_TOKEN')
+            ->withValue('')
+            ->withExpires(new \DateTime('-1 day'))
+            ->withPath('/')
+            ->withHttpOnly(true)
+            ->withSameSite('None')
+            ->withSecure(true);
+
+        $response = new JsonResponse('Logout success');
+
+        $response->headers->setCookie($bearerCookie);
+        $response->headers->setCookie($refreshTokenCookie);
+
+        return $response;
     }
 }
