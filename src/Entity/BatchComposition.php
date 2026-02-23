@@ -13,12 +13,12 @@ class BatchComposition
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['batch_composition_list', 'batch_composition_detail'])]
+    #[Groups(['batch_composition_list', 'batch_composition_detail', 'batch_detail'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'batchCompositions')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['batch_composition_list', 'batch_composition_detail'])]
+    #[Groups(['batch_composition_list', 'batch_composition_detail', 'batch_detail'])]
     private ?Batch $batch = null;
 
     #[ORM\ManyToOne(inversedBy: 'sonBatches')]
@@ -27,15 +27,15 @@ class BatchComposition
     private ?Batch $father_batch = null;
 
     #[ORM\Column]
-    #[Groups(['batch_composition_list', 'batch_composition_detail'])]
+    #[Groups(['batch_composition_list', 'batch_composition_detail', 'batch_detail'])]
     private ?int $father_batch_piece = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_composition_list', 'batch_composition_detail'])]
+    #[Groups(['batch_composition_list', 'batch_composition_detail', 'batch_detail'])]
     private ?float $father_batch_quantity = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['batch_composition_list', 'batch_composition_detail'])]
+    #[Groups(['batch_composition_list', 'batch_composition_detail', 'batch_detail'])]
     private ?string $composition_note = null;
 
     public function getId(): ?int

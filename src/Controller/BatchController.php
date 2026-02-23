@@ -72,8 +72,15 @@ final class BatchController extends AbstractController
         name: 'rework_batch',
         requirements: ['id' => '\d+'],
         methods: ['POST'])]
-    public function reworkBatch(int $id): JsonResponse
+    public function reworkBatch(int $id, Request $request): JsonResponse
     {
+        $data = json_decode($request->getContent(), true);
+        $piecesToRework = isset($data['pieces']) ? (int)$data['pieces'] : null;
+
+        if ($piecesToRework === null || $piecesToRework <= 0) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Numero di pelli non valido', 400));
+        }
+
         $batchRepository = $this->doctrine->getRepository(Batch::class);
         $fatherBatch = $batchRepository->find($id);
 
@@ -81,15 +88,43 @@ final class BatchController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse('Batch not found', 404));
         }
 
+        // Calcolo pelli disponibili
+        $totalInputPieces = 0;
+        $totalOutputPieces = 0;
+
+        foreach ($fatherBatch->getWarehouseMovements() as $movement) {
+            $reason = $movement->getReason();
+            if ($reason && $reason->getReasonType()) {
+                $type = $reason->getReasonType()->getMovementType();
+                if ($type === 'IN') {
+                    $totalInputPieces += $movement->getPiece() ?? 0;
+                } elseif ($type === 'OUT') {
+                    $totalOutputPieces += $movement->getPiece() ?? 0;
+                }
+            }
+        }
+
+        $availablePieces = $totalInputPieces - $totalOutputPieces;
+
+        if ($piecesToRework > $availablePieces) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Numero di pelli superiore a quelle disponibili (' . $availablePieces . ')', 400));
+        }
+
+        // Calcolo quantità proporzionale
+        $quantityToRework = 0.0;
+        if ($fatherBatch->getPieces() > 0) {
+            $quantityToRework = ($fatherBatch->getQuantity() / $fatherBatch->getPieces()) * $piecesToRework;
+        }
+
         $newBatch = new Batch();
         $newBatch->setBatchType($fatherBatch->getBatchType());
         $newBatch->setBatchCode('R' . $fatherBatch->getBatchCode());
         $newBatch->setBatchDate(new \DateTime());
-        $newBatch->setPieces($fatherBatch->getPieces());
+        $newBatch->setPieces($piecesToRework);
         $newBatch->setMeasurementUnit($fatherBatch->getMeasurementUnit());
-        $newBatch->setQuantity($fatherBatch->getQuantity());
-        $newBatch->setStockItems($fatherBatch->getQuantity());
-        $newBatch->setStorage($fatherBatch->getQuantity());
+        $newBatch->setQuantity($quantityToRework);
+        $newBatch->setStockItems($quantityToRework);
+        $newBatch->setStorage($quantityToRework);
         $newBatch->setLeather($fatherBatch->getLeather());
         $newBatch->setSampling($fatherBatch->isSampling() ?? false);
         $newBatch->setSplitSelected($fatherBatch->isSplitSelected() ?? false);
@@ -106,8 +141,8 @@ final class BatchController extends AbstractController
         $batchComposition = new BatchComposition();
         $batchComposition->setBatch($newBatch);
         $batchComposition->setFatherBatch($fatherBatch);
-        $batchComposition->setFatherBatchPiece($fatherBatch->getPieces());
-        $batchComposition->setFatherBatchQuantity($fatherBatch->getQuantity());
+        $batchComposition->setFatherBatchPiece($piecesToRework);
+        $batchComposition->setFatherBatchQuantity($quantityToRework);
         $batchComposition->setCompositionNote('Riverdimento da lotto ' . $fatherBatch->getBatchCode());
 
         $this->doctrine->persist($batchComposition);
@@ -124,8 +159,8 @@ final class BatchController extends AbstractController
             $outMovement = new WarehouseMovement();
             $outMovement->setBatch($fatherBatch);
             $outMovement->setReason($outReason);
-            $outMovement->setQuantity($fatherBatch->getQuantity());
-            $outMovement->setPiece($fatherBatch->getPieces());
+            $outMovement->setQuantity($quantityToRework);
+            $outMovement->setPiece($piecesToRework);
             $outMovement->setDate(new \DateTime());
             $outMovement->setMovementNote('Uscita per riverdimento (Lotto R' . $fatherBatch->getBatchCode() . ')');
             $this->doctrine->persist($outMovement);
@@ -140,8 +175,8 @@ final class BatchController extends AbstractController
             $inMovement = new WarehouseMovement();
             $inMovement->setBatch($newBatch);
             $inMovement->setReason($inReason);
-            $inMovement->setQuantity($newBatch->getQuantity());
-            $inMovement->setPiece($newBatch->getPieces());
+            $inMovement->setQuantity($quantityToRework);
+            $inMovement->setPiece($piecesToRework);
             $inMovement->setDate(new \DateTime());
             $inMovement->setMovementNote('Entrata da riverdimento');
             $this->doctrine->persist($inMovement);

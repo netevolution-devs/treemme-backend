@@ -23,9 +23,9 @@ class ContactAddress
     #[Groups(['contact_address_list', 'contact_address_detail'])]
     private ?Contact $contact = null;
 
-    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail'])]
-    private ?string $address_note = null;
+    private ?string $address_name = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail'])]
@@ -89,14 +89,14 @@ class ContactAddress
         return $this;
     }
 
-    public function getAddressNote(): ?string
+    public function getAddressName(): ?string
     {
-        return $this->address_note;
+        return $this->address_name;
     }
 
-    public function setAddressNote(?string $address_note): static
+    public function setAddressName(?string $address_name): static
     {
-        $this->address_note = $address_note;
+        $this->address_name = $address_name;
 
         return $this;
     }
