@@ -60,9 +60,11 @@ class ContactAddress
     private Collection $clients;
 
     #[ORM\ManyToOne(inversedBy: 'contactAddress')]
+    #[Groups(['contact_address_detail', 'contact_detail'])]
     private ?Nation $nation = null;
 
     #[ORM\ManyToOne(inversedBy: 'contactAddresses')]
+    #[Groups(['contact_address_detail', 'contact_detail'])]
     private ?Town $town = null;
 
     public function __construct()
