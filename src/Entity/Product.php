@@ -1,0 +1,469 @@
+<?php
+
+namespace App\Entity;
+
+use App\Repository\ProductRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
+
+#[ORM\Entity(repositoryClass: ProductRepository::class)]
+class Product
+{
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    #[ORM\Column]
+    #[Groups(['product_list', 'product_detail', 'supplier_detail', 'product_type_detail', 'measurement_unit_detail', 'color_detail', 'material_bill_list', 'material_bill_detail'])]
+    private ?int $id = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    #[Groups(['product_list', 'product_detail', 'supplier_detail', 'product_type_detail', 'measurement_unit_detail', 'color_detail', 'material_bill_list', 'material_bill_detail'])]
+    private ?string $product_code = null;
+
+    #[ORM\Column(length: 255)]
+    #[Groups(['product_list', 'product_detail', 'supplier_detail', 'product_type_detail', 'measurement_unit_detail', 'color_detail', 'material_bill_list', 'material_bill_detail'])]
+    private ?string $name = null;
+
+    #[ORM\Column(length: 255)]
+    #[Groups(['product_list', 'product_detail'])]
+    private ?string $internal_name = null;
+
+    #[ORM\Column(length: 255)]
+    #[Groups(['product_list', 'product_detail'])]
+    private ?string $external_name = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    #[Groups(['product_list', 'product_detail'])]
+    private ?string $vendor_code = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['product_detail'])]
+    private ?string $product_note = null;
+
+    #[ORM\Column]
+    #[Groups(['product_list', 'product_detail'])]
+    private ?bool $exclude_mrp = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['product_list', 'product_detail'])]
+    private ?int $alarm = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['product_list', 'product_detail'])]
+    private ?float $stock = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['product_list', 'product_detail'])]
+    private ?float $weight = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['product_list', 'product_detail'])]
+    private ?float $thickness = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['product_list', 'product_detail'])]
+    private ?float $use_coefficient = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['product_list', 'product_detail'])]
+    private ?float $bill_of_material_quantity = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['product_detail'])]
+    private ?float $last_cost = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['product_detail'])]
+    private ?float $last_price = null;
+
+    #[ORM\ManyToOne(inversedBy: 'products')]
+    #[Groups(['product_list', 'product_detail'])]
+    private ?ProductType $product_type = null;
+
+    #[ORM\ManyToOne(inversedBy: 'products')]
+    #[Groups(['product_list', 'product_detail'])]
+    private ?Supplier $supplier = null;
+
+    #[ORM\ManyToOne(inversedBy: 'products')]
+    #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['product_list', 'product_detail'])]
+    private ?MeasurementUnit $measurement_unit = null;
+
+    #[ORM\ManyToOne(inversedBy: 'products')]
+    #[Groups(['product_list', 'product_detail'])]
+    private ?Color $color = null;
+
+    /**
+     * @var Collection<int, MaterialBill>
+     */
+    #[ORM\OneToMany(mappedBy: 'product', targetEntity: MaterialBill::class)]
+    #[Groups(['product_detail'])]
+    private Collection $materialBills;
+
+    #[ORM\Column]
+    private ?\DateTimeImmutable $created_at = null;
+
+    #[ORM\Column]
+    private ?\DateTimeImmutable $updated_at = null;
+
+    /**
+     * @var Collection<int, ClientOrderRow>
+     */
+    #[ORM\OneToMany(mappedBy: 'product', targetEntity: ClientOrderRow::class)]
+    private Collection $clientOrderRows;
+
+    #[ORM\ManyToOne(inversedBy: 'weightProducts')]
+    private ?MeasurementUnit $weight_measurement_unit = null;
+
+    #[ORM\ManyToOne(inversedBy: 'thicknessProducts')]
+    private ?MeasurementUnit $thickness_measurement_unit = null;
+
+    public function __construct()
+    {
+        $this->materialBills = new ArrayCollection();
+        $this->clientOrderRows = new ArrayCollection();
+    }
+
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+
+    public function getProductCode(): ?string
+    {
+        return $this->product_code;
+    }
+
+    public function setProductCode(?string $product_code): static
+    {
+        $this->product_code = $product_code;
+
+        return $this;
+    }
+
+    public function getName(): ?string
+    {
+        return $this->name;
+    }
+
+    public function setName(string $name): static
+    {
+        $this->name = $name;
+
+        return $this;
+    }
+
+    public function getInternalName(): ?string
+    {
+        return $this->internal_name;
+    }
+
+    public function setInternalName(string $internal_name): static
+    {
+        $this->internal_name = $internal_name;
+
+        return $this;
+    }
+
+    public function getExternalName(): ?string
+    {
+        return $this->external_name;
+    }
+
+    public function setExternalName(string $external_name): static
+    {
+        $this->external_name = $external_name;
+
+        return $this;
+    }
+
+    public function getVendorCode(): ?string
+    {
+        return $this->vendor_code;
+    }
+
+    public function setVendorCode(?string $vendor_code): static
+    {
+        $this->vendor_code = $vendor_code;
+
+        return $this;
+    }
+
+    public function getProductNote(): ?string
+    {
+        return $this->product_note;
+    }
+
+    public function setProductNote(?string $product_note): static
+    {
+        $this->product_note = $product_note;
+
+        return $this;
+    }
+
+    public function isExcludeMrp(): ?bool
+    {
+        return $this->exclude_mrp;
+    }
+
+    public function setExcludeMrp(bool $exclude_mrp): static
+    {
+        $this->exclude_mrp = $exclude_mrp;
+
+        return $this;
+    }
+
+    public function getAlarm(): ?int
+    {
+        return $this->alarm;
+    }
+
+    public function setAlarm(?int $alarm): static
+    {
+        $this->alarm = $alarm;
+
+        return $this;
+    }
+
+    public function getStock(): ?float
+    {
+        return $this->stock;
+    }
+
+    public function setStock(?float $stock): static
+    {
+        $this->stock = $stock;
+
+        return $this;
+    }
+
+    public function getWeight(): ?float
+    {
+        return $this->weight;
+    }
+
+    public function setWeight(?float $weight): static
+    {
+        $this->weight = $weight;
+
+        return $this;
+    }
+
+    public function getThickness(): ?float
+    {
+        return $this->thickness;
+    }
+
+    public function setThickness(?float $thickness): static
+    {
+        $this->thickness = $thickness;
+
+        return $this;
+    }
+
+    public function getUseCoefficient(): ?float
+    {
+        return $this->use_coefficient;
+    }
+
+    public function setUseCoefficient(?float $use_coefficient): static
+    {
+        $this->use_coefficient = $use_coefficient;
+
+        return $this;
+    }
+
+    public function getBillOfMaterialQuantity(): ?float
+    {
+        return $this->bill_of_material_quantity;
+    }
+
+    public function setBillOfMaterialQuantity(?float $bill_of_material_quantity): static
+    {
+        $this->bill_of_material_quantity = $bill_of_material_quantity;
+
+        return $this;
+    }
+
+    public function getLastCost(): ?float
+    {
+        return $this->last_cost;
+    }
+
+    public function setLastCost(?float $last_cost): static
+    {
+        $this->last_cost = $last_cost;
+
+        return $this;
+    }
+
+    public function getLastPrice(): ?float
+    {
+        return $this->last_price;
+    }
+
+    public function setLastPrice(?float $last_price): static
+    {
+        $this->last_price = $last_price;
+
+        return $this;
+    }
+
+    public function getProductType(): ?ProductType
+    {
+        return $this->product_type;
+    }
+
+    public function setProductType(?ProductType $product_type): static
+    {
+        $this->product_type = $product_type;
+
+        return $this;
+    }
+
+    public function getSupplier(): ?Supplier
+    {
+        return $this->supplier;
+    }
+
+    public function setSupplier(?Supplier $supplier): static
+    {
+        $this->supplier = $supplier;
+
+        return $this;
+    }
+
+    public function getMeasurementUnit(): ?MeasurementUnit
+    {
+        return $this->measurement_unit;
+    }
+
+    public function setMeasurementUnit(?MeasurementUnit $measurement_unit): static
+    {
+        $this->measurement_unit = $measurement_unit;
+
+        return $this;
+    }
+
+    public function getColor(): ?Color
+    {
+        return $this->color;
+    }
+
+    public function setColor(?Color $color): static
+    {
+        $this->color = $color;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, MaterialBill>
+     */
+    public function getMaterialBills(): Collection
+    {
+        return $this->materialBills;
+    }
+
+    public function addMaterialBill(MaterialBill $materialBill): static
+    {
+        if (!$this->materialBills->contains($materialBill)) {
+            $this->materialBills->add($materialBill);
+            $materialBill->setProduct($this);
+        }
+
+        return $this;
+    }
+
+    public function removeMaterialBill(MaterialBill $materialBill): static
+    {
+        if ($this->materialBills->removeElement($materialBill)) {
+            // set the owning side to null (unless already changed)
+            if ($materialBill->getProduct() === $this) {
+                $materialBill->setProduct(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function getCreatedAt(): ?\DateTimeImmutable
+    {
+        return $this->created_at;
+    }
+
+    public function setCreatedAt(\DateTimeImmutable $created_at): static
+    {
+        $this->created_at = $created_at;
+
+        return $this;
+    }
+
+    public function getUpdatedAt(): ?\DateTimeImmutable
+    {
+        return $this->updated_at;
+    }
+
+    public function setUpdatedAt(\DateTimeImmutable $updated_at): static
+    {
+        $this->updated_at = $updated_at;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ClientOrderRow>
+     */
+    public function getClientOrderRows(): Collection
+    {
+        return $this->clientOrderRows;
+    }
+
+    public function addClientOrderRow(ClientOrderRow $clientOrderRow): static
+    {
+        if (!$this->clientOrderRows->contains($clientOrderRow)) {
+            $this->clientOrderRows->add($clientOrderRow);
+            $clientOrderRow->setProduct($this);
+        }
+
+        return $this;
+    }
+
+    public function removeClientOrderRow(ClientOrderRow $clientOrderRow): static
+    {
+        if ($this->clientOrderRows->removeElement($clientOrderRow)) {
+            // set the owning side to null (unless already changed)
+            if ($clientOrderRow->getProduct() === $this) {
+                $clientOrderRow->setProduct(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function getWeightMeasurementUnit(): ?MeasurementUnit
+    {
+        return $this->weight_measurement_unit;
+    }
+
+    public function setWeightMeasurementUnit(?MeasurementUnit $weight_measurement_unit): static
+    {
+        $this->weight_measurement_unit = $weight_measurement_unit;
+
+        return $this;
+    }
+
+    public function getThicknessMeasurementUnit(): ?MeasurementUnit
+    {
+        return $this->thickness_measurement_unit;
+    }
+
+    public function setThicknessMeasurementUnit(?MeasurementUnit $thickness_measurement_unit): static
+    {
+        $this->thickness_measurement_unit = $thickness_measurement_unit;
+
+        return $this;
+    }
+}
