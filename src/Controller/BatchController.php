@@ -3,7 +3,10 @@
 namespace App\Controller;
 
 use App\Entity\Batch;
+use App\Entity\BatchComposition;
 use App\Entity\BatchType;
+use App\Entity\WarehouseMovement;
+use App\Entity\WarehouseMovementReason;
 use App\Entity\MeasurementUnit;
 use App\Entity\User;
 use App\Service\CreateMethodsByInput;
@@ -63,6 +66,91 @@ final class BatchController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($results[0]));
         }
         return new JsonResponse($this->doResponse->doResponse($results));
+    }
+
+    #[Route('/batch/rework/{id}',
+        name: 'rework_batch',
+        requirements: ['id' => '\d+'],
+        methods: ['POST'])]
+    public function reworkBatch(int $id): JsonResponse
+    {
+        $batchRepository = $this->doctrine->getRepository(Batch::class);
+        $fatherBatch = $batchRepository->find($id);
+
+        if (!$fatherBatch) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Batch not found', 404));
+        }
+
+        $newBatch = new Batch();
+        $newBatch->setBatchType($fatherBatch->getBatchType());
+        $newBatch->setBatchCode('R' . $fatherBatch->getBatchCode());
+        $newBatch->setBatchDate(new \DateTime());
+        $newBatch->setPieces($fatherBatch->getPieces());
+        $newBatch->setMeasurementUnit($fatherBatch->getMeasurementUnit());
+        $newBatch->setQuantity($fatherBatch->getQuantity());
+        $newBatch->setStockItems($fatherBatch->getQuantity());
+        $newBatch->setStorage($fatherBatch->getQuantity());
+        $newBatch->setLeather($fatherBatch->getLeather());
+        $newBatch->setSampling($fatherBatch->isSampling() ?? false);
+        $newBatch->setSplitSelected($fatherBatch->isSplitSelected() ?? false);
+        $newBatch->setCompleted(false);
+        $newBatch->setChecked(false);
+
+        $now = new \DateTimeImmutable();
+        $newBatch->setCreatedAt($now);
+        $newBatch->setUpdatedAt($now);
+
+        $this->doctrine->persist($newBatch);
+
+        // Batch Composition
+        $batchComposition = new BatchComposition();
+        $batchComposition->setBatch($newBatch);
+        $batchComposition->setFatherBatch($fatherBatch);
+        $batchComposition->setFatherBatchPiece($fatherBatch->getPieces());
+        $batchComposition->setFatherBatchQuantity($fatherBatch->getQuantity());
+        $batchComposition->setCompositionNote('Riverdimento da lotto ' . $fatherBatch->getBatchCode());
+
+        $this->doctrine->persist($batchComposition);
+
+        // Warehouse Movements
+        $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
+
+        // Scarico lotto padre
+        $outReason = $reasonRepo->findOneBy(['name' => 'Scarico per lavorazione esterna'])
+            ?? $reasonRepo->findOneBy(['name' => 'Lavorazione Esterna (Uscita)'])
+            ?? $reasonRepo->findOneBy(['name' => 'Scarico Lavorazione']);
+
+        if ($outReason) {
+            $outMovement = new WarehouseMovement();
+            $outMovement->setBatch($fatherBatch);
+            $outMovement->setReason($outReason);
+            $outMovement->setQuantity($fatherBatch->getQuantity());
+            $outMovement->setPiece($fatherBatch->getPieces());
+            $outMovement->setDate(new \DateTime());
+            $outMovement->setMovementNote('Uscita per riverdimento (Lotto R' . $fatherBatch->getBatchCode() . ')');
+            $this->doctrine->persist($outMovement);
+        }
+
+        // Carico nuovo lotto
+        $inReason = $reasonRepo->findOneBy(['name' => 'Carico da lavorazione esterna'])
+            ?? $reasonRepo->findOneBy(['name' => 'Lavorazione Esterna (Entrata)'])
+            ?? $reasonRepo->findOneBy(['name' => 'Carico Lavorazione']);
+
+        if ($inReason) {
+            $inMovement = new WarehouseMovement();
+            $inMovement->setBatch($newBatch);
+            $inMovement->setReason($inReason);
+            $inMovement->setQuantity($newBatch->getQuantity());
+            $inMovement->setPiece($newBatch->getPieces());
+            $inMovement->setDate(new \DateTime());
+            $inMovement->setMovementNote('Entrata da riverdimento');
+            $this->doctrine->persist($inMovement);
+        }
+
+        $this->doctrine->flush();
+
+        $result = $this->groupSerializer->serializeGroup($newBatch, 'batch_detail');
+        return new JsonResponse($this->doResponse->doResponse($result));
     }
 
     #[Route('/batch',
