@@ -34,6 +34,7 @@ class Contact
      * @var Collection<int, ContactAddress>
      */
     #[ORM\OneToMany(mappedBy: 'contact', targetEntity: ContactAddress::class, orphanRemoval: true)]
+    #[Groups(['contact_list','contact_detail'])]
     private Collection $contactAddresses;
 
     /**
@@ -67,6 +68,7 @@ class Contact
     private Collection $contactDetails;
 
     #[ORM\ManyToOne(inversedBy: 'contacts')]
+    #[Groups(['contact_list','contact_detail'])]
     private ?ContactTitle $contact_title = null;
 
     public function __construct()
