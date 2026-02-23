@@ -34,7 +34,7 @@ class ContactDetail
     private ?Contact $contact = null;
 
     #[ORM\ManyToOne(inversedBy: 'contactDetails')]
-    #[Groups(['contact_detail_list','contact_detail_detail'])]
+    #[Groups(['contact_detail_list','contact_detail_detail','contact_detail'])]
     private ?ContactDetailType $detail_type = null;
 
     public function getId(): ?int

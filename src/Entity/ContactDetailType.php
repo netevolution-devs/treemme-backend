@@ -14,15 +14,15 @@ class ContactDetailType
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['contact_detail_type_list','contact_detail_type_detail','contact_detail_detail'])]
+    #[Groups(['contact_detail_type_list','contact_detail_type_detail','contact_detail_detail','contact_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['contact_detail_type_list','contact_detail_type_detail','contact_detail_detail'])]
+    #[Groups(['contact_detail_type_list','contact_detail_type_detail','contact_detail_detail','contact_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 10, nullable: true)]
-    #[Groups(['contact_detail_type_list','contact_detail_type_detail'])]
+    #[Groups(['contact_detail_type_list','contact_detail_type_detail','contact_detail'])]
     private ?string $code = null;
 
     /**
