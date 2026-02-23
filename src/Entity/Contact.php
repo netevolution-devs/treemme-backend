@@ -65,6 +65,7 @@ class Contact
      * @var Collection<int, ContactDetail>
      */
     #[ORM\OneToMany(mappedBy: 'contact', targetEntity: ContactDetail::class, orphanRemoval: true)]
+    #[Groups(['contact_list','contact_detail'])]
     private Collection $contactDetails;
 
     #[ORM\ManyToOne(inversedBy: 'contacts')]
