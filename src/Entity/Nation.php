@@ -14,11 +14,11 @@ class Nation
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['nation_list', 'nation_detail', 'leather_provenance_detail'])]
+    #[Groups(['nation_list', 'nation_detail', 'leather_provenance_detail', 'contact_address_detail', 'contact_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['nation_list', 'nation_detail', 'leather_provenance_detail'])]
+    #[Groups(['nation_list', 'nation_detail', 'leather_provenance_detail', 'contact_address_detail', 'contact_detail'])]
     private ?string $name = null;
 
     /**
