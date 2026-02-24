@@ -36,7 +36,7 @@ class Group
     /**
      * @var Collection<int, GroupUser>
      */
-    #[ORM\OneToMany(mappedBy: 'groupp', targetEntity: GroupUser::class, orphanRemoval: true)]
+    #[ORM\OneToMany(mappedBy: 'group', targetEntity: GroupUser::class, orphanRemoval: true)]
     #[Groups(['group_list','group_detail'])]
     private Collection $groupUsers;
 
@@ -110,7 +110,7 @@ class Group
     {
         if (!$this->groupUsers->contains($groupUser)) {
             $this->groupUsers->add($groupUser);
-            $groupUser->setGroupp($this);
+            $groupUser->setGroup($this);
         }
 
         return $this;
@@ -120,8 +120,8 @@ class Group
     {
         if ($this->groupUsers->removeElement($groupUser)) {
             // set the owning side to null (unless already changed)
-            if ($groupUser->getGroupp() === $this) {
-                $groupUser->setGroupp(null);
+            if ($groupUser->getGroup() === $this) {
+                $groupUser->setGroup(null);
             }
         }
 

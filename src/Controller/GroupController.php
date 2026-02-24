@@ -190,7 +190,7 @@ final class GroupController extends AbstractController
 
         // Verifica se l'utente è già nel gruppo
         $existing = $this->doctrine->getRepository(GroupUser::class)->findOneBy([
-            'groupp' => $group,
+            'group' => $group,
             'user' => $user
         ]);
 
@@ -199,7 +199,7 @@ final class GroupController extends AbstractController
         }
 
         $groupUser = new GroupUser();
-        $groupUser->setGroupp($group);
+        $groupUser->setGroup($group);
         $groupUser->setUser($user);
         $now = new \DateTimeImmutable();
         $groupUser->setCreatedAt($now);
@@ -239,7 +239,7 @@ final class GroupController extends AbstractController
 
         // Verifica se il ruolo è già assegnato a questo gruppo per questa work_area
         $existing = $this->doctrine->getRepository(GroupRoleWorkArea::class)->findOneBy([
-            'groupp' => $group,
+            'group' => $group,
             'role' => $role,
             'workArea' => $workArea
         ]);
@@ -249,7 +249,7 @@ final class GroupController extends AbstractController
         }
 
         $groupRoleWorkArea = new GroupRoleWorkArea();
-        $groupRoleWorkArea->setGroupp($group);
+        $groupRoleWorkArea->setGroup($group);
         $groupRoleWorkArea->setRole($role);
         $groupRoleWorkArea->setWorkArea($workArea);
         $now = new \DateTimeImmutable();
