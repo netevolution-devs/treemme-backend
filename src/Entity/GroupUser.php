@@ -18,7 +18,7 @@ class GroupUser
     #[ORM\ManyToOne(inversedBy: 'groupUsers')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['group_user_list', 'group_user_detail'])]
-    private ?Group $groupp = null;
+    private ?Group $group = null;
 
     #[ORM\ManyToOne(inversedBy: 'groupUsers')]
     #[ORM\JoinColumn(nullable: false)]
@@ -36,14 +36,14 @@ class GroupUser
         return $this->id;
     }
 
-    public function getGroupp(): ?Group
+    public function getGroup(): ?Group
     {
-        return $this->groupp;
+        return $this->group;
     }
 
-    public function setGroupp(?Group $groupp): static
+    public function setGroup(?Group $group): static
     {
-        $this->groupp = $groupp;
+        $this->group = $group;
 
         return $this;
     }
