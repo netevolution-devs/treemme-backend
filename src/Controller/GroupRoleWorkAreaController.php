@@ -159,7 +159,7 @@ final class GroupRoleWorkAreaController extends AbstractController
         if (isset($data['group_id'])) {
             $group = $this->doctrine->getRepository(Group::class)->find($data['group_id']);
             if ($group) {
-                $item->setGroupp($group);
+                $item->setGroup($group);
             }
             unset($data['group_id']);
         }

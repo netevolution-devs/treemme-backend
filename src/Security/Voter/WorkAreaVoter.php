@@ -49,7 +49,7 @@ class WorkAreaVoter extends Voter
         }
 
         // Cerchiamo le configurazioni GroupRoleWorkArea per i gruppi dell'utente e la WorkArea specifica
-        $criteria = ['groupp' => $groups];
+        $criteria = ['group' => $groups];
         if ($subject instanceof WorkArea) {
             $criteria['workArea'] = $subject;
         }
