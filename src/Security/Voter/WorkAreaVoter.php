@@ -41,7 +41,7 @@ class WorkAreaVoter extends Voter
         // Otteniamo i gruppi dell'utente
         $groups = [];
         foreach ($user->getGroupUsers() as $groupUser) {
-            $groups[] = $groupUser->getGroupp();
+            $groups[] = $groupUser->getGroup();
         }
 
         if (empty($groups)) {
