@@ -124,22 +124,39 @@ class UserController extends AbstractController
 
         $groupUsers = $user->getGroupUsers();
         $roles = [];
+        $accessControl = [];
+
         foreach ($groupUsers as $groupUser) {
             $group = $groupUser->getGroup();
             if ($group) {
                 $groupRoleWorkAreas = $this->doctrine->getRepository(GroupRoleWorkArea::class)->findBy(['group' => $group]);
                 foreach ($groupRoleWorkAreas as $grwa) {
                     $role = $grwa->getRole();
+                    $workArea = $grwa->getWorkArea();
+                    
                     if ($role) {
                         $roles[] = $role->getName();
                     }
+
+                    $accessControl[] = [
+                        'group' => $group->getName(),
+                        'role' => $role ? $role->getName() : null,
+                        'work_area' => $workArea ? $workArea->getName() : null,
+                        'can_get' => $grwa->isCanGet(),
+                        'can_post' => $grwa->isCanPost(),
+                        'can_put' => $grwa->isCanPut(),
+                        'can_delete' => $grwa->isCanDelete(),
+                    ];
                 }
             }
         }
 
         $user->setRoles(array_unique($roles));
+        
+        $userData = $this->groupSerializer->serializeGroup($user, 'user_detail');
+        $userData['access_control'] = $accessControl;
 
-        return new JsonResponse($this->doResponse->doResponse($this->groupSerializer->serializeGroup($user, 'user_detail')));
+        return new JsonResponse($this->doResponse->doResponse($userData));
     }
 
     #[Route('/logout', name: 'logout')]
