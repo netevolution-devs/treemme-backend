@@ -127,7 +127,7 @@ class UserController extends AbstractController
         foreach ($groupUsers as $groupUser) {
             $group = $groupUser->getGroup();
             if ($group) {
-                $groupRoleWorkAreas = $this->doctrine->getRepository(GroupRoleWorkArea::class)->findBy(['groupp' => $group]);
+                $groupRoleWorkAreas = $this->doctrine->getRepository(GroupRoleWorkArea::class)->findBy(['group' => $group]);
                 foreach ($groupRoleWorkAreas as $grwa) {
                     $role = $grwa->getRole();
                     if ($role) {
