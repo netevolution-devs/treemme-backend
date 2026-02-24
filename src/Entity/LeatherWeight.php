@@ -19,7 +19,7 @@ class LeatherWeight
 
     #[ORM\Column(length: 255)]
     #[Groups(['leather_weight_list', 'leather_weight_detail', 'leather_detail'])]
-    private ?string $weight = null;
+    private ?string $name = null;
 
     #[ORM\Column]
     #[Groups(['leather_weight_list', 'leather_weight_detail', 'leather_detail'])]
@@ -57,14 +57,14 @@ class LeatherWeight
         return $this->id;
     }
 
-    public function getWeight(): ?string
+    public function getName(): ?string
     {
-        return $this->weight;
+        return $this->name;
     }
 
-    public function setWeight(string $weight): static
+    public function setName(string $name): static
     {
-        $this->weight = $weight;
+        $this->name = $name;
 
         return $this;
     }
