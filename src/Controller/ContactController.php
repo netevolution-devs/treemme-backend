@@ -40,7 +40,8 @@ final class ContactController extends AbstractController
         requirements: ['id' => '\d*'],
         methods: ['GET', 'HEAD'])]
     public function getContactType(
-        ?int $id,
+        Request $request,
+        ?int    $id,
     ): JsonResponse
     {
         $contactRepository = $this->doctrine->getRepository(Contact::class);
@@ -51,7 +52,14 @@ final class ContactController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('Contact not found', 404));
             }
         } else {
-            $contact = $contactRepository->findBy([], ['id' => 'DESC']);
+            $name = $request->query->get('contact_name');
+            $detailName = $request->query->get('detail_name');
+
+            if ($name || $detailName) {
+                $contact = $contactRepository->searchContacts($name, $detailName);
+            } else {
+                $contact = $contactRepository->findBy([], ['id' => 'DESC']);
+            }
         }
         $results = $this->groupSerializer->serializeGroup($contact, $id ? 'contact_detail' : 'contact_list');
 

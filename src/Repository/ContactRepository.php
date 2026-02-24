@@ -40,4 +40,23 @@ class ContactRepository extends ServiceEntityRepository
     //            ->getOneOrNullResult()
     //        ;
     //    }
+    public function searchContacts(?string $name, ?string $detailName): array
+    {
+        $qb = $this->createQueryBuilder('c');
+
+        if ($name) {
+            $qb->andWhere('c.name LIKE :name')
+                ->setParameter('name', '%' . $name . '%');
+        }
+
+        if ($detailName) {
+            $qb->leftJoin('c.contactDetails', 'cd')
+                ->andWhere('cd.name LIKE :detailName')
+                ->setParameter('detailName', '%' . $detailName . '%');
+        }
+
+        return $qb->orderBy('c.id', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
 }
