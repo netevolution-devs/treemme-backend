@@ -188,6 +188,132 @@ final class BatchController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse($result));
     }
 
+    #[Route('/batch/split/{batchCode}',
+        name: 'split_reworked_batch',
+        requirements: ['batchCode' => '.+'],
+        methods: ['POST'])]
+    public function splitReworkedBatch(string $batchCode, Request $request): JsonResponse
+    {
+        // Accetto JSON o form-data
+        $data = json_decode($request->getContent(), true);
+        if (!is_array($data) || empty($data)) {
+            $data = $request->request->all();
+        }
+
+        $quantity = isset($data['quantity']) ? (float)$data['quantity'] : null;
+        if ($quantity === null || $quantity <= 0) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Quantità non valida', 400));
+        }
+
+        if (!(strlen($batchCode) > 1 && $batchCode[0] === 'R')) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Il codice lotto deve iniziare con R', 400));
+        }
+
+        $batchRepository = $this->doctrine->getRepository(Batch::class);
+        /** @var Batch|null $reworkedBatch */
+        $reworkedBatch = $batchRepository->findOneBy(['batchCode' => $batchCode]);
+        if (!$reworkedBatch) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Lotto R non trovato', 404));
+        }
+
+        // Controllo: la quantità richiesta non deve superare il numero di pelli del lotto R
+        $availablePieces = (int)($reworkedBatch->getPieces() ?? 0);
+        if ($quantity > $availablePieces) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Quantità superiore al numero di pelli disponibili (' . $availablePieces . ')', 400));
+        }
+
+        $baseCode = substr($batchCode, 1); // rimuove il prefisso R
+
+        // Crea lotto SF
+        $sfBatch = new Batch();
+        $sfBatch->setBatchType($reworkedBatch->getBatchType());
+        $sfBatch->setBatchCode('SF' . $baseCode);
+        $sfBatch->setBatchDate(new \DateTime());
+        $sfBatch->setPieces((int)$quantity);
+        $sfBatch->setMeasurementUnit($reworkedBatch->getMeasurementUnit());
+        $sfBatch->setQuantity($quantity);
+        $sfBatch->setStockItems($quantity);
+        $sfBatch->setStorage($quantity);
+        $sfBatch->setLeather($reworkedBatch->getLeather());
+        $sfBatch->setSampling($reworkedBatch->isSampling() ?? false);
+        $sfBatch->setSplitSelected($reworkedBatch->isSplitSelected() ?? false);
+        $sfBatch->setCompleted(false);
+        $sfBatch->setChecked(false);
+        $now = new \DateTimeImmutable();
+        $sfBatch->setCreatedAt($now);
+        $sfBatch->setUpdatedAt($now);
+        $this->doctrine->persist($sfBatch);
+
+        // Crea lotto SC
+        $scBatch = new Batch();
+        $scBatch->setBatchType($reworkedBatch->getBatchType());
+        $scBatch->setBatchCode('SC' . $baseCode);
+        $scBatch->setBatchDate(new \DateTime());
+        $scBatch->setPieces((int)$quantity);
+        $scBatch->setMeasurementUnit($reworkedBatch->getMeasurementUnit());
+        $scBatch->setQuantity($quantity);
+        $scBatch->setStockItems($quantity);
+        $scBatch->setStorage($quantity);
+        $scBatch->setLeather($reworkedBatch->getLeather());
+        $scBatch->setSampling($reworkedBatch->isSampling() ?? false);
+        $scBatch->setSplitSelected($reworkedBatch->isSplitSelected() ?? false);
+        $scBatch->setCompleted(false);
+        $scBatch->setChecked(false);
+        $scBatchNow = new \DateTimeImmutable();
+        $scBatch->setCreatedAt($scBatchNow);
+        $scBatch->setUpdatedAt($scBatchNow);
+        $this->doctrine->persist($scBatch);
+
+        // Composizioni (padre = lotto R)
+        $sfComp = new BatchComposition();
+        $sfComp->setBatch($sfBatch);
+        $sfComp->setFatherBatch($reworkedBatch);
+        $sfComp->setFatherBatchPiece((int)$quantity);
+        $sfComp->setFatherBatchQuantity($quantity);
+        $sfComp->setCompositionNote('Spaccatura lotto ' . $batchCode);
+        $this->doctrine->persist($sfComp);
+
+        $scComp = new BatchComposition();
+        $scComp->setBatch($scBatch);
+        $scComp->setFatherBatch($reworkedBatch);
+        $scComp->setFatherBatchPiece((int)$quantity);
+        $scComp->setFatherBatchQuantity($quantity);
+        $scComp->setCompositionNote('Spaccatura lotto ' . $batchCode);
+        $this->doctrine->persist($scComp);
+
+        // Movimenti: causale Carico
+        $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
+        $inReason = $reasonRepo->findOneBy(['name' => 'Carico']);
+        if (!$inReason) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Causale "Carico" non trovata', 400));
+        }
+
+        $note = 'Spaccatura lotto ' . $batchCode;
+
+        $sfMov = new WarehouseMovement();
+        $sfMov->setBatch($sfBatch);
+        $sfMov->setReason($inReason);
+        $sfMov->setQuantity($quantity);
+        $sfMov->setPiece((int)$quantity);
+        $sfMov->setDate(new \DateTime());
+        $sfMov->setMovementNote($note);
+        $this->doctrine->persist($sfMov);
+
+        $scMov = new WarehouseMovement();
+        $scMov->setBatch($scBatch);
+        $scMov->setReason($inReason);
+        $scMov->setQuantity($quantity);
+        $scMov->setPiece((int)$quantity);
+        $scMov->setDate(new \DateTime());
+        $scMov->setMovementNote($note);
+        $this->doctrine->persist($scMov);
+
+        $this->doctrine->flush();
+
+        $results = $this->groupSerializer->serializeGroup([$sfBatch, $scBatch], 'batch_list');
+        return new JsonResponse($this->doResponse->doResponse($results));
+    }
+
     #[Route('/batch',
         name: 'post_batch',
         methods: ['POST'])]
