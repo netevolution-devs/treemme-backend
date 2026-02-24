@@ -2,6 +2,7 @@
 
 namespace App\Controller\Security;
 
+use App\Entity\GroupRoleWorkArea;
 use App\Entity\User;
 use App\Service\ActionLoggerService;
 use App\Service\CreateMethodsByInput;
@@ -121,7 +122,24 @@ class UserController extends AbstractController
     {
         $user = $this->userService->getCurrentUser();
 
-        return new JsonResponse($this->doResponse->doResponse($this->groupSerializer->serializeGroup($user,'user_detail')));
+        $groupUsers = $user->getGroupUsers();
+        $roles = [];
+        foreach ($groupUsers as $groupUser) {
+            $group = $groupUser->getGroupp();
+            if ($group) {
+                $groupRoleWorkAreas = $this->doctrine->getRepository(GroupRoleWorkArea::class)->findBy(['groupp' => $group]);
+                foreach ($groupRoleWorkAreas as $grwa) {
+                    $role = $grwa->getRole();
+                    if ($role) {
+                        $roles[] = $role->getName();
+                    }
+                }
+            }
+        }
+
+        $user->setRoles(array_unique($roles));
+
+        return new JsonResponse($this->doResponse->doResponse($this->groupSerializer->serializeGroup($user, 'user_detail')));
     }
 
     #[Route('/logout', name: 'logout')]
