@@ -18,7 +18,7 @@ class GroupRoleWorkArea
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['group_role_work_area_list', 'group_role_work_area_detail'])]
-    private ?Group $groupp = null;
+    private ?Group $group = null;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
@@ -36,19 +36,35 @@ class GroupRoleWorkArea
     #[ORM\Column]
     private ?\DateTimeImmutable $updated_at = null;
 
+    #[ORM\Column(options: ["default" => true])]
+    #[Groups(['group_role_work_area_list', 'group_role_work_area_detail', 'group_detail'])]
+    private bool $canGet = true;
+
+    #[ORM\Column(options: ["default" => false])]
+    #[Groups(['group_role_work_area_list', 'group_role_work_area_detail', 'group_detail'])]
+    private bool $canPost = false;
+
+    #[ORM\Column(options: ["default" => false])]
+    #[Groups(['group_role_work_area_list', 'group_role_work_area_detail', 'group_detail'])]
+    private bool $canPut = false;
+
+    #[ORM\Column(options: ["default" => false])]
+    #[Groups(['group_role_work_area_list', 'group_role_work_area_detail', 'group_detail'])]
+    private bool $canDelete = false;
+
     public function getId(): ?int
     {
         return $this->id;
     }
 
-    public function getGroupp(): ?Group
+    public function getGroup(): ?Group
     {
-        return $this->groupp;
+        return $this->group;
     }
 
-    public function setGroupp(?Group $groupp): static
+    public function setGroup(?Group $group): static
     {
-        $this->groupp = $groupp;
+        $this->group = $group;
 
         return $this;
     }
@@ -97,6 +113,54 @@ class GroupRoleWorkArea
     public function setUpdatedAt(\DateTimeImmutable $updated_at): static
     {
         $this->updated_at = $updated_at;
+
+        return $this;
+    }
+
+    public function isCanGet(): bool
+    {
+        return $this->canGet;
+    }
+
+    public function setCanGet(bool $canGet): static
+    {
+        $this->canGet = $canGet;
+
+        return $this;
+    }
+
+    public function isCanPost(): bool
+    {
+        return $this->canPost;
+    }
+
+    public function setCanPost(bool $canPost): static
+    {
+        $this->canPost = $canPost;
+
+        return $this;
+    }
+
+    public function isCanPut(): bool
+    {
+        return $this->canPut;
+    }
+
+    public function setCanPut(bool $canPut): static
+    {
+        $this->canPut = $canPut;
+
+        return $this;
+    }
+
+    public function isCanDelete(): bool
+    {
+        return $this->canDelete;
+    }
+
+    public function setCanDelete(bool $canDelete): static
+    {
+        $this->canDelete = $canDelete;
 
         return $this;
     }
