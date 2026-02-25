@@ -46,6 +46,7 @@ security:
     # - { path: ^/admin, roles: ROLE_ADMIN }
     # - { path: ^/profile, roles: ROLE_USER }
     - { path: ^/api/totp, roles: PUBLIC_ACCESS }
+    - { path: ^/verify-totp, roles: PUBLIC_ACCESS }
     - { path: ^/login, roles: PUBLIC_ACCESS }
     - { path: ^/api/token/refresh, roles: PUBLIC_ACCESS }
     - { path: ^/,       roles: IS_AUTHENTICATED_FULLY }
