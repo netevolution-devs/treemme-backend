@@ -16,8 +16,12 @@ security:
       security: false
 
     login:
-      pattern: ^/login
+      pattern: ^/(login|backoffice/login)
       stateless: true
+      custom_authenticator: App\Security\CustomAuthenticator
+      login_throttling:
+        max_attempts: 5
+        interval: '15 minutes'
       json_login:
         # api_login is a route we will create below
         check_path: /login
