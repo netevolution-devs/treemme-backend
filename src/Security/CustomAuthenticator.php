@@ -4,6 +4,7 @@ namespace App\Security;
 
 use App\Entity\User;
 use App\Service\ActionLoggerService;
+use App\Service\PasswordService;
 use App\Service\TotpService;
 use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Security\Http\Authentication\AuthenticationSuccessHandler;
@@ -11,7 +12,7 @@ use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\RateLimiter\RateLimiterFactory;
+//use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
@@ -32,7 +33,7 @@ class CustomAuthenticator extends AbstractAuthenticator
     private AuthenticationSuccessHandler $successHandler;
     private UserPasswordHasherInterface $passwordHasher;
     private TranslatorInterface $translator;
-    private RateLimiterFactory $loginLimiter;
+//    private RateLimiterFactory $loginLimiter;
     private ActionLoggerService $actionLoggerService;
     private TotpService $totpService;
     private EntityManagerInterface $entityManager;
@@ -46,7 +47,7 @@ class CustomAuthenticator extends AbstractAuthenticator
         UserPasswordHasherInterface $passwordHasher,
         PasswordService             $passwordService,
         TranslatorInterface         $translator,
-        RateLimiterFactory          $loginLimiter,
+//        RateLimiterFactory          $loginLimiter,
         ActionLoggerService         $actionLoggerService,
         TotpService                 $totpService,
     ) {
@@ -56,7 +57,7 @@ class CustomAuthenticator extends AbstractAuthenticator
         $this->passwordHasher = $passwordHasher;
         $this->passwordService = $passwordService;
         $this->translator = $translator;
-        $this->loginLimiter = $loginLimiter;
+//        $this->loginLimiter = $loginLimiter;
         $this->actionLoggerService = $actionLoggerService;
         $this->totpService = $totpService;
         $this->entityManager = $entityManager;
@@ -83,34 +84,32 @@ class CustomAuthenticator extends AbstractAuthenticator
         $email = $data['email'];
         $password = $data['password'];
 
-        $limiterKey = $request->getClientIp();
-        $limiter = $this->loginLimiter->create($limiterKey);
-        $limit = $limiter->consume();
+//        $limiterKey = $request->getClientIp();
+//        $limiter = $this->loginLimiter->create($limiterKey);
+//        $limit = $limiter->consume();
 
         if ($email === '' || $password === '') {
-            throw new AuthenticationException($this->translator->trans('auth.error.missing_credentials',
-                ["%attempts_left%" => $limit->getRemainingTokens()], 'messages'));
+            throw new AuthenticationException('Empty credentials');
         }
 
-        if (!$limit->isAccepted()) {
-            $waitSeconds = $limit->getRetryAfter()->getTimestamp() - time();
-            throw new CustomUserMessageAuthenticationException(
-                $this->translator->trans('auth.error.too_many_attempts',
-                    ['%seconds%' => $waitSeconds], 'messages')
-            );
-        }
+//        if (!$limit->isAccepted()) {
+//            $waitSeconds = $limit->getRetryAfter()->getTimestamp() - time();
+//            throw new CustomUserMessageAuthenticationException(
+//                $this->translator->trans('auth.error.too_many_attempts',
+//                    ['%seconds%' => $waitSeconds], 'messages')
+//            );
+//        }
 
-        $remainingAttempts = $limit->getRemainingTokens();
+//        $remainingAttempts = $limit->getRemainingTokens();
 
         try {
             $user = $this->userProvider->loadUserByIdentifier($email);
         } catch (\Exception $e) {
             $this->actionLoggerService->logAction('login failed', [
                 'email' => $email,
-                'reason' => 'Invalid credentials',
-                'attempt' => $limit->getLimit() - $remainingAttempts,
+                'reason' => 'Invalid credentials'
             ]);
-            throw new CustomUserMessageAuthenticationException('Credenziali Errate con '. $remainingAttempts .' tentativi rimanenti');
+            throw new CustomUserMessageAuthenticationException('Credenziali Errate ');
         }
 
 
@@ -118,12 +117,13 @@ class CustomAuthenticator extends AbstractAuthenticator
 
             $this->actionLoggerService->logAction('login failed', [
                 'email' => $email,
-                'reason' => 'invalid password',
-                'attempt' => $remainingAttempts,
+                'reason' => 'invalid password'
+//                'attempt' => $remainingAttempts,
             ]);
-            throw new CustomUserMessageAuthenticationException($this->translator->trans('auth.error.invalid_credentials',
-                    ["%attempts_left%" => $remainingAttempts], 'messages')
-            );
+            throw new CustomUserMessageAuthenticationException('Credenziali Errate');
+//            throw new CustomUserMessageAuthenticationException($this->translator->trans('auth.error.invalid_credentials',
+//                    ["%attempts_left%" => $remainingAttempts], 'messages')
+//            );
         }
 
         if ($user instanceof User) {
@@ -143,9 +143,9 @@ class CustomAuthenticator extends AbstractAuthenticator
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): Response
     {
         $limiterKey = $request->getClientIp();
-        $limiter = $this->loginLimiter->create($limiterKey);
+//        $limiter = $this->loginLimiter->create($limiterKey);
 
-        $limiter->reset();
+//        $limiter->reset();
 
         $user = $token->getUser();
 
