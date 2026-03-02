@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\LeatherStatus;
+use App\Entity\MeasurementUnit;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -74,6 +75,16 @@ final class LeatherStatusController extends AbstractController
         $leatherStatus = new LeatherStatus();
 
         try {
+            if(isset($data['measurement_unit_id'])){
+                $measuramentUnit = $this->doctrine->getRepository(MeasurementUnit::class)->find($data['measurament_unit_id']);
+                if(!$measuramentUnit){
+                    return new JsonResponse($this->doResponse->doErrorResponse('Measurament unit not found'));
+                }
+                $leatherStatus->setMeasurementUnit($measuramentUnit);
+
+                unset($data['measurement_unit_id']);
+            }
+
             $leatherStatus = $this->createMethodsByInput->createMethods($leatherStatus, $data);
 
             $errors = $validator->validate($leatherStatus);
@@ -111,6 +122,16 @@ final class LeatherStatusController extends AbstractController
         }
 
         try {
+            if(isset($data['measurement_unit_id'])){
+                $measuramentUnit = $this->doctrine->getRepository(MeasurementUnit::class)->find($data['measurament_unit_id']);
+                if(!$measuramentUnit){
+                    return new JsonResponse($this->doResponse->doErrorResponse('Measurament unit not found'));
+                }
+                $leatherStatus->setMeasurementUnit($measuramentUnit);
+
+                unset($data['measurement_unit_id']);
+            }
+
             $leatherStatus = $this->createMethodsByInput->createMethods($leatherStatus, $data);
 
             $errors = $validator->validate($leatherStatus);

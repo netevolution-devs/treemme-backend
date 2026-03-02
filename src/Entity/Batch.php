@@ -56,7 +56,7 @@ class Batch
 
     #[ORM\Column]
     #[Groups(['batch_list', 'batch_detail'])]
-    private ?float $storage = null;
+    private ?float $stock_quantity = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     #[Groups(['batch_detail'])]
@@ -129,12 +129,20 @@ class Batch
     #[ORM\OneToMany(mappedBy: 'batch', targetEntity: WarehouseMovement::class, orphanRemoval: true)]
     private Collection $warehouseMovements;
 
+    /**
+     * @var Collection<int, BatchSelection>
+     */
+    #[ORM\OneToMany(mappedBy: 'batch', targetEntity: BatchSelection::class, orphanRemoval: true)]
+    #[Groups(['batch_detail'])]
+    private Collection $batchSelections;
+
     public function __construct()
     {
         $this->batchCosts = new ArrayCollection();
         $this->batchCompositions = new ArrayCollection();
         $this->sonBatches = new ArrayCollection();
         $this->warehouseMovements = new ArrayCollection();
+        $this->batchSelections = new ArrayCollection();
     }
 
 
@@ -251,14 +259,14 @@ class Batch
         return $this;
     }
 
-    public function getStorage(): ?float
+    public function getStockQuantity(): ?float
     {
-        return $this->storage;
+        return $this->stock_quantity;
     }
 
-    public function setStorage(float $storage): static
+    public function setStockQuantity(float $stock_quantity): static
     {
-        $this->storage = $storage;
+        $this->stock_quantity = $stock_quantity;
 
         return $this;
     }
@@ -521,6 +529,36 @@ class Batch
             // set the owning side to null (unless already changed)
             if ($warehouseMovement->getBatch() === $this) {
                 $warehouseMovement->setBatch(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, BatchSelection>
+     */
+    public function getBatchSelections(): Collection
+    {
+        return $this->batchSelections;
+    }
+
+    public function addBatchSelection(BatchSelection $batchSelection): static
+    {
+        if (!$this->batchSelections->contains($batchSelection)) {
+            $this->batchSelections->add($batchSelection);
+            $batchSelection->setBatch($this);
+        }
+
+        return $this;
+    }
+
+    public function removeBatchSelection(BatchSelection $batchSelection): static
+    {
+        if ($this->batchSelections->removeElement($batchSelection)) {
+            // set the owning side to null (unless already changed)
+            if ($batchSelection->getBatch() === $this) {
+                $batchSelection->setBatch(null);
             }
         }
 

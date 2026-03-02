@@ -68,13 +68,26 @@ final class BatchController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse($results));
     }
 
+    #[Route('/batch/available',
+        name: 'get_available_batches',
+        methods: ['GET', 'HEAD'])]
+    public function getAvailableBatches(): JsonResponse
+    {
+        $batchRepository = $this->doctrine->getRepository(Batch::class);
+        $batches = $batchRepository->findAvailableStock();
+
+        $results = $this->groupSerializer->serializeGroup($batches, 'batch_list');
+
+        return new JsonResponse($this->doResponse->doResponse($results));
+    }
+
     #[Route('/batch/rework/{id}',
         name: 'rework_batch',
         requirements: ['id' => '\d+'],
         methods: ['POST'])]
     public function reworkBatch(int $id, Request $request): JsonResponse
     {
-        $data = json_decode($request->getContent(), true);
+        $data = $request->request->all();
         $piecesToRework = isset($data['pieces']) ? (int)$data['pieces'] : null;
 
         if ($piecesToRework === null || $piecesToRework <= 0) {
@@ -88,33 +101,9 @@ final class BatchController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse('Batch not found', 404));
         }
 
-        // Calcolo pelli disponibili
-        $totalInputPieces = 0;
-        $totalOutputPieces = 0;
+        $availablePieces = (float)($fatherBatch->getStockItems() ?? 0);
 
-        foreach ($fatherBatch->getWarehouseMovements() as $movement) {
-            $reason = $movement->getReason();
-            if ($reason && $reason->getReasonType()) {
-                $type = $reason->getReasonType()->getMovementType();
-                if ($type === 'IN') {
-                    $totalInputPieces += $movement->getPiece() ?? 0;
-                } elseif ($type === 'OUT') {
-                    $totalOutputPieces += $movement->getPiece() ?? 0;
-                }
-            }
-        }
 
-        $availablePieces = $totalInputPieces - $totalOutputPieces;
-
-        if ($piecesToRework > $availablePieces) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Numero di pelli superiore a quelle disponibili (' . $availablePieces . ')', 400));
-        }
-
-        // Calcolo quantità proporzionale
-        $quantityToRework = 0.0;
-        if ($fatherBatch->getPieces() > 0) {
-            $quantityToRework = ($fatherBatch->getQuantity() / $fatherBatch->getPieces()) * $piecesToRework;
-        }
 
         $newBatch = new Batch();
         $newBatch->setBatchType($fatherBatch->getBatchType());
@@ -122,14 +111,16 @@ final class BatchController extends AbstractController
         $newBatch->setBatchDate(new \DateTime());
         $newBatch->setPieces($piecesToRework);
         $newBatch->setMeasurementUnit($fatherBatch->getMeasurementUnit());
-        $newBatch->setQuantity($quantityToRework);
-        $newBatch->setStockItems($quantityToRework);
-        $newBatch->setStorage($quantityToRework);
+        $newBatch->setQuantity($piecesToRework);
+        $newBatch->setStockItems((float)$piecesToRework);
+        $newBatch->setStockQuantity($piecesToRework);
         $newBatch->setLeather($fatherBatch->getLeather());
         $newBatch->setSampling($fatherBatch->isSampling() ?? false);
         $newBatch->setSplitSelected($fatherBatch->isSplitSelected() ?? false);
         $newBatch->setCompleted(false);
         $newBatch->setChecked(false);
+
+        $fatherBatch->setStockItems($availablePieces - $piecesToRework);
 
         $now = new \DateTimeImmutable();
         $newBatch->setCreatedAt($now);
@@ -137,20 +128,17 @@ final class BatchController extends AbstractController
 
         $this->doctrine->persist($newBatch);
 
-        // Batch Composition
         $batchComposition = new BatchComposition();
         $batchComposition->setBatch($newBatch);
         $batchComposition->setFatherBatch($fatherBatch);
         $batchComposition->setFatherBatchPiece($piecesToRework);
-        $batchComposition->setFatherBatchQuantity($quantityToRework);
+        $batchComposition->setFatherBatchQuantity($piecesToRework);
         $batchComposition->setCompositionNote('Riverdimento da lotto ' . $fatherBatch->getBatchCode());
 
         $this->doctrine->persist($batchComposition);
 
-        // Warehouse Movements
         $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
 
-        // Scarico lotto padre
         $outReason = $reasonRepo->findOneBy(['name' => 'Scarico per lavorazione esterna'])
             ?? $reasonRepo->findOneBy(['name' => 'Lavorazione Esterna (Uscita)'])
             ?? $reasonRepo->findOneBy(['name' => 'Scarico Lavorazione']);
@@ -159,14 +147,13 @@ final class BatchController extends AbstractController
             $outMovement = new WarehouseMovement();
             $outMovement->setBatch($fatherBatch);
             $outMovement->setReason($outReason);
-            $outMovement->setQuantity($quantityToRework);
+            $outMovement->setQuantity($piecesToRework);
             $outMovement->setPiece($piecesToRework);
             $outMovement->setDate(new \DateTime());
             $outMovement->setMovementNote('Uscita per riverdimento (Lotto R' . $fatherBatch->getBatchCode() . ')');
             $this->doctrine->persist($outMovement);
         }
 
-        // Carico nuovo lotto
         $inReason = $reasonRepo->findOneBy(['name' => 'Carico da lavorazione esterna'])
             ?? $reasonRepo->findOneBy(['name' => 'Lavorazione Esterna (Entrata)'])
             ?? $reasonRepo->findOneBy(['name' => 'Carico Lavorazione']);
@@ -175,7 +162,7 @@ final class BatchController extends AbstractController
             $inMovement = new WarehouseMovement();
             $inMovement->setBatch($newBatch);
             $inMovement->setReason($inReason);
-            $inMovement->setQuantity($quantityToRework);
+            $inMovement->setQuantity($piecesToRework);
             $inMovement->setPiece($piecesToRework);
             $inMovement->setDate(new \DateTime());
             $inMovement->setMovementNote('Entrata da riverdimento');
@@ -216,15 +203,16 @@ final class BatchController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse('Lotto R non trovato', 404));
         }
 
-        // Controllo: la quantità richiesta non deve superare il numero di pelli del lotto R
-        $availablePieces = (int)($reworkedBatch->getPieces() ?? 0);
+        $availablePieces = (float)($reworkedBatch->getStockItems() ?? 0);
         if ($quantity > $availablePieces) {
             return new JsonResponse($this->doResponse->doErrorResponse('Quantità superiore al numero di pelli disponibili (' . $availablePieces . ')', 400));
         }
 
-        $baseCode = substr($batchCode, 1); // rimuove il prefisso R
+        // Aggiorna stock_items del padre (lotto R)
+        $reworkedBatch->setStockItems($availablePieces - $quantity);
 
-        // Crea lotto SF
+        $baseCode = substr($batchCode, 1);
+
         $sfBatch = new Batch();
         $sfBatch->setBatchType($reworkedBatch->getBatchType());
         $sfBatch->setBatchCode('SF' . $baseCode);
@@ -233,7 +221,7 @@ final class BatchController extends AbstractController
         $sfBatch->setMeasurementUnit($reworkedBatch->getMeasurementUnit());
         $sfBatch->setQuantity($quantity);
         $sfBatch->setStockItems($quantity);
-        $sfBatch->setStorage($quantity);
+        $sfBatch->setStockQuantity($quantity);
         $sfBatch->setLeather($reworkedBatch->getLeather());
         $sfBatch->setSampling($reworkedBatch->isSampling() ?? false);
         $sfBatch->setSplitSelected($reworkedBatch->isSplitSelected() ?? false);
@@ -253,7 +241,7 @@ final class BatchController extends AbstractController
         $scBatch->setMeasurementUnit($reworkedBatch->getMeasurementUnit());
         $scBatch->setQuantity($quantity);
         $scBatch->setStockItems($quantity);
-        $scBatch->setStorage($quantity);
+        $scBatch->setStockQuantity($quantity);
         $scBatch->setLeather($reworkedBatch->getLeather());
         $scBatch->setSampling($reworkedBatch->isSampling() ?? false);
         $scBatch->setSplitSelected($reworkedBatch->isSplitSelected() ?? false);
@@ -334,14 +322,18 @@ final class BatchController extends AbstractController
                     ['id' => 'DESC']
                 );
 
-                $lastCode = $lastBatch ? $lastBatch->getCode() : null;
+                $lastCode = $lastBatch ? $lastBatch->getBatchCode() : null;
 
-
-                $nextCode = $this->nextSequentialCode($lastCode, 'S', 4);
+                $yearPrefix = (new \DateTimeImmutable())->format('y');
+                $nextCode = $this->nextSequentialCode($lastCode, $yearPrefix, 4);
                 $batch->setBatchCode($nextCode);
             }
 
             $batch = $this->createMethodsByInput->createMethods($batch, $data);
+
+            if ($batch->getStockItems() === null || $batch->getStockItems() == 0.0) {
+                $batch->setStockItems((float)$batch->getPieces());
+            }
 
             $now = new \DateTimeImmutable();
             $batch->setCreatedAt($now);
@@ -383,6 +375,11 @@ final class BatchController extends AbstractController
         try {
             $batch = $this->handleRelations($batch, $data);
             $batch = $this->createMethodsByInput->createMethods($batch, $data);
+
+            if ($batch->getStockItems() === null || $batch->getStockItems() == 0.0) {
+                $batch->setStockItems((float)$batch->getPieces());
+            }
+
             $batch->setUpdatedAt(new \DateTimeImmutable());
 
             $errors = $validator->validate($batch);
