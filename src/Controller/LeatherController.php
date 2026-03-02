@@ -51,7 +51,7 @@ final class LeatherController extends AbstractController
         defaults: ['id' => null],
         requirements: ['id' => '\d*'],
         methods: ['GET', 'HEAD'])]
-    public function getLeather(?int $id): JsonResponse
+    public function getLeather(?int $id, Request $request): JsonResponse
     {
         $leatherRepository = $this->doctrine->getRepository(Leather::class);
 
@@ -61,7 +61,23 @@ final class LeatherController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('Leather not found', 404));
             }
         } else {
-            $leather = $leatherRepository->findBy([], ['id' => 'DESC']);
+            $filters = [];
+            $allowedFilters = [
+                'weight', 'species', 'contact', 'thickness', 'supplier',
+                'flay', 'provenance', 'type', 'status', 'provenance_area'
+            ];
+
+            foreach ($allowedFilters as $filter) {
+                if ($request->query->has($filter)) {
+                    $filters[$filter] = $request->query->get($filter);
+                }
+            }
+
+            if (!empty($filters)) {
+                $leather = $leatherRepository->findWithFilters($filters);
+            } else {
+                $leather = $leatherRepository->findBy([], ['id' => 'DESC']);
+            }
         }
         $results = $this->groupSerializer->serializeGroup($leather, $id ? 'leather_detail' : 'leather_list');
 

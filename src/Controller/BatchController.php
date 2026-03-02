@@ -81,6 +81,155 @@ final class BatchController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse($results));
     }
 
+    #[Route('/batch/create-tf',
+        name: 'post_batch_tf',
+        methods: ['POST'])]
+    public function createTfBatch(
+        Request            $request,
+        ValidatorInterface $validator,
+    ): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+        if (!$data) {
+            $data = $request->request->all();
+        }
+
+        if (!isset($data['sources']) || !is_array($data['sources'])) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Sorgenti non valide', 400));
+        }
+
+        try {
+            $batchRepo = $this->doctrine->getRepository(Batch::class);
+            $batchTypeRepo = $this->doctrine->getRepository(BatchType::class);
+            $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
+
+            $tfBatchType = $batchTypeRepo->findOneBy(['name' => 'TF'])
+                ?? $batchTypeRepo->findOneBy(['prefix' => 'TF']);
+
+            if (!$tfBatchType) {
+                $tfBatchType = new BatchType();
+                $tfBatchType->setName('TF');
+                $tfBatchType->setPrefix('TF');
+                $tfBatchType->setSaleProcess(false);
+                $tfBatchType->setCreatedAt(new \DateTimeImmutable());
+                $tfBatchType->setUpdatedAt(new \DateTimeImmutable());
+                $this->doctrine->persist($tfBatchType);
+            }
+
+            $lastTfBatch = $batchRepo->findLatestBatchByPrefix('TF');
+            $lastCode = $lastTfBatch ? $lastTfBatch->getBatchCode() : null;
+            $nextCode = $this->nextSequentialCode($lastCode, 'TF', 6);
+
+            $newBatch = new Batch();
+            $newBatch->setBatchType($tfBatchType);
+            $newBatch->setBatchCode($nextCode);
+            $newBatch->setBatchDate(new \DateTime());
+            $newBatch->setCompleted(false);
+            $newBatch->setChecked(false);
+            $newBatch->setSampling(false);
+            $newBatch->setSplitSelected(false);
+
+            $totalPieces = 0;
+            $totalQuantity = 0.0;
+            $firstLeather = null;
+            $firstUnit = null;
+
+            foreach ($data['sources'] as $source) {
+                $sourceBatch = $batchRepo->find($source['batch_id']);
+                if (!$sourceBatch) {
+                    throw new \Exception('Lotto sorgente ' . $source['batch_id'] . ' non trovato');
+                }
+
+                $pieces = (int)($source['pieces'] ?? 0);
+                $quantity = (float)($source['quantity'] ?? 0.0);
+
+                if ($pieces <= 0) {
+                    throw new \Exception('Pezzi non validi per il lotto ' . $sourceBatch->getBatchCode());
+                }
+
+                if ($sourceBatch->getStockItems() < $pieces) {
+                    throw new \Exception('Disponibilità insufficiente per il lotto ' . $sourceBatch->getBatchCode());
+                }
+
+                if (!$firstLeather) $firstLeather = $sourceBatch->getLeather();
+                if (!$firstUnit) $firstUnit = $sourceBatch->getMeasurementUnit();
+
+                $sourceBatch->setStockItems($sourceBatch->getStockItems() - $pieces);
+                $sourceBatch->setStockQuantity($sourceBatch->getStockQuantity() - $quantity);
+
+                $composition = new BatchComposition();
+                $composition->setBatch($newBatch);
+                $composition->setFatherBatch($sourceBatch);
+                $composition->setFatherBatchPiece($pieces);
+                $composition->setFatherBatchQuantity($quantity);
+                $composition->setCompositionNote('Composizione lotto TF ' . $nextCode);
+                $this->doctrine->persist($composition);
+
+                // Movimento in uscita dal sorgente
+                $outReason = $reasonRepo->findOneBy(['name' => 'Scarico per lavorazione interna'])
+                    ?? $reasonRepo->findOneBy(['name' => 'Scarico Lavorazione'])
+                    ?? $reasonRepo->findOneBy(['name' => 'Vendita']);
+
+                if ($outReason) {
+                    $outMovement = new WarehouseMovement();
+                    $outMovement->setBatch($sourceBatch);
+                    $outMovement->setReason($outReason);
+                    $outMovement->setPiece($pieces);
+                    $outMovement->setQuantity($quantity);
+                    $outMovement->setDate(new \DateTime());
+                    $outMovement->setMovementNote('Uscita per creazione lotto ' . $nextCode);
+                    $this->doctrine->persist($outMovement);
+                }
+
+                $totalPieces += $pieces;
+                $totalQuantity += $quantity;
+            }
+
+            $newBatch->setPieces($totalPieces);
+            $newBatch->setQuantity($totalQuantity);
+            $newBatch->setStockItems((float)$totalPieces);
+            $newBatch->setStockQuantity($totalQuantity);
+            $newBatch->setLeather($firstLeather);
+            $newBatch->setMeasurementUnit($firstUnit);
+
+            $now = new \DateTimeImmutable();
+            $newBatch->setCreatedAt($now);
+            $newBatch->setUpdatedAt($now);
+
+            $errors = $validator->validate($newBatch);
+            if (count($errors) > 0) {
+                $errors = $this->validatorOutputFormatter->formatOutput($errors);
+                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+            }
+
+            $this->doctrine->persist($newBatch);
+
+            // Movimento in entrata nel nuovo lotto TF
+            $inReason = $reasonRepo->findOneBy(['name' => 'Carico da produzione'])
+                ?? $reasonRepo->findOneBy(['name' => 'Carico Lavorazione'])
+                ?? $reasonRepo->findOneBy(['name' => 'Acquisto']);
+
+            if ($inReason) {
+                $inMovement = new WarehouseMovement();
+                $inMovement->setBatch($newBatch);
+                $inMovement->setReason($inReason);
+                $inMovement->setPiece($totalPieces);
+                $inMovement->setQuantity($totalQuantity);
+                $inMovement->setDate(new \DateTime());
+                $inMovement->setMovementNote('Entrata lotto TF da composizione lotti');
+                $this->doctrine->persist($inMovement);
+            }
+
+            $this->doctrine->flush();
+
+            $result = $this->groupSerializer->serializeGroup($newBatch, 'batch_detail');
+            return new JsonResponse($this->doResponse->doResponse($result));
+
+        } catch (\Exception $e) {
+            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+        }
+    }
+
     #[Route('/batch/rework/{id}',
         name: 'rework_batch',
         requirements: ['id' => '\d+'],
@@ -99,6 +248,11 @@ final class BatchController extends AbstractController
 
         if (!$fatherBatch) {
             return new JsonResponse($this->doResponse->doErrorResponse('Batch not found', 404));
+        }
+
+        $fatherBatchCode = $fatherBatch->getBatchCode();
+        if (str_starts_with($fatherBatchCode, 'SF') || str_starts_with($fatherBatchCode, 'SC')) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Un lotto spaccato (SF/SC) non può essere rinverdito', 400));
         }
 
         $availablePieces = (float)($fatherBatch->getStockItems() ?? 0);
