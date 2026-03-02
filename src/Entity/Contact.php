@@ -72,7 +72,7 @@ class Contact
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $client_shipment_note = null;
 
-    #[ORM\Column]
+    #[ORM\Column(nullable: true)]
     private ?int $tolerance_start_days = null;
 
     #[ORM\Column(nullable: true)]
@@ -106,14 +106,20 @@ class Contact
     #[ORM\OneToMany(mappedBy: 'supplier', targetEntity: Leather::class)]
     private Collection $SupplierLeather;
 
+    /**
+     * @var Collection<int, ContactAgent>
+     */
+    #[ORM\OneToMany(mappedBy: 'contact', targetEntity: ContactAgent::class, orphanRemoval: true)]
+    private Collection $contactAgents;
+
     public function __construct()
     {
         $this->contactAddresses = new ArrayCollection();
-        $this->suppliers = new ArrayCollection();
         $this->leather = new ArrayCollection();
         $this->contactDetails = new ArrayCollection();
         $this->products = new ArrayCollection();
         $this->SupplierLeather = new ArrayCollection();
+        $this->contactAgents = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -440,6 +446,36 @@ class Contact
         if (!$this->SupplierLeather->contains($supplierLeather)) {
             $this->SupplierLeather->add($supplierLeather);
             $supplierLeather->setSupplier($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ContactAgent>
+     */
+    public function getContactAgents(): Collection
+    {
+        return $this->contactAgents;
+    }
+
+    public function addContactAgent(ContactAgent $contactAgent): static
+    {
+        if (!$this->contactAgents->contains($contactAgent)) {
+            $this->contactAgents->add($contactAgent);
+            $contactAgent->setContact($this);
+        }
+
+        return $this;
+    }
+
+    public function removeContactAgent(ContactAgent $contactAgent): static
+    {
+        if ($this->contactAgents->removeElement($contactAgent)) {
+            // set the owning side to null (unless already changed)
+            if ($contactAgent->getContact() === $this) {
+                $contactAgent->setContact(null);
+            }
         }
 
         return $this;

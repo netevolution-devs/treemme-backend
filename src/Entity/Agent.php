@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\AgentRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -28,6 +30,17 @@ class Agent
 
     #[ORM\ManyToOne(inversedBy: 'agents')]
     private ?Payment $payment = null;
+
+    /**
+     * @var Collection<int, ContactAgent>
+     */
+    #[ORM\OneToMany(mappedBy: 'agent', targetEntity: ContactAgent::class, orphanRemoval: true)]
+    private Collection $contactAgents;
+
+    public function __construct()
+    {
+        $this->contactAgents = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -90,6 +103,36 @@ class Agent
     public function setPayment(?Payment $payment): static
     {
         $this->payment = $payment;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ContactAgent>
+     */
+    public function getContactAgents(): Collection
+    {
+        return $this->contactAgents;
+    }
+
+    public function addContactAgent(ContactAgent $contactAgent): static
+    {
+        if (!$this->contactAgents->contains($contactAgent)) {
+            $this->contactAgents->add($contactAgent);
+            $contactAgent->setAgent($this);
+        }
+
+        return $this;
+    }
+
+    public function removeContactAgent(ContactAgent $contactAgent): static
+    {
+        if ($this->contactAgents->removeElement($contactAgent)) {
+            // set the owning side to null (unless already changed)
+            if ($contactAgent->getAgent() === $this) {
+                $contactAgent->setAgent(null);
+            }
+        }
 
         return $this;
     }
