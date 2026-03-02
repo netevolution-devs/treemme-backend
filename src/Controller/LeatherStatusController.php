@@ -123,9 +123,9 @@ final class LeatherStatusController extends AbstractController
 
         try {
             if(isset($data['measurement_unit_id'])){
-                $measuramentUnit = $this->doctrine->getRepository(MeasurementUnit::class)->find($data['measurament_unit_id']);
+                $measuramentUnit = $this->doctrine->getRepository(MeasurementUnit::class)->find($data['measurement_unit_id']);
                 if(!$measuramentUnit){
-                    return new JsonResponse($this->doResponse->doErrorResponse('Measurament unit not found'));
+                    return new JsonResponse($this->doResponse->doErrorResponse('Measurement unit not found'));
                 }
                 $leatherStatus->setMeasurementUnit($measuramentUnit);
 
