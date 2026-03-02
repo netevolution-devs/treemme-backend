@@ -37,7 +37,7 @@ class Leather
     #[Groups(['leather_list', 'leather_detail'])]
     private ?float $sqft_leather_media = null;
 
-    #[ORM\Column]
+    #[ORM\Column(nullable: true)]
     #[Groups(['leather_list', 'leather_detail'])]
     private ?float $sqft_leather_expected = null;
 
