@@ -37,12 +37,6 @@ class Contact
     #[Groups(['contact_list','contact_detail'])]
     private Collection $contactAddresses;
 
-    /**
-     * @var Collection<int, Supplier>
-     */
-    #[ORM\OneToMany(mappedBy: 'contact', targetEntity: Supplier::class)]
-    private Collection $suppliers;
-
     #[ORM\Column]
     private ?\DateTimeImmutable $created_at = null;
 
@@ -187,36 +181,6 @@ class Contact
             // set the owning side to null (unless already changed)
             if ($contactAddress->getContact() === $this) {
                 $contactAddress->setContact(null);
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Supplier>
-     */
-    public function getSuppliers(): Collection
-    {
-        return $this->suppliers;
-    }
-
-    public function addSupplier(Supplier $supplier): static
-    {
-        if (!$this->suppliers->contains($supplier)) {
-            $this->suppliers->add($supplier);
-            $supplier->setContact($this);
-        }
-
-        return $this;
-    }
-
-    public function removeSupplier(Supplier $supplier): static
-    {
-        if ($this->suppliers->removeElement($supplier)) {
-            // set the owning side to null (unless already changed)
-            if ($supplier->getContact() === $this) {
-                $supplier->setContact(null);
             }
         }
 
