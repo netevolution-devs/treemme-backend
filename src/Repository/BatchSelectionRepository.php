@@ -2,22 +2,22 @@
 
 namespace App\Repository;
 
-use App\Entity\Batch;
+use App\Entity\BatchSelection;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * @extends ServiceEntityRepository<Batch>
+ * @extends ServiceEntityRepository<BatchSelection>
  */
-class BatchRepository extends ServiceEntityRepository
+class BatchSelectionRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, Batch::class);
+        parent::__construct($registry, BatchSelection::class);
     }
 
     //    /**
-    //     * @return Batch[] Returns an array of Batch objects
+    //     * @return BatchSelection[] Returns an array of BatchSelection objects
     //     */
     //    public function findByExampleField($value): array
     //    {
@@ -31,12 +31,13 @@ class BatchRepository extends ServiceEntityRepository
     //        ;
     //    }
 
-    public function findAvailableStock(): array
-    {
-        return $this->createQueryBuilder('b')
-            ->andWhere('b.stock_items > 0')
-            ->orderBy('b.id', 'DESC')
-            ->getQuery()
-            ->getResult();
-    }
+    //    public function findOneBySomeField($value): ?BatchSelection
+    //    {
+    //        return $this->createQueryBuilder('b')
+    //            ->andWhere('b.exampleField = :val')
+    //            ->setParameter('val', $value)
+    //            ->getQuery()
+    //            ->getOneOrNullResult()
+    //        ;
+    //    }
 }

@@ -20,8 +20,6 @@ class CreateMethodsByInput
                 throw new \RuntimeException($field . ' non trovato');
             }
 
-            // Normalizzazione: converti valori "vuoti" in NULL
-            // Casi gestiti: "", NULL, "null", 0, 0.0, "0", "0.0", "0,0" ...
             if ($value === null) {
                 $value = null;
             } else if (is_string($value)) {
