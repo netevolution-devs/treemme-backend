@@ -82,26 +82,7 @@ final class ContactController extends AbstractController
         $contact = new Contact();
 
         try {
-
-            if (isset($data['contact_type_id'])) {
-                $contactType = $this->doctrine->getRepository(ContactType::class)->find($data['contact_type_id']);
-                if (!$contactType) {
-                    return new JsonResponse($this->doResponse->doErrorResponse('ContactType not found', 404));
-                }
-
-                $contact->setContactType($contactType);
-                unset($data['contact_type_id']);
-            }
-            if (isset($data['contact_title_id'])) {
-                $contactTitle = $this->doctrine->getRepository(ContactTitle::class)->find($data['contact_title_id']);
-                if (!$contactTitle) {
-                    return new JsonResponse($this->doResponse->doErrorResponse('ContactTitle not found', 404));
-                }
-
-                $contact->setContactTitle($contactTitle);
-                unset($data['contact_title_id']);
-            }
-
+            $contact = $this->handleRelations($contact, $data);
             $contact = $this->createMethodsByInput->createMethods($contact, $data);
 
             $now = new \DateTimeImmutable();
@@ -146,33 +127,19 @@ final class ContactController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse('Contact not found', 404));
         }
 
-        if (isset($data['contact_type_id'])) {
-            $contactType = $this->doctrine->getRepository(ContactType::class)->find($data['contact_type_id']);
-            if (!$contactType) {
-                return new JsonResponse($this->doResponse->doErrorResponse('ContactType not found', 404));
-            }
+        try {
+            $contact = $this->handleRelations($contact, $data);
+            $contact = $this->createMethodsByInput->createMethods($contact, $data);
 
-            $contact->setContactType($contactType);
-            unset($data['contact_type_id']);
+            $em = $this->doctrine;
+            $em->persist($contact);
+            $em->flush();
+
+            $result = $this->groupSerializer->serializeGroup($contact, 'contact_detail');
+            return new JsonResponse($this->doResponse->doResponse($result));
+        } catch (\Exception $e) {
+            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
         }
-        if (isset($data['contact_title_id'])) {
-            $contactTitle = $this->doctrine->getRepository(ContactTitle::class)->find($data['contact_title_id']);
-            if (!$contactTitle) {
-                return new JsonResponse($this->doResponse->doErrorResponse('ContactTitle not found', 404));
-            }
-
-            $contact->setContactTitle($contactTitle);
-            unset($data['contact_title_id']);
-        }
-
-        $contact = $this->createMethodsByInput->createMethods($contact, $data);
-
-        $em = $this->doctrine;
-        $em->persist($contact);
-        $em->flush();
-
-        $result = $this->groupSerializer->serializeGroup($contact, 'contact_detail');
-        return new JsonResponse($this->doResponse->doResponse($result));
     }
 
     #[Route('/contact/{id}', name: 'delete_contact', methods: ['DELETE'])]
@@ -189,5 +156,26 @@ final class ContactController extends AbstractController
         $em->flush();
 
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
+    }
+
+    private function handleRelations(Contact $contact, array &$data): Contact
+    {
+        if (isset($data['contact_type_id'])) {
+            $contactType = $this->doctrine->getRepository(ContactType::class)->find($data['contact_type_id']);
+            if ($contactType) {
+                $contact->setContactType($contactType);
+            }
+            unset($data['contact_type_id']);
+        }
+
+        if (isset($data['contact_title_id'])) {
+            $contactTitle = $this->doctrine->getRepository(ContactTitle::class)->find($data['contact_title_id']);
+            if ($contactTitle) {
+                $contact->setContactTitle($contactTitle);
+            }
+            unset($data['contact_title_id']);
+        }
+
+        return $contact;
     }
 }

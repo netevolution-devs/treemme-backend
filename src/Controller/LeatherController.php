@@ -3,6 +3,15 @@
 namespace App\Controller;
 
 use App\Entity\Leather;
+use App\Entity\LeatherWeight;
+use App\Entity\LeatherSpecies;
+use App\Entity\Contact;
+use App\Entity\LeatherThickness;
+use App\Entity\Supplier;
+use App\Entity\LeatherFlay;
+use App\Entity\LeatherProvenance;
+use App\Entity\LeatherType;
+use App\Entity\LeatherStatus;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -74,6 +83,7 @@ final class LeatherController extends AbstractController
         $leather = new Leather();
 
         try {
+            $leather = $this->handleRelations($leather, $data);
             $leather = $this->createMethodsByInput->createMethods($leather, $data);
 
             $errors = $validator->validate($leather);
@@ -111,6 +121,7 @@ final class LeatherController extends AbstractController
         }
 
         try {
+            $leather = $this->handleRelations($leather, $data);
             $leather = $this->createMethodsByInput->createMethods($leather, $data);
 
             $errors = $validator->validate($leather);
@@ -143,5 +154,82 @@ final class LeatherController extends AbstractController
         $this->doctrine->flush();
 
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
+    }
+
+    private function handleRelations(Leather $leather, array &$data): Leather
+    {
+        if (isset($data['weight_id'])) {
+            $weight = $this->doctrine->getRepository(LeatherWeight::class)->find($data['weight_id']);
+            if ($weight) {
+                $leather->setWeight($weight);
+            }
+            unset($data['weight_id']);
+        }
+
+        if (isset($data['species_id'])) {
+            $species = $this->doctrine->getRepository(LeatherSpecies::class)->find($data['species_id']);
+            if ($species) {
+                $leather->setSpecies($species);
+            }
+            unset($data['species_id']);
+        }
+
+        if (isset($data['contact_id'])) {
+            $contact = $this->doctrine->getRepository(Contact::class)->find($data['contact_id']);
+            if ($contact) {
+                $leather->setContact($contact);
+            }
+            unset($data['contact_id']);
+        }
+
+        if (isset($data['thickness_id'])) {
+            $thickness = $this->doctrine->getRepository(LeatherThickness::class)->find($data['thickness_id']);
+            if ($thickness) {
+                $leather->setThickness($thickness);
+            }
+            unset($data['thickness_id']);
+        }
+
+        if (isset($data['supplier_id'])) {
+            $supplier = $this->doctrine->getRepository(Supplier::class)->find($data['supplier_id']);
+            if ($supplier) {
+                $leather->setSupplier($supplier);
+            }
+            unset($data['supplier_id']);
+        }
+
+        if (isset($data['flay_id'])) {
+            $flay = $this->doctrine->getRepository(LeatherFlay::class)->find($data['flay_id']);
+            if ($flay) {
+                $leather->setFlay($flay);
+            }
+            unset($data['flay_id']);
+        }
+
+        if (isset($data['provenance_id'])) {
+            $provenance = $this->doctrine->getRepository(LeatherProvenance::class)->find($data['provenance_id']);
+            if ($provenance) {
+                $leather->setProvenance($provenance);
+            }
+            unset($data['provenance_id']);
+        }
+
+        if (isset($data['type_id'])) {
+            $type = $this->doctrine->getRepository(LeatherType::class)->find($data['type_id']);
+            if ($type) {
+                $leather->setType($type);
+            }
+            unset($data['type_id']);
+        }
+
+        if (isset($data['status_id'])) {
+            $status = $this->doctrine->getRepository(LeatherStatus::class)->find($data['status_id']);
+            if ($status) {
+                $leather->setStatus($status);
+            }
+            unset($data['status_id']);
+        }
+
+        return $leather;
     }
 }

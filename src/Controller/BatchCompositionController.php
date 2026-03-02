@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\BatchComposition;
+use App\Entity\Batch;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -74,6 +75,7 @@ final class BatchCompositionController extends AbstractController
         $batchComposition = new BatchComposition();
 
         try {
+            $batchComposition = $this->handleRelations($batchComposition, $data);
             $batchComposition = $this->createMethodsByInput->createMethods($batchComposition, $data);
 
             $errors = $validator->validate($batchComposition);
@@ -111,6 +113,7 @@ final class BatchCompositionController extends AbstractController
         }
 
         try {
+            $batchComposition = $this->handleRelations($batchComposition, $data);
             $batchComposition = $this->createMethodsByInput->createMethods($batchComposition, $data);
 
             $errors = $validator->validate($batchComposition);
@@ -143,5 +146,26 @@ final class BatchCompositionController extends AbstractController
         $this->doctrine->flush();
 
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
+    }
+
+    private function handleRelations(BatchComposition $batchComposition, array &$data): BatchComposition
+    {
+        if (isset($data['batch_id'])) {
+            $batch = $this->doctrine->getRepository(Batch::class)->find($data['batch_id']);
+            if ($batch) {
+                $batchComposition->setBatch($batch);
+            }
+            unset($data['batch_id']);
+        }
+
+        if (isset($data['father_batch_id'])) {
+            $fatherBatch = $this->doctrine->getRepository(Batch::class)->find($data['father_batch_id']);
+            if ($fatherBatch) {
+                $batchComposition->setFatherBatch($fatherBatch);
+            }
+            unset($data['father_batch_id']);
+        }
+
+        return $batchComposition;
     }
 }

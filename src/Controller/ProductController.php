@@ -189,6 +189,22 @@ final class ProductController extends AbstractController
             unset($data['color_id']);
         }
 
+        if (isset($data['weight_measurement_unit_id'])) {
+            $unit = $this->doctrine->getRepository(MeasurementUnit::class)->find($data['weight_measurement_unit_id']);
+            if ($unit) {
+                $product->setWeightMeasurementUnit($unit);
+            }
+            unset($data['weight_measurement_unit_id']);
+        }
+
+        if (isset($data['thickness_measurement_unit_id'])) {
+            $unit = $this->doctrine->getRepository(MeasurementUnit::class)->find($data['thickness_measurement_unit_id']);
+            if ($unit) {
+                $product->setThicknessMeasurementUnit($unit);
+            }
+            unset($data['thickness_measurement_unit_id']);
+        }
+
         return $product;
     }
 }
