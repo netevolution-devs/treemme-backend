@@ -42,24 +42,7 @@ class BatchSelectionController extends AbstractController
         $batchSelection = new BatchSelection();
 
         try {
-            if (isset($data['batch_id'])) {
-                $batch = $this->entityManager->getRepository(Batch::class)->find($data['batch_id']);
-                if (!$batch) {
-                    return new JsonResponse($this->doResponseService->doErrorResponse('Batch non trovato', '', 'ko', 404));
-                }
-                $batchSelection->setBatch($batch);
-                unset($data['batch_id']);
-            }
-
-            if (isset($data['selection_id'])) {
-                $selection = $this->entityManager->getRepository(Selection::class)->find($data['selection_id']);
-                if (!$selection) {
-                    return new JsonResponse($this->doResponseService->doErrorResponse('Selezione non trovata', '', 'ko', 404));
-                }
-                $batchSelection->setSelection($selection);
-                unset($data['selection_id']);
-            }
-
+            $batchSelection = $this->handleRelations($batchSelection, $data);
             $batchSelection = $this->createMethodsByInput->createMethods($batchSelection, $data);
 
             // Se stock_pieces o stock_quantity non sono forniti, inizializzarli con i valori di pieces e quantity
@@ -85,5 +68,26 @@ class BatchSelectionController extends AbstractController
         } catch (\Exception $e) {
             return new JsonResponse($this->doResponseService->doErrorResponse($e->getMessage()));
         }
+    }
+
+    private function handleRelations(BatchSelection $batchSelection, array &$data): BatchSelection
+    {
+        if (isset($data['batch_id'])) {
+            $batch = $this->entityManager->getRepository(Batch::class)->find($data['batch_id']);
+            if ($batch) {
+                $batchSelection->setBatch($batch);
+            }
+            unset($data['batch_id']);
+        }
+
+        if (isset($data['selection_id'])) {
+            $selection = $this->entityManager->getRepository(Selection::class)->find($data['selection_id']);
+            if ($selection) {
+                $batchSelection->setSelection($selection);
+            }
+            unset($data['selection_id']);
+        }
+
+        return $batchSelection;
     }
 }

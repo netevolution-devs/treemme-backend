@@ -3,6 +3,9 @@
 namespace App\Controller;
 
 use App\Entity\BatchCost;
+use App\Entity\Batch;
+use App\Entity\BatchCostType;
+use App\Entity\Currency;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -74,6 +77,7 @@ final class BatchCostController extends AbstractController
         $batchCost = new BatchCost();
 
         try {
+            $batchCost = $this->handleRelations($batchCost, $data);
             $batchCost = $this->createMethodsByInput->createMethods($batchCost, $data);
 
             $errors = $validator->validate($batchCost);
@@ -111,6 +115,7 @@ final class BatchCostController extends AbstractController
         }
 
         try {
+            $batchCost = $this->handleRelations($batchCost, $data);
             $batchCost = $this->createMethodsByInput->createMethods($batchCost, $data);
 
             $errors = $validator->validate($batchCost);
@@ -143,5 +148,34 @@ final class BatchCostController extends AbstractController
         $this->doctrine->flush();
 
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
+    }
+
+    private function handleRelations(BatchCost $batchCost, array &$data): BatchCost
+    {
+        if (isset($data['batch_id'])) {
+            $batch = $this->doctrine->getRepository(Batch::class)->find($data['batch_id']);
+            if ($batch) {
+                $batchCost->setBatch($batch);
+            }
+            unset($data['batch_id']);
+        }
+
+        if (isset($data['batch_cost_type_id'])) {
+            $type = $this->doctrine->getRepository(BatchCostType::class)->find($data['batch_cost_type_id']);
+            if ($type) {
+                $batchCost->setBatchCostType($type);
+            }
+            unset($data['batch_cost_type_id']);
+        }
+
+        if (isset($data['currency_id'])) {
+            $currency = $this->doctrine->getRepository(Currency::class)->find($data['currency_id']);
+            if ($currency) {
+                $batchCost->setCurrency($currency);
+            }
+            unset($data['currency_id']);
+        }
+
+        return $batchCost;
     }
 }

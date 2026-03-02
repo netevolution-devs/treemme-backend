@@ -75,16 +75,7 @@ final class LeatherStatusController extends AbstractController
         $leatherStatus = new LeatherStatus();
 
         try {
-            if(isset($data['measurement_unit_id'])){
-                $measurementUnit = $this->doctrine->getRepository(MeasurementUnit::class)->find($data['measurement_unit_id']);
-                if(!$measurementUnit){
-                    return new JsonResponse($this->doResponse->doErrorResponse('Measurement unit not found'));
-                }
-                $leatherStatus->setMeasurementUnit($measurementUnit);
-
-                unset($data['measurement_unit_id']);
-            }
-
+            $leatherStatus = $this->handleRelations($leatherStatus, $data);
             $leatherStatus = $this->createMethodsByInput->createMethods($leatherStatus, $data);
 
             $errors = $validator->validate($leatherStatus);
@@ -122,16 +113,7 @@ final class LeatherStatusController extends AbstractController
         }
 
         try {
-            if(isset($data['measurement_unit_id'])){
-                $measurementUnit = $this->doctrine->getRepository(MeasurementUnit::class)->find($data['measurement_unit_id']);
-                if(!$measurementUnit){
-                    return new JsonResponse($this->doResponse->doErrorResponse('Measurement unit not found'));
-                }
-                $leatherStatus->setMeasurementUnit($measurementUnit);
-
-                unset($data['measurement_unit_id']);
-            }
-
+            $leatherStatus = $this->handleRelations($leatherStatus, $data);
             $leatherStatus = $this->createMethodsByInput->createMethods($leatherStatus, $data);
 
             $errors = $validator->validate($leatherStatus);
@@ -164,5 +146,18 @@ final class LeatherStatusController extends AbstractController
         $this->doctrine->flush();
 
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
+    }
+
+    private function handleRelations(LeatherStatus $leatherStatus, array &$data): LeatherStatus
+    {
+        if (isset($data['measurement_unit_id'])) {
+            $measurementUnit = $this->doctrine->getRepository(MeasurementUnit::class)->find($data['measurement_unit_id']);
+            if ($measurementUnit) {
+                $leatherStatus->setMeasurementUnit($measurementUnit);
+            }
+            unset($data['measurement_unit_id']);
+        }
+
+        return $leatherStatus;
     }
 }

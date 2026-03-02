@@ -41,15 +41,15 @@ class LeatherProvenance
 
     #[ORM\Column]
     #[Groups(['leather_provenance_list', 'leather_provenance_detail'])]
-    private ?float $psp_yield_coefficent = null;
+    private ?float $psp_yield_coefficient = null;
 
     #[ORM\Column]
     #[Groups(['leather_provenance_list', 'leather_provenance_detail'])]
-    private ?float $grain_yield_coefficent = null;
+    private ?float $grain_yield_coefficient = null;
 
     #[ORM\Column]
     #[Groups(['leather_provenance_list', 'leather_provenance_detail'])]
-    private ?float $crust_yield_coefficent = null;
+    private ?float $crust_yield_coefficient = null;
 
     #[ORM\Column]
     #[Groups(['leather_provenance_list', 'leather_provenance_detail'])]
@@ -131,38 +131,38 @@ class LeatherProvenance
         return $this;
     }
 
-    public function getPspYieldCoefficent(): ?float
+    public function getPspYieldCoefficient(): ?float
     {
-        return $this->psp_yield_coefficent;
+        return $this->psp_yield_coefficient;
     }
 
-    public function setPspYieldCoefficent(float $psp_yield_coefficent): static
+    public function setPspYieldCoefficient(float $psp_yield_coefficient): static
     {
-        $this->psp_yield_coefficent = $psp_yield_coefficent;
+        $this->psp_yield_coefficient = $psp_yield_coefficient;
 
         return $this;
     }
 
-    public function getGrainYieldCoefficent(): ?float
+    public function getGrainYieldCoefficient(): ?float
     {
-        return $this->grain_yield_coefficent;
+        return $this->grain_yield_coefficient;
     }
 
-    public function setGrainYieldCoefficent(float $grain_yield_coefficent): static
+    public function setGrainYieldCoefficient(float $grain_yield_coefficient): static
     {
-        $this->grain_yield_coefficent = $grain_yield_coefficent;
+        $this->grain_yield_coefficient = $grain_yield_coefficient;
 
         return $this;
     }
 
-    public function getCrustYieldCoefficent(): ?float
+    public function getCrustYieldCoefficient(): ?float
     {
-        return $this->crust_yield_coefficent;
+        return $this->crust_yield_coefficient;
     }
 
-    public function setCrustYieldCoefficent(float $crust_yield_coefficent): static
+    public function setCrustYieldCoefficient(float $crust_yield_coefficient): static
     {
-        $this->crust_yield_coefficent = $crust_yield_coefficent;
+        $this->crust_yield_coefficient = $crust_yield_coefficient;
 
         return $this;
     }

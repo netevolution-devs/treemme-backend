@@ -39,4 +39,15 @@ class BatchRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    public function findLatestBatchByPrefix(string $prefix): ?Batch
+    {
+        return $this->createQueryBuilder('b')
+            ->andWhere('b.batch_code LIKE :prefix')
+            ->setParameter('prefix', $prefix . '%')
+            ->orderBy('b.batch_code', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

@@ -3,6 +3,10 @@
 namespace App\Controller;
 
 use App\Entity\Client;
+use App\Entity\Contact;
+use App\Entity\ContactAddress;
+use App\Entity\User;
+use App\Entity\Payment;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -74,6 +78,7 @@ final class ClientController extends AbstractController
         $client = new Client();
 
         try {
+            $client = $this->handleRelations($client, $data);
             $client = $this->createMethodsByInput->createMethods($client, $data);
 
             $errors = $validator->validate($client);
@@ -111,6 +116,7 @@ final class ClientController extends AbstractController
         }
 
         try {
+            $client = $this->handleRelations($client, $data);
             $client = $this->createMethodsByInput->createMethods($client, $data);
 
             $errors = $validator->validate($client);
@@ -143,5 +149,42 @@ final class ClientController extends AbstractController
         $this->doctrine->flush();
 
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
+    }
+
+    private function handleRelations(Client $client, array &$data): Client
+    {
+        if (isset($data['contact_id'])) {
+            $contact = $this->doctrine->getRepository(Contact::class)->find($data['contact_id']);
+            if ($contact) {
+                $client->setContact($contact);
+            }
+            unset($data['contact_id']);
+        }
+
+        if (isset($data['address_id'])) {
+            $address = $this->doctrine->getRepository(ContactAddress::class)->find($data['address_id']);
+            if ($address) {
+                $client->setAddress($address);
+            }
+            unset($data['address_id']);
+        }
+
+        if (isset($data['check_user_id'])) {
+            $user = $this->doctrine->getRepository(User::class)->find($data['check_user_id']);
+            if ($user) {
+                $client->setCheckUser($user);
+            }
+            unset($data['check_user_id']);
+        }
+
+        if (isset($data['payment_id'])) {
+            $payment = $this->doctrine->getRepository(Payment::class)->find($data['payment_id']);
+            if ($payment) {
+                $client->setPayment($payment);
+            }
+            unset($data['payment_id']);
+        }
+
+        return $client;
     }
 }
