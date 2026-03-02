@@ -7,7 +7,6 @@ use App\Entity\LeatherWeight;
 use App\Entity\LeatherSpecies;
 use App\Entity\Contact;
 use App\Entity\LeatherThickness;
-use App\Entity\Supplier;
 use App\Entity\LeatherFlay;
 use App\Entity\LeatherProvenance;
 use App\Entity\LeatherType;
@@ -207,7 +206,7 @@ final class LeatherController extends AbstractController
         }
 
         if (isset($data['supplier_id'])) {
-            $supplier = $this->doctrine->getRepository(Supplier::class)->find($data['supplier_id']);
+            $supplier = $this->doctrine->getRepository(Contact::class)->find($data['supplier_id']);
             if ($supplier) {
                 $leather->setSupplier($supplier);
             }
