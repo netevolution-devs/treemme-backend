@@ -14,15 +14,15 @@ class LeatherFlay
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['leather_flay_list', 'leather_flay_detail', 'leather_detail'])]
+    #[Groups(['leather_flay_list', 'leather_flay_detail', 'leather_detail', 'leather_provenance_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['leather_flay_list', 'leather_flay_detail', 'leather_detail'])]
+    #[Groups(['leather_flay_list', 'leather_flay_detail', 'leather_detail', 'leather_provenance_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['leather_flay_list', 'leather_flay_detail', 'leather_detail'])]
+    #[Groups(['leather_flay_list', 'leather_flay_detail', 'leather_detail', 'leather_provenance_detail'])]
     private ?string $code = null;
 
     /**
