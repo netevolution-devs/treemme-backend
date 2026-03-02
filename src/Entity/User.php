@@ -6,14 +6,13 @@ use App\Repository\UserRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use JMS\Serializer\Annotation\Groups;
 
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '`user`')]
-class User implements UserInterface, PasswordAuthenticatedUserInterface
+class User implements UserInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -65,12 +64,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private Collection $groupUsers;
 
     /**
-     * @var Collection<int, Client>
-     */
-    #[ORM\OneToMany(mappedBy: 'check_user', targetEntity: Client::class)]
-    private Collection $clients;
-
-    /**
      * @var Collection<int, ClientOrder>
      */
     #[ORM\OneToMany(mappedBy: 'check_user', targetEntity: ClientOrder::class)]
@@ -80,7 +73,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         $this->batches = new ArrayCollection();
         $this->groupUsers = new ArrayCollection();
-        $this->clients = new ArrayCollection();
         $this->clientOrders = new ArrayCollection();
     }
 
@@ -262,36 +254,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             // set the owning side to null (unless already changed)
             if ($groupUser->getUser() === $this) {
                 $groupUser->setUser(null);
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Client>
-     */
-    public function getClients(): Collection
-    {
-        return $this->clients;
-    }
-
-    public function addClient(Client $client): static
-    {
-        if (!$this->clients->contains($client)) {
-            $this->clients->add($client);
-            $client->setCheckUser($this);
-        }
-
-        return $this;
-    }
-
-    public function removeClient(Client $client): static
-    {
-        if ($this->clients->removeElement($client)) {
-            // set the owning side to null (unless already changed)
-            if ($client->getCheckUser() === $this) {
-                $client->setCheckUser(null);
             }
         }
 

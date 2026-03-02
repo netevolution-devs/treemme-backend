@@ -53,11 +53,6 @@ class ContactAddress
     #[ORM\Column]
     private ?\DateTimeImmutable $updated_at = null;
 
-    /**
-     * @var Collection<int, Client>
-     */
-    #[ORM\OneToMany(mappedBy: 'address', targetEntity: Client::class)]
-    private Collection $clients;
 
     #[ORM\ManyToOne(inversedBy: 'contactAddress')]
     #[Groups(['contact_address_detail', 'contact_detail'])]
@@ -67,9 +62,15 @@ class ContactAddress
     #[Groups(['contact_address_detail', 'contact_detail'])]
     private ?Town $town = null;
 
+    /**
+     * @var Collection<int, Agent>
+     */
+    #[ORM\OneToMany(mappedBy: 'address', targetEntity: Agent::class)]
+    private Collection $agents;
+
     public function __construct()
     {
-        $this->clients = new ArrayCollection();
+        $this->agents = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -185,36 +186,6 @@ class ContactAddress
         return $this;
     }
 
-    /**
-     * @return Collection<int, Client>
-     */
-    public function getClients(): Collection
-    {
-        return $this->clients;
-    }
-
-    public function addClient(Client $client): static
-    {
-        if (!$this->clients->contains($client)) {
-            $this->clients->add($client);
-            $client->setAddress($this);
-        }
-
-        return $this;
-    }
-
-    public function removeClient(Client $client): static
-    {
-        if ($this->clients->removeElement($client)) {
-            // set the owning side to null (unless already changed)
-            if ($client->getAddress() === $this) {
-                $client->setAddress(null);
-            }
-        }
-
-        return $this;
-    }
-
     public function getNation(): ?Nation
     {
         return $this->nation;
@@ -235,6 +206,36 @@ class ContactAddress
     public function setTown(?Town $town): static
     {
         $this->town = $town;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Agent>
+     */
+    public function getAgents(): Collection
+    {
+        return $this->agents;
+    }
+
+    public function addAgent(Agent $agent): static
+    {
+        if (!$this->agents->contains($agent)) {
+            $this->agents->add($agent);
+            $agent->setAddress($this);
+        }
+
+        return $this;
+    }
+
+    public function removeAgent(Agent $agent): static
+    {
+        if ($this->agents->removeElement($agent)) {
+            // set the owning side to null (unless already changed)
+            if ($agent->getAddress() === $this) {
+                $agent->setAddress(null);
+            }
+        }
 
         return $this;
     }

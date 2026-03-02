@@ -50,12 +50,6 @@ class Contact
     private ?\DateTimeImmutable $updated_at = null;
 
     /**
-     * @var Collection<int, Client>
-     */
-    #[ORM\OneToMany(mappedBy: 'contact', targetEntity: Client::class)]
-    private Collection $clients;
-
-    /**
      * @var Collection<int, Leather>
      */
     #[ORM\OneToMany(mappedBy: 'contact', targetEntity: Leather::class)]
@@ -72,13 +66,60 @@ class Contact
     #[Groups(['contact_list','contact_detail'])]
     private ?ContactTitle $contact_title = null;
 
+    #[ORM\Column]
+    private ?bool $client = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?float $tolerance_quantity = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $client_note = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $client_shipment_note = null;
+
+    #[ORM\Column]
+    private ?int $tolerance_start_days = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?bool $specific_order_reference = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?bool $checked = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTime $check_date = null;
+
+    #[ORM\ManyToOne(inversedBy: 'clients')]
+    private ?User $check_user = null;
+
+    #[ORM\ManyToOne(inversedBy: 'clients')]
+    private ?Payment $payment = null;
+
+    #[ORM\Column]
+    private ?bool $supplier = null;
+
+    /**
+     * @var Collection<int, Product>
+     */
+    #[ORM\OneToMany(mappedBy: 'supplier', targetEntity: Product::class)]
+    #[Groups(['supplier_detail'])]
+    private Collection $products;
+
+    /**
+     * @var Collection<int, Leather>
+     */
+    #[ORM\OneToMany(mappedBy: 'supplier', targetEntity: Leather::class)]
+    private Collection $SupplierLeather;
+
     public function __construct()
     {
         $this->contactAddresses = new ArrayCollection();
         $this->suppliers = new ArrayCollection();
-        $this->clients = new ArrayCollection();
         $this->leather = new ArrayCollection();
         $this->contactDetails = new ArrayCollection();
+        $this->products = new ArrayCollection();
+        $this->SupplierLeather = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -207,36 +248,6 @@ class Contact
     }
 
     /**
-     * @return Collection<int, Client>
-     */
-    public function getClients(): Collection
-    {
-        return $this->clients;
-    }
-
-    public function addClient(Client $client): static
-    {
-        if (!$this->clients->contains($client)) {
-            $this->clients->add($client);
-            $client->setContact($this);
-        }
-
-        return $this;
-    }
-
-    public function removeClient(Client $client): static
-    {
-        if ($this->clients->removeElement($client)) {
-            // set the owning side to null (unless already changed)
-            if ($client->getContact() === $this) {
-                $client->setContact(null);
-            }
-        }
-
-        return $this;
-    }
-
-    /**
      * @return Collection<int, Leather>
      */
     public function getLeather(): Collection
@@ -304,6 +315,168 @@ class Contact
     public function setContactTitle(?ContactTitle $contact_title): static
     {
         $this->contact_title = $contact_title;
+
+        return $this;
+    }
+
+    public function isClient(): ?bool
+    {
+        return $this->client;
+    }
+
+    public function setClient(bool $client): static
+    {
+        $this->client = $client;
+
+        return $this;
+    }
+
+    public function isSupplier(): ?bool
+    {
+        return $this->supplier;
+    }
+
+    public function setSupplier(bool $supplier): static
+    {
+        $this->supplier = $supplier;
+
+        return $this;
+    }
+
+    public function getToleranceQuantity(): ?float
+    {
+        return $this->tolerance_quantity;
+    }
+
+    public function setToleranceQuantity(?float $tolerance_quantity): static
+    {
+        $this->tolerance_quantity = $tolerance_quantity;
+
+        return $this;
+    }
+
+    public function getClientNote(): ?string
+    {
+        return $this->client_note;
+    }
+
+    public function setClientNote(?string $client_note): static
+    {
+        $this->client_note = $client_note;
+
+        return $this;
+    }
+
+    public function getClientShipmentNote(): ?string
+    {
+        return $this->client_shipment_note;
+    }
+
+    public function setClientShipmentNote(?string $client_shipment_note): static
+    {
+        $this->client_shipment_note = $client_shipment_note;
+
+        return $this;
+    }
+
+    public function getToleranceStartDays(): ?int
+    {
+        return $this->tolerance_start_days;
+    }
+
+    public function setToleranceStartDays(int $tolerance_start_days): static
+    {
+        $this->tolerance_start_days = $tolerance_start_days;
+
+        return $this;
+    }
+
+    public function isSpecificOrderReference(): ?bool
+    {
+        return $this->specific_order_reference;
+    }
+
+    public function setSpecificOrderReference(?bool $specific_order_reference): static
+    {
+        $this->specific_order_reference = $specific_order_reference;
+
+        return $this;
+    }
+
+    public function isChecked(): ?bool
+    {
+        return $this->checked;
+    }
+
+    public function setChecked(?bool $checked): static
+    {
+        $this->checked = $checked;
+
+        return $this;
+    }
+
+    public function getCheckDate(): ?\DateTime
+    {
+        return $this->check_date;
+    }
+
+    public function setCheckDate(?\DateTime $check_date): static
+    {
+        $this->check_date = $check_date;
+
+        return $this;
+    }
+
+    public function getCheckUser(): ?User
+    {
+        return $this->check_user;
+    }
+
+    public function setCheckUser(?User $check_user): static
+    {
+        $this->check_user = $check_user;
+
+        return $this;
+    }
+
+    public function getPayment(): ?Payment
+    {
+        return $this->payment;
+    }
+
+    public function setPayment(?Payment $payment): static
+    {
+        $this->payment = $payment;
+
+        return $this;
+    }
+
+    public function getProducts(): Collection
+    {
+        return $this->products;
+    }
+
+    public function addProduct(Product $product): static
+    {
+        if (!$this->products->contains($product)) {
+            $this->products->add($product);
+            $product->setSupplier($this);
+        }
+
+        return $this;
+    }
+
+    public function getSupplierLeather(): Collection
+    {
+        return $this->SupplierLeather;
+    }
+
+    public function addSupplierLeather(Leather $supplierLeather): static
+    {
+        if (!$this->SupplierLeather->contains($supplierLeather)) {
+            $this->SupplierLeather->add($supplierLeather);
+            $supplierLeather->setSupplier($this);
+        }
 
         return $this;
     }

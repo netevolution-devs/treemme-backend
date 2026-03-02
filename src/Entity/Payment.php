@@ -22,21 +22,21 @@ class Payment
     private ?string $name = null;
 
     /**
-     * @var Collection<int, Client>
-     */
-    #[ORM\OneToMany(mappedBy: 'payment', targetEntity: Client::class)]
-    private Collection $clients;
-
-    /**
      * @var Collection<int, ClientOrder>
      */
     #[ORM\OneToMany(mappedBy: 'payment', targetEntity: ClientOrder::class)]
     private Collection $clientOrders;
 
+    /**
+     * @var Collection<int, Agent>
+     */
+    #[ORM\OneToMany(mappedBy: 'payment', targetEntity: Agent::class)]
+    private Collection $agents;
+
     public function __construct()
     {
-        $this->clients = new ArrayCollection();
         $this->clientOrders = new ArrayCollection();
+        $this->agents = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -52,36 +52,6 @@ class Payment
     public function setName(string $name): static
     {
         $this->name = $name;
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Client>
-     */
-    public function getClients(): Collection
-    {
-        return $this->clients;
-    }
-
-    public function addClient(Client $client): static
-    {
-        if (!$this->clients->contains($client)) {
-            $this->clients->add($client);
-            $client->setPayment($this);
-        }
-
-        return $this;
-    }
-
-    public function removeClient(Client $client): static
-    {
-        if ($this->clients->removeElement($client)) {
-            // set the owning side to null (unless already changed)
-            if ($client->getPayment() === $this) {
-                $client->setPayment(null);
-            }
-        }
 
         return $this;
     }
@@ -110,6 +80,36 @@ class Payment
             // set the owning side to null (unless already changed)
             if ($clientOrder->getPayment() === $this) {
                 $clientOrder->setPayment(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Agent>
+     */
+    public function getAgents(): Collection
+    {
+        return $this->agents;
+    }
+
+    public function addAgent(Agent $agent): static
+    {
+        if (!$this->agents->contains($agent)) {
+            $this->agents->add($agent);
+            $agent->setPayment($this);
+        }
+
+        return $this;
+    }
+
+    public function removeAgent(Agent $agent): static
+    {
+        if ($this->agents->removeElement($agent)) {
+            // set the owning side to null (unless already changed)
+            if ($agent->getPayment() === $this) {
+                $agent->setPayment(null);
             }
         }
 

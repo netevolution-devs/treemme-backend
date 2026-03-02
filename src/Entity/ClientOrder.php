@@ -33,7 +33,7 @@ class ClientOrder
     #[ORM\ManyToOne(inversedBy: 'clientOrders')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['client_order_list', 'client_order_detail'])]
-    private ?Client $client = null;
+    private ?Contact $client = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
@@ -156,12 +156,12 @@ class ClientOrder
         return $this;
     }
 
-    public function getClient(): ?Client
+    public function getClient(): ?Contact
     {
         return $this->client;
     }
 
-    public function setClient(?Client $client): static
+    public function setClient(?Contact $client): static
     {
         $this->client = $client;
 

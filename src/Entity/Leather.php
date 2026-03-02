@@ -91,7 +91,7 @@ class Leather
     #[ORM\ManyToOne(inversedBy: 'leather')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['leather_list', 'leather_detail'])]
-    private ?Supplier $supplier = null;
+    private ?Contact $supplier = null;
 
     #[ORM\ManyToOne(inversedBy: 'leather')]
     #[ORM\JoinColumn(nullable: false)]
@@ -333,12 +333,12 @@ class Leather
         return $this;
     }
 
-    public function getSupplier(): ?Supplier
+    public function getSupplier(): ?Contact
     {
         return $this->supplier;
     }
 
-    public function setSupplier(?Supplier $supplier): static
+    public function setSupplier(?Contact $supplier): static
     {
         $this->supplier = $supplier;
 

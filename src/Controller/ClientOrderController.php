@@ -3,7 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\ClientOrder;
-use App\Entity\Client;
+use App\Entity\Contact;
 use App\Entity\Payment;
 use App\Entity\User;
 use App\Service\CreateMethodsByInput;
@@ -153,7 +153,7 @@ final class ClientOrderController extends AbstractController
     private function handleRelations(ClientOrder $clientOrder, array &$data): ClientOrder
     {
         if (isset($data['client_id'])) {
-            $client = $this->doctrine->getRepository(Client::class)->find($data['client_id']);
+            $client = $this->doctrine->getRepository(Contact::class)->find($data['client_id']);
             if ($client) {
                 $clientOrder->setClient($client);
             }

@@ -84,7 +84,7 @@ class Product
 
     #[ORM\ManyToOne(inversedBy: 'products')]
     #[Groups(['product_list', 'product_detail'])]
-    private ?Supplier $supplier = null;
+    private ?Contact $supplier = null;
 
     #[ORM\ManyToOne(inversedBy: 'products')]
     #[ORM\JoinColumn(nullable: false)]
@@ -323,12 +323,12 @@ class Product
         return $this;
     }
 
-    public function getSupplier(): ?Supplier
+    public function getSupplier(): ?Contact
     {
         return $this->supplier;
     }
 
-    public function setSupplier(?Supplier $supplier): static
+    public function setSupplier(?Contact $supplier): static
     {
         $this->supplier = $supplier;
 
