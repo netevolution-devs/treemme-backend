@@ -3,8 +3,10 @@
 namespace App\Controller;
 
 use App\Entity\Batch;
+use App\Entity\BatchOrder;
 use App\Entity\BatchComposition;
 use App\Entity\BatchType;
+use App\Entity\ClientOrderRow;
 use App\Entity\WarehouseMovement;
 use App\Entity\WarehouseMovementReason;
 use App\Entity\MeasurementUnit;
@@ -102,6 +104,15 @@ final class BatchController extends AbstractController
             $batchRepo = $this->doctrine->getRepository(Batch::class);
             $batchTypeRepo = $this->doctrine->getRepository(BatchType::class);
             $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
+            $orderRowRepo = $this->doctrine->getRepository(ClientOrderRow::class);
+
+            $orderRow = null;
+            if (isset($data['order_row_id'])) {
+                $orderRow = $orderRowRepo->find($data['order_row_id']);
+                if (!$orderRow) {
+                    throw new \Exception('Riga ordine ' . $data['order_row_id'] . ' non trovata');
+                }
+            }
 
             $tfBatchType = $batchTypeRepo->findOneBy(['name' => 'TF'])
                 ?? $batchTypeRepo->findOneBy(['prefix' => 'TF']);
@@ -203,6 +214,13 @@ final class BatchController extends AbstractController
             }
 
             $this->doctrine->persist($newBatch);
+
+            if ($orderRow) {
+                $batchOrder = new BatchOrder();
+                $batchOrder->setBatch($newBatch);
+                $batchOrder->setOrderRow($orderRow);
+                $this->doctrine->persist($batchOrder);
+            }
 
             // Movimento in entrata nel nuovo lotto TF
             $inReason = $reasonRepo->findOneBy(['name' => 'Carico da produzione'])
