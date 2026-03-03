@@ -61,21 +61,27 @@ class Contact
     private ?ContactTitle $contact_title = null;
 
     #[ORM\Column]
+    #[Groups(['contact_list','contact_detail'])]
     private ?bool $client = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['contact_detail'])]
     private ?float $tolerance_quantity = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['contact_detail'])]
     private ?string $client_note = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['contact_detail'])]
     private ?string $client_shipment_note = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['contact_detail'])]
     private ?int $tolerance_start_days = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['contact_detail'])]
     private ?bool $specific_order_reference = null;
 
     #[ORM\Column(nullable: true)]
@@ -91,6 +97,7 @@ class Contact
     private ?Payment $payment = null;
 
     #[ORM\Column]
+    #[Groups(['contact_list','contact_detail'])]
     private ?bool $supplier = null;
 
     /**
