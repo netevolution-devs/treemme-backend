@@ -505,15 +505,44 @@ final class BatchController extends AbstractController
                 $nextCode = $this->nextSequentialCode($lastCode, $yearPrefix, 4);
                 $batch->setBatchCode($nextCode);
             }
+            if ($batch->getSqFtAverageExpected() === null) {
+                $batch->setSqFtAverageExpected((float) 0);
+            }
+
+            if ($batch->getSqFtAverageFound() === null) {
+                $batch->setSqFtAverageFound((float) 0);
+            }
+            
+            if ($batch->isCompleted() === null) {
+                $batch->setCompleted(false);
+            }
+
+            if ($batch->isChecked() === null) {
+                $batch->setChecked(false);
+            }
+
+            if ($batch->isSampling() === null) {
+                $batch->setSampling(false);
+            }
+
+            if ($batch->getPieces() === null) {
+                $batch->setPieces(0);
+            }
+
+            if ($batch->getQuantity() === null) {
+                $batch->setQuantity((float) 0);
+            }
+
+            $batch->setSplitSelected(false);
 
             $batch = $this->createMethodsByInput->createMethods($batch, $data);
 
             if ($batch->getStockItems() === null || $batch->getStockItems() == 0.0) {
-                $batch->setStockItems((float)$batch->getPieces());
+                $batch->setStockItems((float)($batch->getPieces() ?? 0));
             }
 
             if ($batch->getStockQuantity() === null || $batch->getStockQuantity() == 0.0) {
-                $batch->setStockQuantity((float)$batch->getQuantity());
+                $batch->setStockQuantity((float)($batch->getQuantity() ?? 0));
             }
 
             $now = new \DateTimeImmutable();
@@ -558,7 +587,39 @@ final class BatchController extends AbstractController
             $batch = $this->createMethodsByInput->createMethods($batch, $data);
 
             if ($batch->getStockItems() === null || $batch->getStockItems() == 0.0) {
-                $batch->setStockItems((float)$batch->getPieces());
+                $batch->setStockItems((float)($batch->getPieces() ?? 0));
+            }
+
+            if ($batch->getStockQuantity() === null || $batch->getStockQuantity() == 0.0) {
+                $batch->setStockQuantity((float)($batch->getQuantity() ?? 0));
+            }
+
+            if ($batch->isCompleted() === null) {
+                $batch->setCompleted(false);
+            }
+
+            if ($batch->isChecked() === null) {
+                $batch->setChecked(false);
+            }
+
+            if ($batch->isSampling() === null) {
+                $batch->setSampling(false);
+            }
+
+            if ($batch->getPieces() === null) {
+                $batch->setPieces(0);
+            }
+
+            if ($batch->getQuantity() === null) {
+                $batch->setQuantity((float) 0);
+            }
+
+            if ($batch->getSqFtAverageExpected() === null) {
+                $batch->setSqFtAverageExpected((float) 0);
+            }
+
+            if ($batch->getSqFtAverageFound() === null) {
+                $batch->setSqFtAverageFound((float) 0);
             }
 
             $batch->setUpdatedAt(new \DateTimeImmutable());
