@@ -119,6 +119,15 @@ class Contact
     #[ORM\OneToMany(mappedBy: 'contact', targetEntity: ContactAgent::class, orphanRemoval: true)]
     private Collection $contactAgents;
 
+    #[ORM\OneToMany(mappedBy: 'agent', targetEntity: ContactAgent::class, orphanRemoval: true)]
+    private Collection $agentContacts;
+
+    #[ORM\Column]
+    private ?bool $agent = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?float $agent_percentage = null;
+
     public function __construct()
     {
         $this->contactAddresses = new ArrayCollection();
@@ -127,6 +136,7 @@ class Contact
         $this->products = new ArrayCollection();
         $this->SupplierLeather = new ArrayCollection();
         $this->contactAgents = new ArrayCollection();
+        $this->agentContacts = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -482,6 +492,59 @@ class Contact
             // set the owning side to null (unless already changed)
             if ($contactAgent->getContact() === $this) {
                 $contactAgent->setContact(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function isAgent(): ?bool
+    {
+        return $this->agent;
+    }
+
+    public function setAgent(bool $agent): static
+    {
+        $this->agent = $agent;
+
+        return $this;
+    }
+
+    public function getAgentPercentage(): ?float
+    {
+        return $this->agent_percentage;
+    }
+
+    public function setAgentPercentage(?float $agent_percentage): static
+    {
+        $this->agent_percentage = $agent_percentage;
+
+        return $this;
+    }
+    /**
+     * @return Collection<int, ContactAgent>
+     */
+    public function getAgentContacts(): Collection
+    {
+        return $this->agentContacts;
+    }
+
+    public function addAgentContact(ContactAgent $agentContact): static
+    {
+        if (!$this->agentContacts->contains($agentContact)) {
+            $this->agentContacts->add($agentContact);
+            $agentContact->setAgent($this);
+        }
+
+        return $this;
+    }
+
+    public function removeAgentContact(ContactAgent $agentContact): static
+    {
+        if ($this->agentContacts->removeElement($agentContact)) {
+            // set the owning side to null (unless already changed)
+            if ($agentContact->getAgent() === $this) {
+                $agentContact->setAgent(null);
             }
         }
 

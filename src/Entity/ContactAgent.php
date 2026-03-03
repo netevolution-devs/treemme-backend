@@ -19,7 +19,7 @@ class ContactAgent
 
     #[ORM\ManyToOne(inversedBy: 'contactAgents')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?Agent $agent = null;
+    private ?Contact $agent = null;
 
     public function getId(): ?int
     {
@@ -38,12 +38,12 @@ class ContactAgent
         return $this;
     }
 
-    public function getAgent(): ?Agent
+    public function getAgent(): ?Contact
     {
         return $this->agent;
     }
 
-    public function setAgent(?Agent $agent): static
+    public function setAgent(?Contact $agent): static
     {
         $this->agent = $agent;
 

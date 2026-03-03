@@ -490,7 +490,7 @@ final class BatchController extends AbstractController
 
             if ($batch->getBatchType() && $batch->getBatchType()->getName() === 'Partita') {
                 $lastBatch = $this->doctrine->getRepository(Batch::class)->findOneBy(
-                    ['batchType' => $batch->getBatchType()],
+                    ['type' => $batch->getBatchType()],
                     ['id' => 'DESC']
                 );
 
