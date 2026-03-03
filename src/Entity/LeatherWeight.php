@@ -14,11 +14,11 @@ class LeatherWeight
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['leather_weight_list', 'leather_weight_detail', 'leather_detail'])]
+    #[Groups(['leather_weight_list', 'leather_weight_detail', 'leather_list', 'leather_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['leather_weight_list', 'leather_weight_detail', 'leather_detail'])]
+    #[Groups(['leather_weight_list', 'leather_weight_detail', 'leather_list', 'leather_detail'])]
     private ?string $name = null;
 
     #[ORM\Column]

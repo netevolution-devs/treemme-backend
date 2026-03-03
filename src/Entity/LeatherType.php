@@ -14,11 +14,11 @@ class LeatherType
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['leather_type_list', 'leather_type_detail', 'leather_detail'])]
+    #[Groups(['leather_type_list', 'leather_type_detail', 'leather_list', 'leather_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['leather_type_list', 'leather_type_detail', 'leather_detail'])]
+    #[Groups(['leather_type_list', 'leather_type_detail', 'leather_list', 'leather_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 255)]

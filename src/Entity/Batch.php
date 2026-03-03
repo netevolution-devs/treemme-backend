@@ -136,6 +136,12 @@ class Batch
     #[Groups(['batch_detail'])]
     private Collection $batchSelections;
 
+    /**
+     * @var Collection<int, BatchOrder>
+     */
+    #[ORM\OneToMany(mappedBy: 'batch', targetEntity: BatchOrder::class)]
+    private Collection $batchOrders;
+
     public function __construct()
     {
         $this->batchCosts = new ArrayCollection();
@@ -143,6 +149,7 @@ class Batch
         $this->sonBatches = new ArrayCollection();
         $this->warehouseMovements = new ArrayCollection();
         $this->batchSelections = new ArrayCollection();
+        $this->batchOrders = new ArrayCollection();
     }
 
 
@@ -559,6 +566,36 @@ class Batch
             // set the owning side to null (unless already changed)
             if ($batchSelection->getBatch() === $this) {
                 $batchSelection->setBatch(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, BatchOrder>
+     */
+    public function getBatchOrders(): Collection
+    {
+        return $this->batchOrders;
+    }
+
+    public function addBatchOrder(BatchOrder $batchOrder): static
+    {
+        if (!$this->batchOrders->contains($batchOrder)) {
+            $this->batchOrders->add($batchOrder);
+            $batchOrder->setBatch($this);
+        }
+
+        return $this;
+    }
+
+    public function removeBatchOrder(BatchOrder $batchOrder): static
+    {
+        if ($this->batchOrders->removeElement($batchOrder)) {
+            // set the owning side to null (unless already changed)
+            if ($batchOrder->getBatch() === $this) {
+                $batchOrder->setBatch(null);
             }
         }
 
