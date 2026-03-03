@@ -5,8 +5,11 @@ namespace App\Controller;
 use App\Entity\Batch;
 use App\Entity\BatchOrder;
 use App\Entity\BatchComposition;
+use App\Entity\BatchSelection;
 use App\Entity\BatchType;
 use App\Entity\ClientOrderRow;
+use App\Entity\Leather;
+use App\Entity\Selection;
 use App\Entity\WarehouseMovement;
 use App\Entity\WarehouseMovementReason;
 use App\Entity\MeasurementUnit;
@@ -490,13 +493,13 @@ final class BatchController extends AbstractController
 
             if ($batch->getBatchType() && $batch->getBatchType()->getName() === 'Partita') {
                 $lastBatch = $this->doctrine->getRepository(Batch::class)->findOneBy(
-                    ['type' => $batch->getBatchType()],
+                    ['batch_type' => $batch->getBatchType()],
                     ['id' => 'DESC']
                 );
 
                 $lastCode = $lastBatch ? $lastBatch->getBatchCode() : null;
 
-                $yearPrefix = (new \DateTimeImmutable())->format('y');
+                $yearPrefix = $batch->getBatchType()->getPrefix() ?? (new \DateTimeImmutable())->format('y');
                 $nextCode = $this->nextSequentialCode($lastCode, $yearPrefix, 4);
                 $batch->setBatchCode($nextCode);
             }
@@ -610,6 +613,65 @@ final class BatchController extends AbstractController
                 $batch->setCheckUser($user);
             }
             unset($data['check_user_id']);
+        }
+
+        if (isset($data['leather_id'])) {
+            $leather = $this->doctrine->getRepository(Leather::class)->find($data['leather_id']);
+            if ($leather) {
+                $batch->setLeather($leather);
+            }
+            unset($data['leather_id']);
+        }
+
+        if (isset($data['batch_compositions'])) {
+            foreach ($data['batch_compositions'] as $compositionData) {
+                if (isset($compositionData['father_batch_id'])) {
+                    $fatherBatch = $this->doctrine->getRepository(Batch::class)->find($compositionData['father_batch_id']);
+                    if ($fatherBatch) {
+                        $composition = new BatchComposition();
+                        $composition->setBatch($batch);
+                        $composition->setFatherBatch($fatherBatch);
+                        $composition = $this->createMethodsByInput->createMethods($composition, $compositionData);
+                        $batch->addBatchComposition($composition);
+                        $this->doctrine->persist($composition);
+                    }
+                }
+            }
+            unset($data['batch_compositions']);
+        }
+
+        if (isset($data['batch_selections'])) {
+            foreach ($data['batch_selections'] as $selectionData) {
+                if (isset($selectionData['selection_id'])) {
+                    $selection = $this->doctrine->getRepository(Selection::class)->find($selectionData['selection_id']);
+                    if ($selection) {
+                        $batchSelection = new BatchSelection();
+                        $batchSelection->setBatch($batch);
+                        $batchSelection->setSelection($selection);
+                        $batchSelection = $this->createMethodsByInput->createMethods($batchSelection, $selectionData);
+                        $batch->addBatchSelection($batchSelection);
+                        $this->doctrine->persist($batchSelection);
+                    }
+                }
+            }
+            unset($data['batch_selections']);
+        }
+
+        if (isset($data['batch_orders'])) {
+            foreach ($data['batch_orders'] as $orderData) {
+                if (isset($orderData['order_row_id'])) {
+                    $orderRow = $this->doctrine->getRepository(ClientOrderRow::class)->find($orderData['order_row_id']);
+                    if ($orderRow) {
+                        $batchOrder = new BatchOrder();
+                        $batchOrder->setBatch($batch);
+                        $batchOrder->setOrderRow($orderRow);
+                        $batchOrder = $this->createMethodsByInput->createMethods($batchOrder, $orderData);
+                        $batch->addBatchOrder($batchOrder);
+                        $this->doctrine->persist($batchOrder);
+                    }
+                }
+            }
+            unset($data['batch_orders']);
         }
 
         return $batch;
