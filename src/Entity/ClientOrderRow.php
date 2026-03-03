@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\ClientOrderRowRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\Serializer\Annotation\Groups;
@@ -102,6 +104,17 @@ class ClientOrderRow
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?string $administration_row_note = null;
+
+    /**
+     * @var Collection<int, BatchOrder>
+     */
+    #[ORM\OneToMany(mappedBy: 'order_row', targetEntity: BatchOrder::class)]
+    private Collection $batchOrders;
+
+    public function __construct()
+    {
+        $this->batchOrders = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -356,6 +369,36 @@ class ClientOrderRow
     public function setAdministrationRowNote(?string $administration_row_note): static
     {
         $this->administration_row_note = $administration_row_note;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, BatchOrder>
+     */
+    public function getBatchOrders(): Collection
+    {
+        return $this->batchOrders;
+    }
+
+    public function addBatchOrder(BatchOrder $batchOrder): static
+    {
+        if (!$this->batchOrders->contains($batchOrder)) {
+            $this->batchOrders->add($batchOrder);
+            $batchOrder->setOrderRow($this);
+        }
+
+        return $this;
+    }
+
+    public function removeBatchOrder(BatchOrder $batchOrder): static
+    {
+        if ($this->batchOrders->removeElement($batchOrder)) {
+            // set the owning side to null (unless already changed)
+            if ($batchOrder->getOrderRow() === $this) {
+                $batchOrder->setOrderRow(null);
+            }
+        }
 
         return $this;
     }

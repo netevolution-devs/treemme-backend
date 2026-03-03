@@ -14,11 +14,11 @@ class LeatherStatus
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['leather_status_list', 'leather_status_detail', 'leather_detail'])]
+    #[Groups(['leather_status_list', 'leather_status_detail', 'leather_list', 'leather_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['leather_status_list', 'leather_status_detail', 'leather_detail'])]
+    #[Groups(['leather_status_list', 'leather_status_detail', 'leather_list', 'leather_detail'])]
     private ?string $name = null;
 
     #[ORM\ManyToOne(inversedBy: 'leatherStatuses')]

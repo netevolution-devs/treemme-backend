@@ -15,11 +15,11 @@ class Contact
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['contact_list','contact_detail','contact_type_detail'])]
+    #[Groups(['contact_list','contact_detail','contact_type_detail', 'leather_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['contact_list','contact_detail','contact_type_detail'])]
+    #[Groups(['contact_list','contact_detail','contact_type_detail', 'leather_detail'])]
     private ?string $name = null;
 
     #[ORM\ManyToOne(inversedBy: 'contacts')]
