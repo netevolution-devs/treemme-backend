@@ -14,15 +14,15 @@ class Leather
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['leather_list', 'leather_detail', 'batch_detail'])]
+    #[Groups(['leather_list', 'leather_detail', 'batch_list', 'batch_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['leather_list', 'leather_detail', 'batch_detail'])]
+    #[Groups(['leather_list', 'leather_detail', 'batch_list', 'batch_detail'])]
     private ?string $code = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['leather_list', 'leather_detail', 'batch_detail'])]
+    #[Groups(['leather_list', 'leather_detail', 'batch_list', 'batch_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(nullable: true)]
@@ -100,7 +100,7 @@ class Leather
 
     #[ORM\ManyToOne(inversedBy: 'leather')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['leather_list', 'leather_detail'])]
+    #[Groups(['leather_list', 'leather_detail', 'batch_list', 'batch_detail'])]
     private ?LeatherProvenance $provenance = null;
 
     #[ORM\ManyToOne(inversedBy: 'leather')]
