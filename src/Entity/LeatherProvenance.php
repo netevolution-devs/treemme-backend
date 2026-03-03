@@ -27,7 +27,7 @@ class LeatherProvenance
 
     #[ORM\ManyToOne(inversedBy: 'leatherProvenances')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['leather_provenance_list', 'leather_provenance_detail'])]
+    #[Groups(['leather_provenance_list', 'leather_provenance_detail', 'batch_list', 'batch_detail'])]
     private ?Nation $nation = null;
 
     #[ORM\Column(nullable: true)]
