@@ -2,7 +2,9 @@
 
 namespace App\Controller;
 
+use App\Entity\Agent;
 use App\Entity\Contact;
+use App\Entity\ContactAgent;
 use App\Entity\ContactType;
 use App\Entity\ContactTitle;
 use App\Service\CreateMethodsByInput;
@@ -174,6 +176,27 @@ final class ContactController extends AbstractController
                 $contact->setContactTitle($contactTitle);
             }
             unset($data['contact_title_id']);
+        }
+
+        if (isset($data['agent_id'])) {
+            $agent = $this->doctrine->getRepository(Agent::class)->find($data['agent_id']);
+            if ($agent) {
+                $contactAgentFound = false;
+                foreach ($contact->getContactAgents() as $contactAgent) {
+                    if ($contactAgent->getAgent()->getId() === $agent->getId()) {
+                        $contactAgentFound = true;
+                        break;
+                    }
+                }
+
+                if (!$contactAgentFound) {
+                    $contactAgent = new ContactAgent();
+                    $contactAgent->setAgent($agent);
+                    $contactAgent->setContact($contact);
+                    $contact->addContactAgent($contactAgent);
+                }
+            }
+            unset($data['agent_id']);
         }
 
         return $contact;
