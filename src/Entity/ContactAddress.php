@@ -62,15 +62,8 @@ class ContactAddress
     #[Groups(['contact_address_detail', 'contact_detail'])]
     private ?Town $town = null;
 
-    /**
-     * @var Collection<int, Agent>
-     */
-    #[ORM\OneToMany(mappedBy: 'address', targetEntity: Agent::class)]
-    private Collection $agents;
-
     public function __construct()
     {
-        $this->agents = new ArrayCollection();
     }
 
     public function getId(): ?int
