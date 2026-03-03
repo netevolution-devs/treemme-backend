@@ -277,8 +277,7 @@ final class BatchController extends AbstractController
         }
 
         $availablePieces = (float)($fatherBatch->getStockItems() ?? 0);
-
-
+        $availableQuantity = (float)($fatherBatch->getStockQuantity() ?? 0);
 
         $newBatch = new Batch();
         $newBatch->setBatchType($fatherBatch->getBatchType());
@@ -296,6 +295,7 @@ final class BatchController extends AbstractController
         $newBatch->setChecked(false);
 
         $fatherBatch->setStockItems($availablePieces - $piecesToRework);
+        $fatherBatch->setStockQuantity($availableQuantity - $piecesToRework);
 
         $now = new \DateTimeImmutable();
         $newBatch->setCreatedAt($now);
@@ -379,12 +379,14 @@ final class BatchController extends AbstractController
         }
 
         $availablePieces = (float)($reworkedBatch->getStockItems() ?? 0);
+        $availableQuantity = (float)($reworkedBatch->getStockQuantity() ?? 0);
         if ($quantity > $availablePieces) {
             return new JsonResponse($this->doResponse->doErrorResponse('Quantità superiore al numero di pelli disponibili (' . $availablePieces . ')', 400));
         }
 
-        // Aggiorna stock_items del padre (lotto R)
+        // Aggiorna stock del padre (lotto R)
         $reworkedBatch->setStockItems($availablePieces - $quantity);
+        $reworkedBatch->setStockQuantity($availableQuantity - $quantity);
 
         $baseCode = substr($batchCode, 1);
 
@@ -508,6 +510,10 @@ final class BatchController extends AbstractController
 
             if ($batch->getStockItems() === null || $batch->getStockItems() == 0.0) {
                 $batch->setStockItems((float)$batch->getPieces());
+            }
+
+            if ($batch->getStockQuantity() === null || $batch->getStockQuantity() == 0.0) {
+                $batch->setStockQuantity((float)$batch->getQuantity());
             }
 
             $now = new \DateTimeImmutable();
