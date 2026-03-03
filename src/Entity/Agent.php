@@ -8,27 +8,35 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
+use JMS\Serializer\Annotation\Groups;
+
 #[ORM\Entity(repositoryClass: AgentRepository::class)]
 class Agent
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['agent_list', 'agent_detail', 'contact_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['agent_list', 'agent_detail', 'contact_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['agent_list', 'agent_detail'])]
     private ?float $agent_percentage = null;
 
     #[ORM\ManyToOne(inversedBy: 'agents')]
+    #[Groups(['agent_detail'])]
     private ?ContactAddress $address = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['agent_detail'])]
     private ?string $note = null;
 
     #[ORM\ManyToOne(inversedBy: 'agents')]
+    #[Groups(['agent_detail'])]
     private ?Payment $payment = null;
 
     /**
