@@ -76,11 +76,11 @@ class Batch
 
     #[ORM\Column]
     #[Groups(['batch_list', 'batch_detail'])]
-    private ?float $sq_ft_avarage_expected = null;
+    private ?float $sq_ft_average_expected = null;
 
     #[ORM\Column]
     #[Groups(['batch_list', 'batch_detail'])]
-    private ?float $sq_ft_avarage_found = null;
+    private ?float $sq_ft_average_found = null;
 
     #[ORM\Column(nullable: true)]
     #[Groups(['batch_detail'])]
@@ -326,26 +326,26 @@ class Batch
         return $this;
     }
 
-    public function getSqFtAvarageExpected(): ?float
+    public function getSqFtAverageExpected(): ?float
     {
-        return $this->sq_ft_avarage_expected;
+        return $this->sq_ft_average_expected;
     }
 
-    public function setSqFtAvarageExpected(float $sq_ft_avarage_expected): static
+    public function setSqFtAverageExpected(float $sq_ft_average_expected): static
     {
-        $this->sq_ft_avarage_expected = $sq_ft_avarage_expected;
+        $this->sq_ft_average_expected = $sq_ft_average_expected;
 
         return $this;
     }
 
-    public function getSqFtAvarageFound(): ?float
+    public function getSqFtAverageFound(): ?float
     {
-        return $this->sq_ft_avarage_found;
+        return $this->sq_ft_average_found;
     }
 
-    public function setSqFtAvarageFound(float $sq_ft_avarage_found): static
+    public function setSqFtAverageFound(float $sq_ft_average_found): static
     {
-        $this->sq_ft_avarage_found = $sq_ft_avarage_found;
+        $this->sq_ft_average_found = $sq_ft_average_found;
 
         return $this;
     }
