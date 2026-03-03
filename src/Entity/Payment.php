@@ -27,16 +27,9 @@ class Payment
     #[ORM\OneToMany(mappedBy: 'payment', targetEntity: ClientOrder::class)]
     private Collection $clientOrders;
 
-    /**
-     * @var Collection<int, Agent>
-     */
-    #[ORM\OneToMany(mappedBy: 'payment', targetEntity: Agent::class)]
-    private Collection $agents;
-
     public function __construct()
     {
         $this->clientOrders = new ArrayCollection();
-        $this->agents = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -80,36 +73,6 @@ class Payment
             // set the owning side to null (unless already changed)
             if ($clientOrder->getPayment() === $this) {
                 $clientOrder->setPayment(null);
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Agent>
-     */
-    public function getAgents(): Collection
-    {
-        return $this->agents;
-    }
-
-    public function addAgent(Agent $agent): static
-    {
-        if (!$this->agents->contains($agent)) {
-            $this->agents->add($agent);
-            $agent->setPayment($this);
-        }
-
-        return $this;
-    }
-
-    public function removeAgent(Agent $agent): static
-    {
-        if ($this->agents->removeElement($agent)) {
-            // set the owning side to null (unless already changed)
-            if ($agent->getPayment() === $this) {
-                $agent->setPayment(null);
             }
         }
 

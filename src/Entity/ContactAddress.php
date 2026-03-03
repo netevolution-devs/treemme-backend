@@ -209,34 +209,4 @@ class ContactAddress
 
         return $this;
     }
-
-    /**
-     * @return Collection<int, Agent>
-     */
-    public function getAgents(): Collection
-    {
-        return $this->agents;
-    }
-
-    public function addAgent(Agent $agent): static
-    {
-        if (!$this->agents->contains($agent)) {
-            $this->agents->add($agent);
-            $agent->setAddress($this);
-        }
-
-        return $this;
-    }
-
-    public function removeAgent(Agent $agent): static
-    {
-        if ($this->agents->removeElement($agent)) {
-            // set the owning side to null (unless already changed)
-            if ($agent->getAddress() === $this) {
-                $agent->setAddress(null);
-            }
-        }
-
-        return $this;
-    }
 }

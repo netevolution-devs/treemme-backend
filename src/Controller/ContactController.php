@@ -2,7 +2,6 @@
 
 namespace App\Controller;
 
-use App\Entity\Agent;
 use App\Entity\Contact;
 use App\Entity\ContactAgent;
 use App\Entity\ContactType;
@@ -179,7 +178,7 @@ final class ContactController extends AbstractController
         }
 
         if (isset($data['agent_id'])) {
-            $agent = $this->doctrine->getRepository(Agent::class)->find($data['agent_id']);
+            $agent = $this->doctrine->getRepository(Contact::class)->find($data['agent_id']);
             if ($agent) {
                 $contactAgentFound = false;
                 foreach ($contact->getContactAgents() as $contactAgent) {
