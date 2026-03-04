@@ -251,11 +251,11 @@ final class BatchController extends AbstractController
         }
     }
 
-    #[Route('/batch/rework/{id}',
+    #[Route('/batch/rework/{batchCode}',
         name: 'rework_batch',
-        requirements: ['id' => '\d+'],
+        requirements: ['batchCode' => '.+'],
         methods: ['POST'])]
-    public function reworkBatch(int $id, Request $request): JsonResponse
+    public function reworkBatch(string $batchCode, Request $request): JsonResponse
     {
         $data = $request->request->all();
         $piecesToRework = isset($data['pieces']) ? (int)$data['pieces'] : null;
@@ -265,7 +265,7 @@ final class BatchController extends AbstractController
         }
 
         $batchRepository = $this->doctrine->getRepository(Batch::class);
-        $fatherBatch = $batchRepository->find($id);
+        $fatherBatch = $batchRepository->findOneBy(['batchCode' => $batchCode]);
 
         if (!$fatherBatch) {
             return new JsonResponse($this->doResponse->doErrorResponse('Batch not found', 404));
@@ -279,15 +279,17 @@ final class BatchController extends AbstractController
         $availablePieces = (float)($fatherBatch->getStockItems() ?? 0);
         $availableQuantity = (float)($fatherBatch->getStockQuantity() ?? 0);
 
+        $newQuantity = ($fatherBatch->getQuantity() / $fatherBatch->getPieces()) * $piecesToRework;
+
         $newBatch = new Batch();
         $newBatch->setBatchType($fatherBatch->getBatchType());
         $newBatch->setBatchCode('R' . $fatherBatch->getBatchCode());
         $newBatch->setBatchDate(new \DateTime());
         $newBatch->setPieces($piecesToRework);
         $newBatch->setMeasurementUnit($fatherBatch->getMeasurementUnit());
-        $newBatch->setQuantity($piecesToRework);
+        $newBatch->setQuantity($newQuantity);
         $newBatch->setStockItems((float)$piecesToRework);
-        $newBatch->setStockQuantity($piecesToRework);
+        $newBatch->setStockQuantity($newQuantity);
         $newBatch->setLeather($fatherBatch->getLeather());
         $newBatch->setSampling($fatherBatch->isSampling() ?? false);
         $newBatch->setSplitSelected($fatherBatch->isSplitSelected() ?? false);
@@ -295,7 +297,7 @@ final class BatchController extends AbstractController
         $newBatch->setChecked(false);
 
         $fatherBatch->setStockItems($availablePieces - $piecesToRework);
-        $fatherBatch->setStockQuantity($availableQuantity - $piecesToRework);
+        $fatherBatch->setStockQuantity($availableQuantity - $newQuantity);
 
         $now = new \DateTimeImmutable();
         $newBatch->setCreatedAt($now);
@@ -307,7 +309,7 @@ final class BatchController extends AbstractController
         $batchComposition->setBatch($newBatch);
         $batchComposition->setFatherBatch($fatherBatch);
         $batchComposition->setFatherBatchPiece($piecesToRework);
-        $batchComposition->setFatherBatchQuantity($piecesToRework);
+        $batchComposition->setFatherBatchQuantity($newQuantity);
         $batchComposition->setCompositionNote('Riverdimento da lotto ' . $fatherBatch->getBatchCode());
 
         $this->doctrine->persist($batchComposition);
@@ -322,7 +324,7 @@ final class BatchController extends AbstractController
             $outMovement = new WarehouseMovement();
             $outMovement->setBatch($fatherBatch);
             $outMovement->setReason($outReason);
-            $outMovement->setQuantity($piecesToRework);
+            $outMovement->setQuantity($newQuantity);
             $outMovement->setPiece($piecesToRework);
             $outMovement->setDate(new \DateTime());
             $outMovement->setMovementNote('Uscita per riverdimento (Lotto R' . $fatherBatch->getBatchCode() . ')');
@@ -337,7 +339,7 @@ final class BatchController extends AbstractController
             $inMovement = new WarehouseMovement();
             $inMovement->setBatch($newBatch);
             $inMovement->setReason($inReason);
-            $inMovement->setQuantity($piecesToRework);
+            $inMovement->setQuantity($newQuantity);
             $inMovement->setPiece($piecesToRework);
             $inMovement->setDate(new \DateTime());
             $inMovement->setMovementNote('Entrata da riverdimento');
@@ -380,13 +382,16 @@ final class BatchController extends AbstractController
 
         $availablePieces = (float)($reworkedBatch->getStockItems() ?? 0);
         $availableQuantity = (float)($reworkedBatch->getStockQuantity() ?? 0);
+
+        $calculatedQuantity = ($reworkedBatch->getQuantity() / $reworkedBatch->getPieces()) * $quantity;
+
         if ($quantity > $availablePieces) {
             return new JsonResponse($this->doResponse->doErrorResponse('Quantità superiore al numero di pelli disponibili (' . $availablePieces . ')', 400));
         }
 
         // Aggiorna stock del padre (lotto R)
         $reworkedBatch->setStockItems($availablePieces - $quantity);
-        $reworkedBatch->setStockQuantity($availableQuantity - $quantity);
+        $reworkedBatch->setStockQuantity($availableQuantity - $calculatedQuantity);
 
         $baseCode = substr($batchCode, 1);
 
@@ -396,9 +401,9 @@ final class BatchController extends AbstractController
         $sfBatch->setBatchDate(new \DateTime());
         $sfBatch->setPieces((int)$quantity);
         $sfBatch->setMeasurementUnit($reworkedBatch->getMeasurementUnit());
-        $sfBatch->setQuantity($quantity);
+        $sfBatch->setQuantity($calculatedQuantity);
         $sfBatch->setStockItems($quantity);
-        $sfBatch->setStockQuantity($quantity);
+        $sfBatch->setStockQuantity($calculatedQuantity);
         $sfBatch->setLeather($reworkedBatch->getLeather());
         $sfBatch->setSampling($reworkedBatch->isSampling() ?? false);
         $sfBatch->setSplitSelected($reworkedBatch->isSplitSelected() ?? false);
@@ -416,9 +421,9 @@ final class BatchController extends AbstractController
         $scBatch->setBatchDate(new \DateTime());
         $scBatch->setPieces((int)$quantity);
         $scBatch->setMeasurementUnit($reworkedBatch->getMeasurementUnit());
-        $scBatch->setQuantity($quantity);
+        $scBatch->setQuantity($calculatedQuantity);
         $scBatch->setStockItems($quantity);
-        $scBatch->setStockQuantity($quantity);
+        $scBatch->setStockQuantity($calculatedQuantity);
         $scBatch->setLeather($reworkedBatch->getLeather());
         $scBatch->setSampling($reworkedBatch->isSampling() ?? false);
         $scBatch->setSplitSelected($reworkedBatch->isSplitSelected() ?? false);
@@ -434,7 +439,7 @@ final class BatchController extends AbstractController
         $sfComp->setBatch($sfBatch);
         $sfComp->setFatherBatch($reworkedBatch);
         $sfComp->setFatherBatchPiece((int)$quantity);
-        $sfComp->setFatherBatchQuantity($quantity);
+        $sfComp->setFatherBatchQuantity($calculatedQuantity);
         $sfComp->setCompositionNote('Spaccatura lotto ' . $batchCode);
         $this->doctrine->persist($sfComp);
 
@@ -442,7 +447,7 @@ final class BatchController extends AbstractController
         $scComp->setBatch($scBatch);
         $scComp->setFatherBatch($reworkedBatch);
         $scComp->setFatherBatchPiece((int)$quantity);
-        $scComp->setFatherBatchQuantity($quantity);
+        $scComp->setFatherBatchQuantity($calculatedQuantity);
         $scComp->setCompositionNote('Spaccatura lotto ' . $batchCode);
         $this->doctrine->persist($scComp);
 
@@ -458,7 +463,7 @@ final class BatchController extends AbstractController
         $sfMov = new WarehouseMovement();
         $sfMov->setBatch($sfBatch);
         $sfMov->setReason($inReason);
-        $sfMov->setQuantity($quantity);
+        $sfMov->setQuantity($calculatedQuantity);
         $sfMov->setPiece((int)$quantity);
         $sfMov->setDate(new \DateTime());
         $sfMov->setMovementNote($note);
@@ -467,7 +472,7 @@ final class BatchController extends AbstractController
         $scMov = new WarehouseMovement();
         $scMov->setBatch($scBatch);
         $scMov->setReason($inReason);
-        $scMov->setQuantity($quantity);
+        $scMov->setQuantity($calculatedQuantity);
         $scMov->setPiece((int)$quantity);
         $scMov->setDate(new \DateTime());
         $scMov->setMovementNote($note);
