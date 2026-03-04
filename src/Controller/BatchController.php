@@ -625,12 +625,25 @@ final class BatchController extends AbstractController
                 $batch->setSqFtAverageExpected((float) 0);
             }
 
-            if($batch->getMeasurementUnit()->getPrefix() == 'MQ'){
-                $coefficientUm = $batch->getMeasurementUnit()->getMeasurementUnitCoefficients()->first();
+            if(isset($data['measurement_unit_id'])){
+                $measurementUnit = $this->doctrine->getRepository(MeasurementUnit::class)->find($data['measurement_unit_id']);
 
-                $batch->setSqFtAverageFound($batch->getPieces() / ($coefficientUm->getCoefficient() * $batch->getQuantity()));
-            } elseif($batch->getMeasurementUnit()->getPrefix() == 'PQ'){
-                $batch->setSqFtAverageFound($batch->getPieces() / $batch->getQuantity());
+                if ($measurementUnit->getPrefix() == 'MQ') {
+                    $coefficientUm = $measurementUnit->getMeasurementUnitCoefficients()->first();
+
+                    if(!isset($data['pieces']) || $data['pieces'] == 0) {
+                        return new JsonResponse(['error' => 'Pieces is required'], 400);
+                    }
+                    if(!isset($data['quantity']) || $data['quantity'] == 0) {
+                        return new JsonResponse(['error' => 'Quantity is required'], 400);
+                    }
+
+                    $batch->setSqFtAverageFound($data['pieces'] / ($coefficientUm->getCoefficient() * $data['quantity']));
+                } elseif($batch->getMeasurementUnit()->getPrefix() == 'PQ') {
+                    $batch->setSqFtAverageFound($data['pieces'] / $data['quantity']);
+                }
+            } else {
+                return new JsonResponse(['error' => 'Measurement unit ID is required'], 400);
             }
             
             if ($batch->isCompleted() === null) {
