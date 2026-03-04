@@ -284,12 +284,12 @@ final class BatchController extends AbstractController
         }
 
         if (!$fatherBatch->getBatchType() || $fatherBatch->getBatchType()->getName() !== 'Partita') {
-            return new JsonResponse($this->doResponse->doErrorResponse('Solo i lotti di tipo Partita possono essere rinverditi', 400));
+            return new JsonResponse($this->doResponse->doErrorResponse('Solo i lotti di tipo Partita possono essere rinverditi', 400), 400);
         }
 
         $existingRework = $batchRepository->findOneBy(['batch_code' => 'R' . $batchCode]);
         if ($existingRework) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Questo lotto è già stato rinverdito (Lotto ' . $existingRework->getBatchCode() . ')', 400));
+            return new JsonResponse($this->doResponse->doErrorResponse('Questo lotto è già stato rinverdito (Lotto ' . $existingRework->getBatchCode() . ')', 400), 400);
         }
 
         $fatherBatchCode = $fatherBatch->getBatchCode();
