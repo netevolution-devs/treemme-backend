@@ -69,6 +69,18 @@ class MeasurementUnit
     #[ORM\OneToMany(mappedBy: 'measurement_unit', targetEntity: LeatherStatus::class)]
     private Collection $leatherStatuses;
 
+    /**
+     * @var Collection<int, MeasurementUnitCoefficient>
+     */
+    #[ORM\OneToMany(mappedBy: 'start_um', targetEntity: MeasurementUnitCoefficient::class, orphanRemoval: true)]
+    private Collection $MeasurementUnitCoefficients;
+
+    /**
+     * @var Collection<int, MeasurementUnitCoefficient>
+     */
+    #[ORM\OneToMany(mappedBy: 'end_um', targetEntity: MeasurementUnitCoefficient::class, orphanRemoval: true)]
+    private Collection $EndMeasurementUnitCoefficients;
+
     public function __construct()
     {
         $this->batches = new ArrayCollection();
@@ -77,6 +89,8 @@ class MeasurementUnit
         $this->weightProducts = new ArrayCollection();
         $this->thicknessProducts = new ArrayCollection();
         $this->leatherStatuses = new ArrayCollection();
+        $this->MeasurementUnitCoefficients = new ArrayCollection();
+        $this->EndMeasurementUnitCoefficients = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -306,6 +320,66 @@ class MeasurementUnit
             // set the owning side to null (unless already changed)
             if ($leatherStatus->getMeasurementUnit() === $this) {
                 $leatherStatus->setMeasurementUnit(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, MeasurementUnitCoefficient>
+     */
+    public function getMeasurementUnitCoefficients(): Collection
+    {
+        return $this->MeasurementUnitCoefficients;
+    }
+
+    public function addMeasurementUnitCoefficient(MeasurementUnitCoefficient $measurementUnitCoefficient): static
+    {
+        if (!$this->MeasurementUnitCoefficients->contains($measurementUnitCoefficient)) {
+            $this->MeasurementUnitCoefficients->add($measurementUnitCoefficient);
+            $measurementUnitCoefficient->setStartUm($this);
+        }
+
+        return $this;
+    }
+
+    public function removeMeasurementUnitCoefficient(MeasurementUnitCoefficient $measurementUnitCoefficient): static
+    {
+        if ($this->MeasurementUnitCoefficients->removeElement($measurementUnitCoefficient)) {
+            // set the owning side to null (unless already changed)
+            if ($measurementUnitCoefficient->getStartUm() === $this) {
+                $measurementUnitCoefficient->setStartUm(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, MeasurementUnitCoefficient>
+     */
+    public function getEndMeasurementUnitCoefficients(): Collection
+    {
+        return $this->EndMeasurementUnitCoefficients;
+    }
+
+    public function addEndMeasurementUnitCoefficient(MeasurementUnitCoefficient $endMeasurementUnitCoefficient): static
+    {
+        if (!$this->EndMeasurementUnitCoefficients->contains($endMeasurementUnitCoefficient)) {
+            $this->EndMeasurementUnitCoefficients->add($endMeasurementUnitCoefficient);
+            $endMeasurementUnitCoefficient->setEndUm($this);
+        }
+
+        return $this;
+    }
+
+    public function removeEndMeasurementUnitCoefficient(MeasurementUnitCoefficient $endMeasurementUnitCoefficient): static
+    {
+        if ($this->EndMeasurementUnitCoefficients->removeElement($endMeasurementUnitCoefficient)) {
+            // set the owning side to null (unless already changed)
+            if ($endMeasurementUnitCoefficient->getEndUm() === $this) {
+                $endMeasurementUnitCoefficient->setEndUm(null);
             }
         }
 

@@ -41,6 +41,10 @@ class BatchSelection
     #[Groups(['batch_selection_detail', 'batch_detail'])]
     private ?float $stock_quantity = null;
 
+    #[ORM\ManyToOne(inversedBy: 'batchSelections')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?LeatherThickness $thickness = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -114,6 +118,18 @@ class BatchSelection
     public function setStockQuantity(?float $stock_quantity): static
     {
         $this->stock_quantity = $stock_quantity;
+
+        return $this;
+    }
+
+    public function getThickness(): ?LeatherThickness
+    {
+        return $this->thickness;
+    }
+
+    public function setThickness(?LeatherThickness $thickness): static
+    {
+        $this->thickness = $thickness;
 
         return $this;
     }
