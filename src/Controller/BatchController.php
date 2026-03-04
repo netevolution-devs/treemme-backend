@@ -293,8 +293,10 @@ final class BatchController extends AbstractController
 
         $newQuantity = ($fatherBatch->getQuantity() / $fatherBatch->getPieces()) * $piecesToRework;
 
+        $newType = $this->doctrine->getRepository(BatchType::class)->findOneBy(['name' => 'Riverdimento']);
+
         $newBatch = new Batch();
-        $newBatch->setBatchType($fatherBatch->getBatchType());
+        $newBatch->setBatchType($newType);
         $newBatch->setBatchCode('R' . $fatherBatch->getBatchCode());
         $newBatch->setBatchDate(new \DateTime());
         $newBatch->setPieces($piecesToRework);
@@ -408,10 +410,12 @@ final class BatchController extends AbstractController
         $reworkedBatch->setStockItems($availablePieces - $quantity);
         $reworkedBatch->setStockQuantity($availableQuantity - $calculatedQuantity);
 
+        $newType = $this->doctrine->getRepository(BatchType::class)->findOneBy(['name' => 'Spaccato']);
+
         $baseCode = substr($batchCode, 1);
 
         $sfBatch = new Batch();
-        $sfBatch->setBatchType($reworkedBatch->getBatchType());
+        $sfBatch->setBatchType($newType);
         $sfBatch->setBatchCode('SF' . $baseCode);
         $sfBatch->setBatchDate(new \DateTime());
         $sfBatch->setPieces((int)$quantity);
@@ -435,7 +439,7 @@ final class BatchController extends AbstractController
 
         // Crea lotto SC
         $scBatch = new Batch();
-        $scBatch->setBatchType($reworkedBatch->getBatchType());
+        $scBatch->setBatchType($newType);
         $scBatch->setBatchCode('SC' . $baseCode);
         $scBatch->setBatchDate(new \DateTime());
         $scBatch->setPieces((int)$quantity);
