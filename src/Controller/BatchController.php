@@ -625,8 +625,8 @@ final class BatchController extends AbstractController
                 $batch->setSqFtAverageExpected((float) 0);
             }
 
-            if(isset($data['measurement_unit_id'])){
-                $measurementUnit = $this->doctrine->getRepository(MeasurementUnit::class)->find($data['measurement_unit_id']);
+            if($batch->getMeasurementUnit()){
+                $measurementUnit = $batch->getMeasurementUnit();
 
                 if ($measurementUnit->getPrefix() == 'MQ') {
                     $coefficientUm = $measurementUnit->getMeasurementUnitCoefficients()->first();
@@ -643,7 +643,7 @@ final class BatchController extends AbstractController
                     $batch->setSqFtAverageFound($data['pieces'] / $data['quantity']);
                 }
             } else {
-                return new JsonResponse(['error' => 'Measurement unit ID is required'], 400);
+                return new JsonResponse(['error' => 'Measurement unit not found'], 400);
             }
             
             if ($batch->isCompleted() === null) {
