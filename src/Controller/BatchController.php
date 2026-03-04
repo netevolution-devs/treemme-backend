@@ -180,7 +180,14 @@ final class BatchController extends AbstractController
                 $this->doctrine->persist($composition);
 
                 // Movimento in uscita dal sorgente
-                $outReason = $reasonRepo->findOneBy(['name' => 'Scarico per lavorazione interna'])
+                $outReason = $reasonRepo->createQueryBuilder('r')
+                    ->join('r.reason_type', 't')
+                    ->where('r.name = :name')
+                    ->andWhere('t.movement_type = :type')
+                    ->setParameter('name', 'Scarico per lavorazione interna')
+                    ->setParameter('type', '-')
+                    ->getQuery()
+                    ->getOneOrNullResult()
                     ?? $reasonRepo->findOneBy(['name' => 'Scarico Lavorazione'])
                     ?? $reasonRepo->findOneBy(['name' => 'Vendita']);
 
@@ -238,9 +245,16 @@ final class BatchController extends AbstractController
             }
 
             // Movimento in entrata nel nuovo lotto TF
-            $inReason = $reasonRepo->findOneBy(['name' => 'Carico da produzione'])
-                ?? $reasonRepo->findOneBy(['name' => 'Carico Lavorazione'])
-                ?? $reasonRepo->findOneBy(['name' => 'Acquisto']);
+        $inReason = $reasonRepo->createQueryBuilder('r')
+            ->join('r.reason_type', 't')
+            ->where('r.name = :name')
+            ->andWhere('t.movement_type = :type')
+            ->setParameter('name', 'Carico da produzione')
+            ->setParameter('type', '+')
+            ->getQuery()
+            ->getOneOrNullResult()
+            ?? $reasonRepo->findOneBy(['name' => 'Carico Lavorazione'])
+            ?? $reasonRepo->findOneBy(['name' => 'Acquisto']);
 
             if ($inReason) {
                 $inMovement = new WarehouseMovement();
@@ -343,7 +357,14 @@ final class BatchController extends AbstractController
 
         $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
 
-        $outReason = $reasonRepo->findOneBy(['name' => 'Scarico per lavorazione esterna'])
+        $outReason = $reasonRepo->createQueryBuilder('r')
+            ->join('r.reason_type', 't')
+            ->where('r.name = :name')
+            ->andWhere('t.movement_type = :type')
+            ->setParameter('name', 'Scarico per lavorazione esterna')
+            ->setParameter('type', '-')
+            ->getQuery()
+            ->getOneOrNullResult()
             ?? $reasonRepo->findOneBy(['name' => 'Lavorazione Esterna (Uscita)'])
             ?? $reasonRepo->findOneBy(['name' => 'Scarico Lavorazione']);
 
@@ -358,7 +379,14 @@ final class BatchController extends AbstractController
             $this->doctrine->persist($outMovement);
         }
 
-        $inReason = $reasonRepo->findOneBy(['name' => 'Carico da lavorazione esterna'])
+        $inReason = $reasonRepo->createQueryBuilder('r')
+            ->join('r.reason_type', 't')
+            ->where('r.name = :name')
+            ->andWhere('t.movement_type = :type')
+            ->setParameter('name', 'Carico da lavorazione esterna')
+            ->setParameter('type', '+')
+            ->getQuery()
+            ->getOneOrNullResult()
             ?? $reasonRepo->findOneBy(['name' => 'Lavorazione Esterna (Entrata)'])
             ?? $reasonRepo->findOneBy(['name' => 'Carico Lavorazione']);
 
@@ -492,9 +520,15 @@ final class BatchController extends AbstractController
         $scComp->setCompositionNote('Spaccatura lotto ' . $batchCode);
         $this->doctrine->persist($scComp);
 
-        // Movimenti: causale Carico
         $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
-        $inReason = $reasonRepo->findOneBy(['name' => 'Carico']);
+        $inReason = $reasonRepo->createQueryBuilder('r')
+            ->join('r.reason_type', 't')
+            ->where('r.name = :name')
+            ->andWhere('t.movement_type = :type')
+            ->setParameter('name', 'Carico')
+            ->setParameter('type', '+')
+            ->getQuery()
+            ->getOneOrNullResult();
         if (!$inReason) {
             return new JsonResponse($this->doResponse->doErrorResponse('Causale "Carico" non trovata'), 400);
         }
