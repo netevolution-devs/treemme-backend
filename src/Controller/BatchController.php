@@ -206,6 +206,18 @@ final class BatchController extends AbstractController
             $newBatch->setLeather($firstLeather);
             $newBatch->setMeasurementUnit($firstUnit);
 
+            $firstSourceId = $data['sources'][0]['batch_id'] ?? null;
+            $firstSourceBatch = $firstSourceId ? $batchRepo->find($firstSourceId) : null;
+            if ($firstSourceBatch) {
+                $newBatch->setSqFtAverageExpected($firstSourceBatch->getSqFtAverageExpected() ?? 0.0);
+                $newBatch->setSqFtAverageFound($firstSourceBatch->getSqFtAverageFound() ?? 0.0);
+                $newBatch->setSelectionNote($firstSourceBatch->getSelectionNote());
+                $newBatch->setBatchNote($firstSourceBatch->getBatchNote());
+            } else {
+                $newBatch->setSqFtAverageExpected(0.0);
+                $newBatch->setSqFtAverageFound(0.0);
+            }
+
             $now = new \DateTimeImmutable();
             $newBatch->setCreatedAt($now);
             $newBatch->setUpdatedAt($now);
@@ -295,6 +307,10 @@ final class BatchController extends AbstractController
         $newBatch->setSplitSelected($fatherBatch->isSplitSelected() ?? false);
         $newBatch->setCompleted(false);
         $newBatch->setChecked(false);
+        $newBatch->setSqFtAverageExpected($fatherBatch->getSqFtAverageExpected() ?? 0.0);
+        $newBatch->setSqFtAverageFound($fatherBatch->getSqFtAverageFound() ?? 0.0);
+        $newBatch->setSelectionNote($fatherBatch->getSelectionNote());
+        $newBatch->setBatchNote($fatherBatch->getBatchNote());
 
         $fatherBatch->setStockItems($availablePieces - $piecesToRework);
         $fatherBatch->setStockQuantity($availableQuantity - $newQuantity);
@@ -408,6 +424,10 @@ final class BatchController extends AbstractController
         $sfBatch->setSplitSelected($reworkedBatch->isSplitSelected() ?? false);
         $sfBatch->setCompleted(false);
         $sfBatch->setChecked(false);
+        $sfBatch->setSqFtAverageExpected($reworkedBatch->getSqFtAverageExpected() ?? 0.0);
+        $sfBatch->setSqFtAverageFound($reworkedBatch->getSqFtAverageFound() ?? 0.0);
+        $sfBatch->setSelectionNote($reworkedBatch->getSelectionNote());
+        $sfBatch->setBatchNote($reworkedBatch->getBatchNote());
         $now = new \DateTimeImmutable();
         $sfBatch->setCreatedAt($now);
         $sfBatch->setUpdatedAt($now);
@@ -428,6 +448,10 @@ final class BatchController extends AbstractController
         $scBatch->setSplitSelected($reworkedBatch->isSplitSelected() ?? false);
         $scBatch->setCompleted(false);
         $scBatch->setChecked(false);
+        $scBatch->setSqFtAverageExpected($reworkedBatch->getSqFtAverageExpected() ?? 0.0);
+        $scBatch->setSqFtAverageFound($reworkedBatch->getSqFtAverageFound() ?? 0.0);
+        $scBatch->setSelectionNote($reworkedBatch->getSelectionNote());
+        $scBatch->setBatchNote($reworkedBatch->getBatchNote());
         $scBatchNow = new \DateTimeImmutable();
         $scBatch->setCreatedAt($scBatchNow);
         $scBatch->setUpdatedAt($scBatchNow);
