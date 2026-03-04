@@ -625,8 +625,10 @@ final class BatchController extends AbstractController
                 $batch->setSqFtAverageExpected((float) 0);
             }
 
-            if ($batch->getSqFtAverageFound() === null) {
-                $batch->setSqFtAverageFound((float) 0);
+            if($batch->getMeasurementUnit()->getPrefix() == 'MQ'){
+                $coefficientUm = $batch->getMeasurementUnit()->getMeasurementUnitCoefficients()->first();
+
+                $batch->setSqFtAverageFound($coefficientUm->getCoefficient() * $batch->getQuantity());
             }
             
             if ($batch->isCompleted() === null) {

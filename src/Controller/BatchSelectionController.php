@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Batch;
 use App\Entity\BatchSelection;
+use App\Entity\LeatherThickness;
 use App\Entity\Selection;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
@@ -42,15 +43,40 @@ class BatchSelectionController extends AbstractController
         $batchSelection = new BatchSelection();
 
         try {
-            $batchSelection = $this->handleRelations($batchSelection, $data);
-            $batchSelection = $this->createMethodsByInput->createMethods($batchSelection, $data);
+            $batchSelection->setPieces($data['pieces']);
+            $batchSelection->setStockPieces($data['pieces']);
 
-            // Se stock_pieces o stock_quantity non sono forniti, inizializzarli con i valori di pieces e quantity
+            if (isset($data['batch_id'])) {
+                $fatherBatch = $this->entityManager->getRepository(Batch::class)->find($data['batch_id']);
+                if ($fatherBatch) {
+                    $batchSelection->setBatch($fatherBatch);
+                }
+
+                $batchSelection->setQuantity($data['pieces'] * $fatherBatch->getSqFtAverageFound());
+                $batchSelection->setStockQuantity($data['pieces'] * $fatherBatch->getSqFtAverageFound());
+
+                unset($data['batch_id']);
+            }
+
+            if (isset($data['selection_id'])) {
+                $selection = $this->entityManager->getRepository(Selection::class)->find($data['selection_id']);
+                if ($selection) {
+                    $batchSelection->setSelection($selection);
+                }
+                unset($data['selection_id']);
+            }
+
+            if(isset($data['thickness_id'])){
+                $thickness = $this->entityManager->getRepository(LeatherThickness::class)->find($data['thickness_id']);
+                if ($thickness) {
+                    $batchSelection->setThickness($thickness);
+                }
+            }
+
+            $fatherBatch = $batchSelection->getBatch();
+
             if ($batchSelection->getStockPieces() === null) {
                 $batchSelection->setStockPieces($batchSelection->getPieces());
-            }
-            if ($batchSelection->getStockQuantity() === null) {
-                $batchSelection->setStockQuantity($batchSelection->getQuantity());
             }
 
             $errors = $validator->validate($batchSelection);
