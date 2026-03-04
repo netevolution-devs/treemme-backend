@@ -128,6 +128,7 @@ class Batch
      * @var Collection<int, WarehouseMovement>
      */
     #[ORM\OneToMany(mappedBy: 'batch', targetEntity: WarehouseMovement::class, orphanRemoval: true)]
+    #[Groups(['batch_detail'])]
     private Collection $warehouseMovements;
 
     /**
