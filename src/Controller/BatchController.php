@@ -316,7 +316,7 @@ final class BatchController extends AbstractController
 
         $newQuantity = ($fatherBatch->getQuantity() / $fatherBatch->getPieces()) * $piecesToRework;
 
-        $newType = $this->doctrine->getRepository(BatchType::class)->findOneBy(['name' => 'Riverdimento']);
+        $newType = $this->doctrine->getRepository(BatchType::class)->findOneBy(['name' => 'Rinverdimento']);
 
         $newBatch = new Batch();
         $newBatch->setBatchType($newType);
