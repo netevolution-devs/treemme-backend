@@ -283,6 +283,15 @@ final class BatchController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse('Batch not found', 404));
         }
 
+        if (!$fatherBatch->getBatchType() || $fatherBatch->getBatchType()->getName() !== 'Partita') {
+            return new JsonResponse($this->doResponse->doErrorResponse('Solo i lotti di tipo Partita possono essere rinverditi', 400));
+        }
+
+        $existingRework = $batchRepository->findOneBy(['batch_code' => 'R' . $batchCode]);
+        if ($existingRework) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Questo lotto è già stato rinverdito (Lotto ' . $existingRework->getBatchCode() . ')', 400));
+        }
+
         $fatherBatchCode = $fatherBatch->getBatchCode();
         if (str_starts_with($fatherBatchCode, 'SF') || str_starts_with($fatherBatchCode, 'SC')) {
             return new JsonResponse($this->doResponse->doErrorResponse('Un lotto spaccato (SF/SC) non può essere rinverdito', 400));
@@ -397,6 +406,15 @@ final class BatchController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse('Lotto R non trovato', 404));
         }
 
+        $baseCode = substr($batchCode, 1);
+        $existingSF = $batchRepository->findOneBy(['batch_code' => 'SF' . $baseCode]);
+        $existingSC = $batchRepository->findOneBy(['batch_code' => 'SC' . $baseCode]);
+
+        if ($existingSF || $existingSC) {
+            $alreadyCreated = $existingSF ? $existingSF->getBatchCode() : $existingSC->getBatchCode();
+            return new JsonResponse($this->doResponse->doErrorResponse('Questo lotto è già stato spaccato (Lotto ' . $alreadyCreated . ')', 400));
+        }
+
         $availablePieces = (float)($reworkedBatch->getStockItems() ?? 0);
         $availableQuantity = (float)($reworkedBatch->getStockQuantity() ?? 0);
 
@@ -406,13 +424,10 @@ final class BatchController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse('Quantità superiore al numero di pelli disponibili (' . $availablePieces . ')', 400));
         }
 
-        // Aggiorna stock del padre (lotto R)
         $reworkedBatch->setStockItems($availablePieces - $quantity);
         $reworkedBatch->setStockQuantity($availableQuantity - $calculatedQuantity);
 
         $newType = $this->doctrine->getRepository(BatchType::class)->findOneBy(['name' => 'Spaccato']);
-
-        $baseCode = substr($batchCode, 1);
 
         $sfBatch = new Batch();
         $sfBatch->setBatchType($newType);
@@ -461,7 +476,6 @@ final class BatchController extends AbstractController
         $scBatch->setUpdatedAt($scBatchNow);
         $this->doctrine->persist($scBatch);
 
-        // Composizioni (padre = lotto R)
         $sfComp = new BatchComposition();
         $sfComp->setBatch($sfBatch);
         $sfComp->setFatherBatch($reworkedBatch);
