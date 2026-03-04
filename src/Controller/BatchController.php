@@ -273,28 +273,28 @@ final class BatchController extends AbstractController
         $piecesToRework = isset($data['pieces']) ? (int)$data['pieces'] : null;
 
         if ($piecesToRework === null || $piecesToRework <= 0) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Numero di pelli non valido', 400));
+            return new JsonResponse($this->doResponse->doErrorResponse('Numero di pelli non valido'), 400);
         }
 
         $batchRepository = $this->doctrine->getRepository(Batch::class);
         $fatherBatch = $batchRepository->findOneBy(['batch_code' => $batchCode]);
 
         if (!$fatherBatch) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Batch not found', 404));
+            return new JsonResponse($this->doResponse->doErrorResponse('Batch not found', 404), 404);
         }
 
         if (!$fatherBatch->getBatchType() || $fatherBatch->getBatchType()->getName() !== 'Partita') {
-            return new JsonResponse($this->doResponse->doErrorResponse('Solo i lotti di tipo Partita possono essere rinverditi', 400), 400);
+            return new JsonResponse($this->doResponse->doErrorResponse('Solo i lotti di tipo Partita possono essere rinverditi'), 400);
         }
 
         $existingRework = $batchRepository->findOneBy(['batch_code' => 'R' . $batchCode]);
         if ($existingRework) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Questo lotto è già stato rinverdito (Lotto ' . $existingRework->getBatchCode() . ')', 400), 400);
+            return new JsonResponse($this->doResponse->doErrorResponse('Questo lotto è già stato rinverdito (Lotto ' . $existingRework->getBatchCode() . ')'), 400);
         }
 
         $fatherBatchCode = $fatherBatch->getBatchCode();
         if (str_starts_with($fatherBatchCode, 'SF') || str_starts_with($fatherBatchCode, 'SC')) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Un lotto spaccato (SF/SC) non può essere rinverdito', 400));
+            return new JsonResponse($this->doResponse->doErrorResponse('Un lotto spaccato (SF/SC) non può essere rinverdito'));
         }
 
         $availablePieces = (float)($fatherBatch->getStockItems() ?? 0);
@@ -393,17 +393,17 @@ final class BatchController extends AbstractController
 
         $quantity = isset($data['quantity']) ? (float)$data['quantity'] : null;
         if ($quantity === null || $quantity <= 0) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Quantità non valida', 400));
+            return new JsonResponse($this->doResponse->doErrorResponse('Quantità non valida'), 400);
         }
 
         if (!(strlen($batchCode) > 1 && $batchCode[0] === 'R')) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Il codice lotto deve iniziare con R', 400));
+            return new JsonResponse($this->doResponse->doErrorResponse('Il codice lotto deve iniziare con R'), 400);
         }
 
         $batchRepository = $this->doctrine->getRepository(Batch::class);
         $reworkedBatch = $batchRepository->findOneBy(['batch_code' => $batchCode]);
         if (!$reworkedBatch) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Lotto R non trovato', 404));
+            return new JsonResponse($this->doResponse->doErrorResponse('Lotto R non trovato', 404), 404);
         }
 
         $baseCode = substr($batchCode, 1);
@@ -412,7 +412,7 @@ final class BatchController extends AbstractController
 
         if ($existingSF || $existingSC) {
             $alreadyCreated = $existingSF ? $existingSF->getBatchCode() : $existingSC->getBatchCode();
-            return new JsonResponse($this->doResponse->doErrorResponse('Questo lotto è già stato spaccato (Lotto ' . $alreadyCreated . ')', 400));
+            return new JsonResponse($this->doResponse->doErrorResponse('Questo lotto è già stato spaccato (Lotto ' . $alreadyCreated . ')'), 400);
         }
 
         $availablePieces = (float)($reworkedBatch->getStockItems() ?? 0);
@@ -421,7 +421,7 @@ final class BatchController extends AbstractController
         $calculatedQuantity = ($reworkedBatch->getQuantity() / $reworkedBatch->getPieces()) * $quantity;
 
         if ($quantity > $availablePieces) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Quantità superiore al numero di pelli disponibili (' . $availablePieces . ')', 400));
+            return new JsonResponse($this->doResponse->doErrorResponse('Quantità superiore al numero di pelli disponibili (' . $availablePieces . ')'), 400);
         }
 
         $reworkedBatch->setStockItems($availablePieces - $quantity);
@@ -496,7 +496,7 @@ final class BatchController extends AbstractController
         $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
         $inReason = $reasonRepo->findOneBy(['name' => 'Carico']);
         if (!$inReason) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Causale "Carico" non trovata', 400));
+            return new JsonResponse($this->doResponse->doErrorResponse('Causale "Carico" non trovata'), 400);
         }
 
         $note = 'Spaccatura lotto ' . $batchCode;
