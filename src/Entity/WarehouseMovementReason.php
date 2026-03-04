@@ -6,6 +6,7 @@ use App\Repository\WarehouseMovementReasonRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: WarehouseMovementReasonRepository::class)]
 class WarehouseMovementReason
@@ -13,9 +14,11 @@ class WarehouseMovementReason
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['batch_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['batch_detail'])]
     private ?string $name = null;
 
     #[ORM\ManyToOne(inversedBy: 'warehouseMovementReasons')]

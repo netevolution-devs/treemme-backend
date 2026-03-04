@@ -401,6 +401,26 @@ final class BatchController extends AbstractController
             $this->doctrine->persist($inMovement);
         }
 
+        $outReasonR = $reasonRepo->createQueryBuilder('r')
+            ->join('r.reason_type', 't')
+            ->where('r.name = :name')
+            ->andWhere('t.movement_type = :type')
+            ->setParameter('name', 'Scarico')
+            ->setParameter('type', '-')
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        if ($outReasonR) {
+            $outMov = new WarehouseMovement();
+            $outMov->setBatch($newBatch);
+            $outMov->setReason($outReasonR);
+            $outMov->setQuantity($newQuantity);
+            $outMov->setPiece($piecesToRework);
+            $outMov->setDate(new \DateTime());
+            $outMov->setMovementNote('Scarico per lavorazione interna (Riverdimento)');
+            $this->doctrine->persist($outMov);
+        }
+
         $this->doctrine->flush();
 
         $result = $this->groupSerializer->serializeGroup($newBatch, 'batch_detail');
@@ -424,17 +444,13 @@ final class BatchController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse('Numero di pezzi non valido'), 400);
         }
 
-        if (!(strlen($batchCode) > 1 && $batchCode[0] === 'R')) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Il codice lotto deve iniziare con R'), 400);
-        }
-
         $batchRepository = $this->doctrine->getRepository(Batch::class);
         $reworkedBatch = $batchRepository->findOneBy(['batch_code' => $batchCode]);
         if (!$reworkedBatch) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Lotto R non trovato', 404), 404);
+            return new JsonResponse($this->doResponse->doErrorResponse('Lotto non trovato', 404), 404);
         }
 
-        $baseCode = substr($batchCode, 1);
+        $baseCode = (strlen($batchCode) > 1 && $batchCode[0] === 'R') ? substr($batchCode, 1) : $batchCode;
         $existingSF = $batchRepository->findOneBy(['batch_code' => 'SF' . $baseCode]);
         $existingSC = $batchRepository->findOneBy(['batch_code' => 'SC' . $baseCode]);
 
@@ -534,6 +550,26 @@ final class BatchController extends AbstractController
         }
 
         $note = 'Spaccatura lotto ' . $batchCode;
+
+        $outReason = $reasonRepo->createQueryBuilder('r')
+            ->join('r.reason_type', 't')
+            ->where('r.name = :name')
+            ->andWhere('t.movement_type = :type')
+            ->setParameter('name', 'Scarico')
+            ->setParameter('type', '-')
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        if ($outReason) {
+            $outMov = new WarehouseMovement();
+            $outMov->setBatch($reworkedBatch);
+            $outMov->setReason($outReason);
+            $outMov->setQuantity($calculatedQuantity);
+            $outMov->setPiece((int)$pieces);
+            $outMov->setDate(new \DateTime());
+            $outMov->setMovementNote($note);
+            $this->doctrine->persist($outMov);
+        }
 
         $sfMov = new WarehouseMovement();
         $sfMov->setBatch($sfBatch);

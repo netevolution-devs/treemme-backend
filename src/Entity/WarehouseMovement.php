@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: WarehouseMovementRepository::class)]
 class WarehouseMovement
@@ -14,9 +15,11 @@ class WarehouseMovement
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['batch_detail'])]
     private ?int $id = null;
 
     #[ORM\Column]
+    #[Groups(['batch_detail'])]
     private ?\DateTime $date = null;
 
     #[ORM\ManyToOne(inversedBy: 'warehouseMovements')]
@@ -25,27 +28,35 @@ class WarehouseMovement
 
     #[ORM\ManyToOne(inversedBy: 'warehouseMovements')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['batch_detail'])]
     private ?WarehouseMovementReason $reason = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['batch_detail'])]
     private ?int $piece = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['batch_detail'])]
     private ?float $price = null;
 
     #[ORM\Column]
+    #[Groups(['batch_detail'])]
     private ?float $quantity = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['batch_detail'])]
     private ?float $total_value = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['batch_detail'])]
     private ?string $ddt_number = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['batch_detail'])]
     private ?\DateTime $ddt_date = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['batch_detail'])]
     private ?string $movement_note = null;
 
     #[ORM\ManyToOne(targetEntity: self::class, inversedBy: 'sonWarehouseMovements')]
