@@ -265,7 +265,7 @@ final class BatchController extends AbstractController
         }
 
         $batchRepository = $this->doctrine->getRepository(Batch::class);
-        $fatherBatch = $batchRepository->findOneBy(['batchCode' => $batchCode]);
+        $fatherBatch = $batchRepository->findOneBy(['batch_code' => $batchCode]);
 
         if (!$fatherBatch) {
             return new JsonResponse($this->doResponse->doErrorResponse('Batch not found', 404));
@@ -374,8 +374,7 @@ final class BatchController extends AbstractController
         }
 
         $batchRepository = $this->doctrine->getRepository(Batch::class);
-        /** @var Batch|null $reworkedBatch */
-        $reworkedBatch = $batchRepository->findOneBy(['batchCode' => $batchCode]);
+        $reworkedBatch = $batchRepository->findOneBy(['batch_code' => $batchCode]);
         if (!$reworkedBatch) {
             return new JsonResponse($this->doResponse->doErrorResponse('Lotto R non trovato', 404));
         }
