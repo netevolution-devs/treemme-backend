@@ -689,6 +689,34 @@ final class BatchController extends AbstractController
             }
 
             $this->doctrine->persist($batch);
+
+            $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
+            $inReason = $reasonRepo->createQueryBuilder('r')
+                ->join('r.reason_type', 't')
+                ->where('r.name = :name')
+                ->andWhere('t.movement_type = :type')
+                ->setParameter('name', 'Carico iniziale')
+                ->setParameter('type', '+')
+                ->getQuery()
+                ->getOneOrNullResult()
+                ?? $reasonRepo->findOneBy(['name' => 'Carico Iniziale'])
+                ?? $reasonRepo->findOneBy(['name' => 'Acquisto']);
+
+            if ($inReason) {
+                $movement = new WarehouseMovement();
+                $movement->setBatch($batch);
+                $movement->setReason($inReason);
+                $movement->setQuantity($batch->getQuantity());
+                $movement->setPiece($batch->getPieces());
+                $movement->setDate(new \DateTime());
+                $movement->setMovementNote('Carico iniziale creazione lotto');
+                if (isset($data['price'])) {
+                    $movement->setPrice((float)$data['price']);
+                    $movement->setTotalValue((float)$data['price'] * $batch->getQuantity());
+                }
+                $this->doctrine->persist($movement);
+            }
+
             $this->doctrine->flush();
 
             $result = $this->groupSerializer->serializeGroup($batch, 'batch_detail');
@@ -716,15 +744,35 @@ final class BatchController extends AbstractController
         }
 
         try {
+            $oldPieces = $batch->getPieces();
+            $oldQuantity = $batch->getQuantity();
+
             $batch = $this->handleRelations($batch, $data);
             $batch = $this->createMethodsByInput->createMethods($batch, $data);
 
-            if ($batch->getStockItems() === null || $batch->getStockItems() == 0.0) {
-                $batch->setStockItems((float)($batch->getPieces() ?? 0));
+            if($batch->getMeasurementUnit()){
+                $measurementUnit = $batch->getMeasurementUnit();
+
+                if ($measurementUnit->getPrefix() == 'MQ') {
+                    $coefficientUm = $measurementUnit->getMeasurementUnitCoefficients()->first();
+                    if($batch->getPieces() > 0 && $batch->getQuantity() > 0) {
+                        $batch->setSqFtAverageFound($batch->getPieces() / ($coefficientUm->getCoefficient() * $batch->getQuantity()));
+                    }
+                } elseif($batch->getMeasurementUnit()->getPrefix() == 'PQ') {
+                    if($batch->getPieces() > 0 && $batch->getQuantity() > 0) {
+                        $batch->setSqFtAverageFound($batch->getPieces() / $batch->getQuantity());
+                    }
+                }
             }
 
-            if ($batch->getStockQuantity() === null || $batch->getStockQuantity() == 0.0) {
-                $batch->setStockQuantity((float)($batch->getQuantity() ?? 0));
+            if ($batch->getPieces() !== $oldPieces) {
+                $diffPieces = $batch->getPieces() - $oldPieces;
+                $batch->setStockItems($batch->getStockItems() + $diffPieces);
+            }
+
+            if ($batch->getQuantity() !== $oldQuantity) {
+                $diffQuantity = $batch->getQuantity() - $oldQuantity;
+                $batch->setStockQuantity($batch->getStockQuantity() + $diffQuantity);
             }
 
             if ($batch->isCompleted() === null) {
@@ -764,6 +812,60 @@ final class BatchController extends AbstractController
             }
 
             $this->doctrine->persist($batch);
+
+            // Gestione Movimento di Magazzino per la modifica
+            if ($batch->getPieces() !== $oldPieces || $batch->getQuantity() !== $oldQuantity || isset($data['price'])) {
+                $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
+                $movementRepo = $this->doctrine->getRepository(WarehouseMovement::class);
+
+                // Cerchiamo se esiste già un movimento di carico iniziale per questo lotto
+                $initialMovement = $movementRepo->createQueryBuilder('m')
+                    ->join('m.reason', 'r')
+                    ->where('m.batch = :batch')
+                    ->andWhere('r.name LIKE :reasonName')
+                    ->setParameter('batch', $batch)
+                    ->setParameter('reasonName', '%Carico iniziale%')
+                    ->setMaxResults(1)
+                    ->getQuery()
+                    ->getOneOrNullResult();
+
+                if ($initialMovement) {
+                    $initialMovement->setPiece($batch->getPieces());
+                    $initialMovement->setQuantity($batch->getQuantity());
+                    if (isset($data['price'])) {
+                        $initialMovement->setPrice((float)$data['price']);
+                        $initialMovement->setTotalValue((float)$data['price'] * $batch->getQuantity());
+                    } elseif ($initialMovement->getPrice()) {
+                        $initialMovement->setTotalValue($initialMovement->getPrice() * $batch->getQuantity());
+                    }
+                    $this->doctrine->persist($initialMovement);
+                } else {
+                    // Se non esiste, ne creiamo uno di rettifica o nuovo carico
+                    $adjReason = $reasonRepo->createQueryBuilder('r')
+                        ->join('r.reason_type', 't')
+                        ->where('r.name = :name')
+                        ->setParameter('name', 'Rettifica inventariale')
+                        ->getQuery()
+                        ->getOneOrNullResult()
+                        ?? $reasonRepo->findOneBy(['name' => 'Rettifica']);
+
+                    if ($adjReason) {
+                        $movement = new WarehouseMovement();
+                        $movement->setBatch($batch);
+                        $movement->setReason($adjReason);
+                        $movement->setQuantity($batch->getQuantity() - $oldQuantity);
+                        $movement->setPiece($batch->getPieces() - $oldPieces);
+                        $movement->setDate(new \DateTime());
+                        $movement->setMovementNote('Rettifica da modifica lotto');
+                        if (isset($data['price'])) {
+                            $movement->setPrice((float)$data['price']);
+                            $movement->setTotalValue((float)$data['price'] * ($batch->getQuantity() - $oldQuantity));
+                        }
+                        $this->doctrine->persist($movement);
+                    }
+                }
+            }
+
             $this->doctrine->flush();
 
             $result = $this->groupSerializer->serializeGroup($batch, 'batch_detail');
