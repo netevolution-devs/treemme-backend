@@ -52,7 +52,7 @@ class Product
 
     #[ORM\Column(nullable: true)]
     #[Groups(['product_list', 'product_detail'])]
-    private ?float $stock = null;
+    private ?float $stock_quantity = null;
 
     #[ORM\Column(nullable: true)]
     #[Groups(['product_list', 'product_detail'])]
@@ -119,6 +119,9 @@ class Product
 
     #[ORM\ManyToOne(inversedBy: 'thicknessProducts')]
     private ?MeasurementUnit $thickness_measurement_unit = null;
+
+    #[ORM\ManyToOne(inversedBy: 'contactProducts')]
+    private ?Contact $contact = null;
 
     public function __construct()
     {
@@ -227,14 +230,14 @@ class Product
         return $this;
     }
 
-    public function getStock(): ?float
+    public function getStockQuantity(): ?float
     {
-        return $this->stock;
+        return $this->stock_quantity;
     }
 
-    public function setStock(?float $stock): static
+    public function setStockQuantity(?float $stockQuantity): static
     {
-        $this->stock = $stock;
+        $this->stock_quantity = $stockQuantity;
 
         return $this;
     }
@@ -463,6 +466,18 @@ class Product
     public function setThicknessMeasurementUnit(?MeasurementUnit $thickness_measurement_unit): static
     {
         $this->thickness_measurement_unit = $thickness_measurement_unit;
+
+        return $this;
+    }
+
+    public function getContact(): ?Contact
+    {
+        return $this->contact;
+    }
+
+    public function setContact(?Contact $contact): static
+    {
+        $this->contact = $contact;
 
         return $this;
     }
