@@ -35,6 +35,18 @@ final class ContactController extends AbstractController
         $this->validatorOutputFormatter = $validatorOutputFormatter;
     }
 
+    #[Route('/contact/agents',
+        name: 'get_agents',
+        methods: ['GET'])]
+    public function getAgents(): JsonResponse
+    {
+        $contactRepository = $this->doctrine->getRepository(Contact::class);
+        $agents = $contactRepository->findBy(['agent' => true], ['name' => 'ASC']);
+
+        $results = $this->groupSerializer->serializeGroup($agents, 'contact_agent_list');
+        return new JsonResponse($this->doResponse->doResponse($results));
+    }
+
     #[Route('/contact/{id}',
         name: 'get_contact',
         defaults: ['id' => null],
@@ -179,6 +191,75 @@ final class ContactController extends AbstractController
         $em->flush();
 
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
+    }
+
+    #[Route('/contact/{id}/agent/{agentId}',
+        name: 'add_contact_agent',
+        requirements: ['id' => '\d+', 'agentId' => '\d+'],
+        methods: ['POST'])]
+    public function addAgentToContact(int $id, int $agentId): JsonResponse
+    {
+        $contactRepository = $this->doctrine->getRepository(Contact::class);
+        $contact = $contactRepository->find($id);
+        $agent = $contactRepository->find($agentId);
+
+        if (!$contact) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Contact not found', 404));
+        }
+
+        if (!$agent) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Agent not found', 404));
+        }
+
+        if (!$agent->isAgent()) {
+            return new JsonResponse($this->doResponse->doErrorResponse('The selected contact is not an agent', 400));
+        }
+
+        foreach ($contact->getContactAgents() as $existingContactAgent) {
+            if ($existingContactAgent->getAgent()->getId() === $agent->getId()) {
+                return new JsonResponse($this->doResponse->doErrorResponse('Agent already associated', 400));
+            }
+        }
+
+        $contactAgent = new ContactAgent();
+        $contactAgent->setContact($contact);
+        $contactAgent->setAgent($agent);
+
+        $this->doctrine->persist($contactAgent);
+        $this->doctrine->flush();
+
+        $result = $this->groupSerializer->serializeGroup($contact, 'contact_detail');
+        return new JsonResponse($this->doResponse->doResponse($result[0]));
+    }
+
+    #[Route('/contact/{id}/agent/{agentId}',
+        name: 'remove_contact_agent',
+        requirements: ['id' => '\d+', 'agentId' => '\d+'],
+        methods: ['DELETE'])]
+    public function removeAgentFromContact(int $id, int $agentId): JsonResponse
+    {
+        $contactRepository = $this->doctrine->getRepository(Contact::class);
+        $contact = $contactRepository->find($id);
+
+        if (!$contact) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Contact not found', 404));
+        }
+
+        $contactAgentRepository = $this->doctrine->getRepository(ContactAgent::class);
+        $contactAgent = $contactAgentRepository->findOneBy([
+            'contact' => $contact,
+            'agent' => $agentId
+        ]);
+
+        if (!$contactAgent) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Association not found', 404));
+        }
+
+        $this->doctrine->remove($contactAgent);
+        $this->doctrine->flush();
+
+        $result = $this->groupSerializer->serializeGroup($contact, 'contact_detail');
+        return new JsonResponse($this->doResponse->doResponse($result[0]));
     }
 
     private function handleRelations(Contact $contact, array &$data): Contact
