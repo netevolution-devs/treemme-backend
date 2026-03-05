@@ -72,7 +72,19 @@ final class ContactController extends AbstractController
             }
 
         }
-        $results = $this->groupSerializer->serializeGroup($contact, $id ? 'contact_detail' : 'contact_list');
+
+        $group = $id ? 'contact_detail' : 'contact_list';
+        if (!$id && isset($type)) {
+            if ($type == 'client') {
+                $group = 'contact_client';
+            } else if ($type == 'supplier') {
+                $group = 'contact_supplier';
+            } else if ($type == 'agent') {
+                $group = 'contact_agent_list';
+            }
+        }
+
+        $results = $this->groupSerializer->serializeGroup($contact, $group);
 
         if ($id) {
             return new JsonResponse($this->doResponse->doResponse($results[0]));

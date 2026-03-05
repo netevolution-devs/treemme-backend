@@ -15,26 +15,26 @@ class Contact
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['contact_list','contact_detail','contact_type_detail', 'leather_list', 'leather_detail'])]
+    #[Groups(['contact_list','contact_detail','contact_type_detail', 'leather_list', 'leather_detail','contact_client','contact_supplier','contact_agent_list'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['contact_list','contact_detail','contact_type_detail', 'leather_list', 'leather_detail'])]
+    #[Groups(['contact_list','contact_detail','contact_type_detail', 'leather_list', 'leather_detail','contact_client','contact_supplier','contact_agent_list'])]
     private ?string $name = null;
 
     #[ORM\ManyToOne(inversedBy: 'contacts')]
-    #[Groups(['contact_list','contact_detail'])]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list'])]
     private ?ContactType $contact_type = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['contact_detail','contact_type_detail'])]
+    #[Groups(['contact_detail','contact_type_detail','contact_client','contact_supplier','contact_agent_list'])]
     private ?string $contact_note = null;
 
     /**
      * @var Collection<int, ContactAddress>
      */
     #[ORM\OneToMany(mappedBy: 'contact', targetEntity: ContactAddress::class, orphanRemoval: true)]
-    #[Groups(['contact_list','contact_detail'])]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list'])]
     private Collection $contactAddresses;
 
     #[ORM\Column]
@@ -53,35 +53,35 @@ class Contact
      * @var Collection<int, ContactDetail>
      */
     #[ORM\OneToMany(mappedBy: 'contact', targetEntity: ContactDetail::class, orphanRemoval: true)]
-    #[Groups(['contact_list','contact_detail'])]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list'])]
     private Collection $contactDetails;
 
     #[ORM\ManyToOne(inversedBy: 'contacts')]
-    #[Groups(['contact_list','contact_detail'])]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list'])]
     private ?ContactTitle $contact_title = null;
 
     #[ORM\Column]
-    #[Groups(['contact_list','contact_detail'])]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list'])]
     private ?bool $client = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['contact_detail'])]
+    #[Groups(['contact_detail','contact_client'])]
     private ?float $tolerance_quantity = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['contact_detail'])]
+    #[Groups(['contact_detail','contact_client'])]
     private ?string $client_note = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['contact_detail'])]
+    #[Groups(['contact_detail','contact_client'])]
     private ?string $client_shipment_note = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['contact_detail'])]
+    #[Groups(['contact_detail','contact_client'])]
     private ?int $tolerance_start_days = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['contact_detail'])]
+    #[Groups(['contact_detail','contact_client'])]
     private ?bool $specific_order_reference = null;
 
     #[ORM\Column(nullable: true)]
@@ -97,7 +97,7 @@ class Contact
     private ?Payment $payment = null;
 
     #[ORM\Column]
-    #[Groups(['contact_list','contact_detail'])]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list'])]
     private ?bool $supplier = null;
 
     /**
@@ -117,18 +117,18 @@ class Contact
      * @var Collection<int, ContactAgent>
      */
     #[ORM\OneToMany(mappedBy: 'contact', targetEntity: ContactAgent::class, orphanRemoval: true)]
-    #[Groups(['contact_list','contact_detail'])]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier'])]
     private Collection $contactAgents;
 
     #[ORM\OneToMany(mappedBy: 'agent', targetEntity: ContactAgent::class, orphanRemoval: true)]
     private Collection $agentContacts;
 
     #[ORM\Column]
-    #[Groups(['contact_list','contact_detail'])]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list'])]
     private ?bool $agent = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['contact_list','contact_detail'])]
+    #[Groups(['contact_list','contact_detail','contact_agent_list'])]
     private ?float $agent_percentage = null;
 
     /**
