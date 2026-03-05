@@ -417,7 +417,7 @@ final class BatchController extends AbstractController
             $outMov->setQuantity($newQuantity);
             $outMov->setPiece($piecesToRework);
             $outMov->setDate(new \DateTime());
-            $outMov->setMovementNote('Scarico per lavorazione interna (Riverdimento)');
+            $outMov->setMovementNote('Scarico per lavorazione esterna (Riverdimento)');
             $this->doctrine->persist($outMov);
         }
 
