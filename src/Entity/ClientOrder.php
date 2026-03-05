@@ -110,6 +110,9 @@ class ClientOrder
     #[Groups(['client_order_detail'])]
     private Collection $clientOrderRows;
 
+    #[ORM\ManyToOne(inversedBy: 'clientOrders')]
+    private ?Contact $agent = null;
+
     public function __construct()
     {
         $this->clientOrderRows = new ArrayCollection();
@@ -398,6 +401,18 @@ class ClientOrder
                 $clientOrderRow->setClientOrder(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getAgent(): ?Contact
+    {
+        return $this->agent;
+    }
+
+    public function setAgent(?Contact $agent): static
+    {
+        $this->agent = $agent;
 
         return $this;
     }
