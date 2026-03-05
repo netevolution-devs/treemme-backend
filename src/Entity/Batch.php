@@ -145,6 +145,12 @@ class Batch
     #[ORM\OneToMany(mappedBy: 'batch', targetEntity: BatchOrder::class)]
     private Collection $batchOrders;
 
+    /**
+     * @var Collection<int, Production>
+     */
+    #[ORM\OneToMany(mappedBy: 'batch', targetEntity: Production::class, orphanRemoval: true)]
+    private Collection $productions;
+
     public function __construct()
     {
         $this->batchCosts = new ArrayCollection();
@@ -153,6 +159,7 @@ class Batch
         $this->warehouseMovements = new ArrayCollection();
         $this->batchSelections = new ArrayCollection();
         $this->batchOrders = new ArrayCollection();
+        $this->productions = new ArrayCollection();
     }
 
     #[VirtualProperty]
@@ -611,6 +618,36 @@ class Batch
             // set the owning side to null (unless already changed)
             if ($batchOrder->getBatch() === $this) {
                 $batchOrder->setBatch(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Production>
+     */
+    public function getProductions(): Collection
+    {
+        return $this->productions;
+    }
+
+    public function addProduction(Production $production): static
+    {
+        if (!$this->productions->contains($production)) {
+            $this->productions->add($production);
+            $production->setBatch($this);
+        }
+
+        return $this;
+    }
+
+    public function removeProduction(Production $production): static
+    {
+        if ($this->productions->removeElement($production)) {
+            // set the owning side to null (unless already changed)
+            if ($production->getBatch() === $this) {
+                $production->setBatch(null);
             }
         }
 
