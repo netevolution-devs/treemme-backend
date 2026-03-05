@@ -117,16 +117,25 @@ class Contact
      * @var Collection<int, ContactAgent>
      */
     #[ORM\OneToMany(mappedBy: 'contact', targetEntity: ContactAgent::class, orphanRemoval: true)]
+    #[Groups(['contact_list','contact_detail'])]
     private Collection $contactAgents;
 
     #[ORM\OneToMany(mappedBy: 'agent', targetEntity: ContactAgent::class, orphanRemoval: true)]
     private Collection $agentContacts;
 
     #[ORM\Column]
+    #[Groups(['contact_list','contact_detail'])]
     private ?bool $agent = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['contact_list','contact_detail'])]
     private ?float $agent_percentage = null;
+
+    /**
+     * @var Collection<int, ClientOrder>
+     */
+    #[ORM\OneToMany(mappedBy: 'agent', targetEntity: ClientOrder::class)]
+    private Collection $clientOrders;
 
     public function __construct()
     {
@@ -137,6 +146,7 @@ class Contact
         $this->SupplierLeather = new ArrayCollection();
         $this->contactAgents = new ArrayCollection();
         $this->agentContacts = new ArrayCollection();
+        $this->clientOrders = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -545,6 +555,36 @@ class Contact
             // set the owning side to null (unless already changed)
             if ($agentContact->getAgent() === $this) {
                 $agentContact->setAgent(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ClientOrder>
+     */
+    public function getClientOrders(): Collection
+    {
+        return $this->clientOrders;
+    }
+
+    public function addClientOrder(ClientOrder $clientOrder): static
+    {
+        if (!$this->clientOrders->contains($clientOrder)) {
+            $this->clientOrders->add($clientOrder);
+            $clientOrder->setAgent($this);
+        }
+
+        return $this;
+    }
+
+    public function removeClientOrder(ClientOrder $clientOrder): static
+    {
+        if ($this->clientOrders->removeElement($clientOrder)) {
+            // set the owning side to null (unless already changed)
+            if ($clientOrder->getAgent() === $this) {
+                $clientOrder->setAgent(null);
             }
         }
 
