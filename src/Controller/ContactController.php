@@ -258,8 +258,7 @@ final class ContactController extends AbstractController
         $this->doctrine->remove($contactAgent);
         $this->doctrine->flush();
 
-        $result = $this->groupSerializer->serializeGroup($contact, 'contact_detail');
-        return new JsonResponse($this->doResponse->doResponse($result[0]));
+        return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
     }
 
     private function handleRelations(Contact $contact, array &$data): Contact
