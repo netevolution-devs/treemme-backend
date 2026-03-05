@@ -42,9 +42,16 @@ class BatchType
     #[ORM\Column]
     private ?\DateTimeImmutable $updated_at = null;
 
+    /**
+     * @var Collection<int, Machine>
+     */
+    #[ORM\OneToMany(mappedBy: 'batch_type', targetEntity: Machine::class)]
+    private Collection $machines;
+
     public function __construct()
     {
         $this->batches = new ArrayCollection();
+        $this->machines = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -138,6 +145,36 @@ class BatchType
     public function setUpdatedAt(\DateTimeImmutable $updated_at): static
     {
         $this->updated_at = $updated_at;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Machine>
+     */
+    public function getMachines(): Collection
+    {
+        return $this->machines;
+    }
+
+    public function addMachine(Machine $machine): static
+    {
+        if (!$this->machines->contains($machine)) {
+            $this->machines->add($machine);
+            $machine->setBatchType($this);
+        }
+
+        return $this;
+    }
+
+    public function removeMachine(Machine $machine): static
+    {
+        if ($this->machines->removeElement($machine)) {
+            // set the owning side to null (unless already changed)
+            if ($machine->getBatchType() === $this) {
+                $machine->setBatchType(null);
+            }
+        }
 
         return $this;
     }
