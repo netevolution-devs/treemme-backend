@@ -228,7 +228,7 @@ final class ContactController extends AbstractController
         $this->doctrine->persist($contactAgent);
         $this->doctrine->flush();
 
-        $result = $this->groupSerializer->serializeGroup($contact, 'contact_detail');
+        $result = $this->groupSerializer->serializeGroup([$contact], 'contact_detail');
         return new JsonResponse($this->doResponse->doResponse($result[0]));
     }
 
