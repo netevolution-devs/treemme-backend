@@ -20,7 +20,7 @@ class ContactAgent
 
     #[ORM\ManyToOne(inversedBy: 'contactAgents')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['contact_list','contact_detail'])]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier'])]
     private ?Contact $agent = null;
 
     public function getId(): ?int
