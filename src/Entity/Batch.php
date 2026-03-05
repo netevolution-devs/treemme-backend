@@ -8,6 +8,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\Serializer\Annotation\Groups;
+use JMS\Serializer\Annotation\VirtualProperty;
 
 #[ORM\Entity(repositoryClass: BatchRepository::class)]
 class Batch
@@ -135,7 +136,7 @@ class Batch
      * @var Collection<int, BatchSelection>
      */
     #[ORM\OneToMany(mappedBy: 'batch', targetEntity: BatchSelection::class, orphanRemoval: true)]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_list', 'batch_detail'])]
     private Collection $batchSelections;
 
     /**
@@ -152,6 +153,18 @@ class Batch
         $this->warehouseMovements = new ArrayCollection();
         $this->batchSelections = new ArrayCollection();
         $this->batchOrders = new ArrayCollection();
+    }
+
+    #[VirtualProperty]
+    #[Groups(['batch_detail'])]
+    public function getBatchSelectionsCount(): int
+    {
+        $total = 0;
+        foreach ($this->batchSelections as $batchSelection) {
+            $total += $batchSelection->getPieces();
+        }
+
+        return $this->getPieces() - $total;
     }
 
 

@@ -22,23 +22,23 @@ class BatchSelection
 
     #[ORM\ManyToOne(inversedBy: 'batchSelections')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['batch_selection_detail', 'batch_detail'])]
+    #[Groups(['batch_selection_detail', 'batch_detail', 'batch_list'])]
     private ?Selection $selection = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_selection_detail', 'batch_detail'])]
+    #[Groups(['batch_selection_detail', 'batch_detail', 'batch_list'])]
     private ?int $pieces = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_selection_detail', 'batch_detail'])]
+    #[Groups(['batch_selection_detail', 'batch_detail', 'batch_list'])]
     private ?float $quantity = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_selection_detail', 'batch_detail'])]
+    #[Groups(['batch_selection_detail', 'batch_detail', 'batch_list'])]
     private ?int $stock_pieces = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_selection_detail', 'batch_detail'])]
+    #[Groups(['batch_selection_detail', 'batch_detail', 'batch_list'])]
     private ?float $stock_quantity = null;
 
     #[ORM\ManyToOne(inversedBy: 'batchSelections')]

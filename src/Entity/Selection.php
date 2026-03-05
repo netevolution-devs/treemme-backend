@@ -14,11 +14,11 @@ class Selection
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['batch_selection_detail', 'batch_detail', 'selection_list', 'selection_detail'])]
+    #[Groups(['batch_selection_detail', 'batch_detail', 'selection_list', 'selection_detail', 'batch_list'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['batch_selection_detail', 'batch_detail', 'selection_list', 'selection_detail'])]
+    #[Groups(['batch_selection_detail', 'batch_detail', 'selection_list', 'selection_detail', 'batch_list'])]
     private ?string $name = null;
 
     #[ORM\Column(nullable: true)]
