@@ -40,7 +40,7 @@ final class ContactController extends AbstractController
         defaults: ['id' => null],
         requirements: ['id' => '\d*'],
         methods: ['GET', 'HEAD'])]
-    public function getContactType(
+    public function getContact(
         Request $request,
         ?int    $id,
     ): JsonResponse
@@ -55,12 +55,22 @@ final class ContactController extends AbstractController
         } else {
             $name = $request->query->get('contact_name');
             $detailName = $request->query->get('detail_name');
+            $type = $request->query->get('type');
 
             if ($name || $detailName) {
                 $contact = $contactRepository->searchContacts($name, $detailName);
+            } else if ($type) {
+                if ($type == 'client') {
+                    $contact = $contactRepository->findBy(['client' => true], ['id' => 'DESC']);
+                } else if ($type == 'supplier') {
+                    $contact = $contactRepository->findBy(['supplier' => true], ['id' => 'DESC']);
+                } else if ($type == 'agent') {
+                    $contact = $contactRepository->findBy(['agent' => true], ['id' => 'DESC']);
+                }
             } else {
                 $contact = $contactRepository->findBy([], ['id' => 'DESC']);
             }
+
         }
         $results = $this->groupSerializer->serializeGroup($contact, $id ? 'contact_detail' : 'contact_list');
 
