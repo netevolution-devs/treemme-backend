@@ -120,10 +120,6 @@ final class ContactController extends AbstractController
             $contact = $this->handleRelations($contact, $data);
             $contact = $this->createMethodsByInput->createMethods($contact, $data);
 
-            if (!$contact->getCode()) {
-                $contact->setCode($this->doctrine->getRepository(Contact::class)->generateNextCode());
-            }
-
             $now = new \DateTimeImmutable();
 
             $contact->setCreatedAt($now);

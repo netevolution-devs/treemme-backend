@@ -59,25 +59,4 @@ class ContactRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
-
-    public function generateNextCode(): string
-    {
-        $lastContact = $this->createQueryBuilder('c')
-            ->where('c.code LIKE :prefix')
-            ->setParameter('prefix', 'C%')
-            ->orderBy('c.code', 'DESC')
-            ->setMaxResults(1)
-            ->getQuery()
-            ->getOneOrNullResult();
-
-        if (!$lastContact || !$lastContact->getCode()) {
-            return 'C000001';
-        }
-
-        $lastCode = $lastContact->getCode();
-        $lastNumber = (int)substr($lastCode, 1);
-        $nextNumber = $lastNumber + 1;
-
-        return 'C' . str_pad((string)$nextNumber, 6, '0', STR_PAD_LEFT);
-    }
 }
