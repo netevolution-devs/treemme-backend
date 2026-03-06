@@ -118,6 +118,10 @@ class ClientOrder
     #[Groups(['client_order_detail'])]
     private ?ShipmentCondition $shipment_condition = null;
 
+    #[ORM\ManyToOne(inversedBy: 'clientOrders')]
+    #[Groups(['client_order_detail'])]
+    private ?ContactAddress $address = null;
+
     public function __construct()
     {
         $this->clientOrderRows = new ArrayCollection();
@@ -430,6 +434,18 @@ class ClientOrder
     public function setShipmentCondition(?ShipmentCondition $shipment_condition): static
     {
         $this->shipment_condition = $shipment_condition;
+
+        return $this;
+    }
+
+    public function getAddress(): ?ContactAddress
+    {
+        return $this->address;
+    }
+
+    public function setAddress(?ContactAddress $address): static
+    {
+        $this->address = $address;
 
         return $this;
     }
