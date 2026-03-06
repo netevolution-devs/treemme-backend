@@ -107,10 +107,11 @@ class ClientOrder
      * @var Collection<int, ClientOrderRow>
      */
     #[ORM\OneToMany(mappedBy: 'client_order', targetEntity: ClientOrderRow::class, orphanRemoval: true)]
-    #[Groups(['client_order_detail'])]
+    #[Groups(['client_order_list', 'client_order_detail'])]
     private Collection $clientOrderRows;
 
     #[ORM\ManyToOne(inversedBy: 'clientOrders')]
+    #[Groups(['client_order_detail'])]
     private ?Contact $agent = null;
 
     #[ORM\ManyToOne(inversedBy: 'clientOrders')]

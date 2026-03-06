@@ -81,6 +81,10 @@ final class ClientOrderController extends AbstractController
             $clientOrder = $this->handleRelations($clientOrder, $data);
             $clientOrder = $this->createMethodsByInput->createMethods($clientOrder, $data);
 
+            if (!$clientOrder->getOrderNumber()) {
+                $clientOrder->setOrderNumber($this->doctrine->getRepository(ClientOrder::class)->generateNextOrderNumber());
+            }
+
             $errors = $validator->validate($clientOrder);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);

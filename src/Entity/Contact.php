@@ -15,16 +15,14 @@ class Contact
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['contact_list','contact_detail','contact_type_detail', 'leather_list', 'leather_detail','contact_client','contact_supplier','contact_agent_list'])]
+    #[Groups(['contact_list','contact_detail','contact_type_detail', 'leather_list',
+        'leather_detail','contact_client','contact_supplier','contact_agent_list','client_order_list', 'client_order_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['contact_list','contact_detail','contact_type_detail', 'leather_list', 'leather_detail','contact_client','contact_supplier','contact_agent_list'])]
+    #[Groups(['contact_list','contact_detail','contact_type_detail','leather_list',
+        'leather_detail','contact_client','contact_supplier','contact_agent_list','client_order_list', 'client_order_detail'])]
     private ?string $name = null;
-
-    #[ORM\Column(length: 7, unique: true, nullable: true)]
-    #[Groups(['contact_list','contact_detail','contact_type_detail', 'leather_list', 'leather_detail','contact_client','contact_supplier','contact_agent_list'])]
-    private ?string $code = null;
 
     #[ORM\ManyToOne(inversedBy: 'contacts')]
     #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list'])]
@@ -171,18 +169,6 @@ class Contact
     public function setName(string $name): static
     {
         $this->name = $name;
-
-        return $this;
-    }
-
-    public function getCode(): ?string
-    {
-        return $this->code;
-    }
-
-    public function setCode(?string $code): static
-    {
-        $this->code = $code;
 
         return $this;
     }
