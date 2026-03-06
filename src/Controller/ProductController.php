@@ -3,10 +3,10 @@
 namespace App\Controller;
 
 use App\Entity\Color;
+use App\Entity\Contact;
 use App\Entity\MeasurementUnit;
 use App\Entity\Product;
 use App\Entity\ProductType;
-use App\Entity\Supplier;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -166,7 +166,7 @@ final class ProductController extends AbstractController
         }
 
         if (isset($data['supplier_id'])) {
-            $supplier = $this->doctrine->getRepository(Supplier::class)->find($data['supplier_id']);
+            $supplier = $this->doctrine->getRepository(Contact::class)->find($data['supplier_id']);
             if ($supplier) {
                 $product->setSupplier($supplier);
             }
@@ -203,6 +203,14 @@ final class ProductController extends AbstractController
                 $product->setThicknessMeasurementUnit($unit);
             }
             unset($data['thickness_measurement_unit_id']);
+        }
+
+        if (isset($data['contact_id'])) {
+            $contact = $this->doctrine->getRepository(Contact::class)->find($data['contact_id']);
+            if ($contact) {
+                $product->setContact($contact);
+            }
+            unset($data['contact_id']);
         }
 
         return $product;
