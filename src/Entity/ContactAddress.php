@@ -15,7 +15,7 @@ class ContactAddress
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail'])]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'contactAddresses')]
@@ -24,15 +24,15 @@ class ContactAddress
     private ?Contact $contact = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail'])]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail'])]
     private ?string $address_name = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail'])]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail'])]
     private ?string $address = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail'])]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail'])]
     private ?string $address_2 = null;
 
     #[ORM\Column(length: 255, nullable: true)]
@@ -62,8 +62,15 @@ class ContactAddress
     #[Groups(['contact_address_detail', 'contact_detail'])]
     private ?Town $town = null;
 
+    /**
+     * @var Collection<int, ClientOrder>
+     */
+    #[ORM\OneToMany(mappedBy: 'address', targetEntity: ClientOrder::class)]
+    private Collection $clientOrders;
+
     public function __construct()
     {
+        $this->clientOrders = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -199,6 +206,36 @@ class ContactAddress
     public function setTown(?Town $town): static
     {
         $this->town = $town;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ClientOrder>
+     */
+    public function getClientOrders(): Collection
+    {
+        return $this->clientOrders;
+    }
+
+    public function addClientOrder(ClientOrder $clientOrder): static
+    {
+        if (!$this->clientOrders->contains($clientOrder)) {
+            $this->clientOrders->add($clientOrder);
+            $clientOrder->setAddress($this);
+        }
+
+        return $this;
+    }
+
+    public function removeClientOrder(ClientOrder $clientOrder): static
+    {
+        if ($this->clientOrders->removeElement($clientOrder)) {
+            // set the owning side to null (unless already changed)
+            if ($clientOrder->getAddress() === $this) {
+                $clientOrder->setAddress(null);
+            }
+        }
 
         return $this;
     }
