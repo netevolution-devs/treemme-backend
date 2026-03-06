@@ -22,6 +22,10 @@ class Contact
     #[Groups(['contact_list','contact_detail','contact_type_detail', 'leather_list', 'leather_detail','contact_client','contact_supplier','contact_agent_list'])]
     private ?string $name = null;
 
+    #[ORM\Column(length: 7, unique: true, nullable: true)]
+    #[Groups(['contact_list','contact_detail','contact_type_detail', 'leather_list', 'leather_detail','contact_client','contact_supplier','contact_agent_list'])]
+    private ?string $code = null;
+
     #[ORM\ManyToOne(inversedBy: 'contacts')]
     #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list'])]
     private ?ContactType $contact_type = null;
@@ -167,6 +171,18 @@ class Contact
     public function setName(string $name): static
     {
         $this->name = $name;
+
+        return $this;
+    }
+
+    public function getCode(): ?string
+    {
+        return $this->code;
+    }
+
+    public function setCode(?string $code): static
+    {
+        $this->code = $code;
 
         return $this;
     }

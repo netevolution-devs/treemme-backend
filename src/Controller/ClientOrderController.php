@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\ClientOrder;
 use App\Entity\Contact;
 use App\Entity\Payment;
+use App\Entity\ShipmentCondition;
 use App\Entity\User;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
@@ -182,6 +183,14 @@ final class ClientOrderController extends AbstractController
                 $clientOrder->setCheckUser($user);
             }
             unset($data['check_user_id']);
+        }
+
+        if(isset($data['shipment_condition_id'])) {
+            $shipmentCondition = $this->doctrine->getRepository(ShipmentCondition::class)->find($data['shipment_condition_id']);
+            if ($shipmentCondition) {
+                $clientOrder->setShipmentCondition($shipmentCondition);
+            }
+            unset($data['shipment_condition_id']);
         }
 
         return $clientOrder;
