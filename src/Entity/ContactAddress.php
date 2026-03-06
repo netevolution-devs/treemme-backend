@@ -119,7 +119,7 @@ class ContactAddress
         return $this->address_2;
     }
 
-    public function setAddress2(string $address_2): static
+    public function setAddress2(?string $address_2): static
     {
         $this->address_2 = $address_2;
 
