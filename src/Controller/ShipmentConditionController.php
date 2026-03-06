@@ -131,6 +131,4 @@ final class ShipmentConditionController extends AbstractController
 
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
     }
-
-    
 }
