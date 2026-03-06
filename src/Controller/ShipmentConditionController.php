@@ -3,7 +3,6 @@
 namespace App\Controller;
 
 use App\Entity\ShipmentCondition;
-use App\Entity\Town;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -38,14 +37,14 @@ final class ShipmentConditionController extends AbstractController
         defaults: ['id' => null],
         requirements: ['id' => '\\d*'],
         methods: ['GET', 'HEAD'])]
-    public function getTown(?int $id): JsonResponse
+    public function getShipmentCondition(?int $id): JsonResponse
     {
-        $repo = $this->doctrine->getRepository(Town::class);
+        $repo = $this->doctrine->getRepository(ShipmentCondition::class);
 
         if ($id) {
             $items = [$repo->find($id)];
             if (!$items[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('Town not found', 404));
+                return new JsonResponse($this->doResponse->doErrorResponse('ShipmentCondition not found', 404));
             }
         } else {
             $items = $repo->findBy([], ['id' => 'DESC']);
@@ -60,13 +59,13 @@ final class ShipmentConditionController extends AbstractController
     }
 
     #[Route('/shipment-condition', name: 'post_shipment-condition', methods: ['POST'])]
-    public function postTown(
+    public function postShipmentCondition(
         Request            $request,
         ValidatorInterface $validator,
     ): JsonResponse
     {
         $data = $request->request->all();
-        $shipmentCondition = new Town();
+        $shipmentCondition = new ShipmentCondition();
 
         try {
             $shipmentCondition = $this->createMethodsByInput->createMethods($shipmentCondition, $data);
@@ -88,16 +87,16 @@ final class ShipmentConditionController extends AbstractController
     }
 
     #[Route('/shipment-condition/{id}', name: 'put_shipment-condition', methods: ['PUT'])]
-    public function putTown(
+    public function putShipmentCondition(
         Request            $request,
         ValidatorInterface $validator,
         int                $id,
     ): JsonResponse
     {
         $data = $request->toArray();
-        $shipmentCondition = $this->doctrine->getRepository(Town::class)->find($id);
+        $shipmentCondition = $this->doctrine->getRepository(ShipmentCondition::class)->find($id);
         if (!$shipmentCondition) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Town not found', 404));
+            return new JsonResponse($this->doResponse->doErrorResponse('ShipmentCondition not found', 404));
         }
 
         try {
@@ -120,11 +119,11 @@ final class ShipmentConditionController extends AbstractController
     }
 
     #[Route('/shipment-condition/{id}', name: 'delete_shipment-condition', methods: ['DELETE'])]
-    public function deleteTown(int $id): JsonResponse
+    public function deleteShipmentCondition(int $id): JsonResponse
     {
         $shipmentCondition = $this->doctrine->getRepository(ShipmentCondition::class)->find($id);
         if (!$shipmentCondition) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Town not found', 404));
+            return new JsonResponse($this->doResponse->doErrorResponse('ShipmentCondition not found', 404));
         }
 
         $this->doctrine->remove($shipmentCondition);
