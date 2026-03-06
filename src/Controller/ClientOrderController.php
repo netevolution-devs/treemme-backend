@@ -160,6 +160,14 @@ final class ClientOrderController extends AbstractController
             unset($data['client_id']);
         }
 
+        if (isset($data['agent_id'])) {
+            $agent = $this->doctrine->getRepository(Contact::class)->find($data['agent_id']);
+            if ($agent) {
+                $clientOrder->setAgent($agent);
+            }
+            unset($data['agent_id']);
+        }
+
         if (isset($data['payment_id'])) {
             $payment = $this->doctrine->getRepository(Payment::class)->find($data['payment_id']);
             if ($payment) {
