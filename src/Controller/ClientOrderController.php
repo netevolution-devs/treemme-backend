@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\ClientOrder;
 use App\Entity\Contact;
+use App\Entity\ContactAddress;
 use App\Entity\Payment;
 use App\Entity\ShipmentCondition;
 use App\Entity\User;
@@ -195,6 +196,13 @@ final class ClientOrderController extends AbstractController
                 $clientOrder->setShipmentCondition($shipmentCondition);
             }
             unset($data['shipment_condition_id']);
+        }
+        if(isset($data['address_id'])) {
+            $address = $this->doctrine->getRepository(ContactAddress::class)->find($data['address_id']);
+            if ($address) {
+                $clientOrder->setAddress($address);
+            }
+            unset($data['address_id']);
         }
 
         return $clientOrder;
