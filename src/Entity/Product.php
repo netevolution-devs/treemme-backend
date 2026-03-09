@@ -129,6 +129,9 @@ class Product
     #[ORM\OneToMany(mappedBy: 'product', targetEntity: Recipe::class)]
     private Collection $recipes;
 
+    #[ORM\ManyToOne(inversedBy: 'products')]
+    private ?ProductCategory $product_category = null;
+
     public function __construct()
     {
         $this->materialBills = new ArrayCollection();
@@ -515,6 +518,18 @@ class Product
                 $recipe->setProduct(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getProductCategory(): ?ProductCategory
+    {
+        return $this->product_category;
+    }
+
+    public function setProductCategory(?ProductCategory $product_category): static
+    {
+        $this->product_category = $product_category;
 
         return $this;
     }
