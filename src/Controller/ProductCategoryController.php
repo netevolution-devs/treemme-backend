@@ -55,7 +55,7 @@ final class ProductCategoryController extends AbstractController
         } else {
             $productCategory = $repository->findBy([], ['id' => 'DESC']);
         }
-        $results = $this->groupSerializer->serializeGroup($productCategory, $id ? 'product_category_detail' : 'productCategory_list');
+        $results = $this->groupSerializer->serializeGroup($productCategory, $id ? 'product_category_detail' : 'product_category_list');
 
         if ($id) {
             return new JsonResponse($this->doResponse->doResponse($results[0]));
