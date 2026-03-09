@@ -82,9 +82,15 @@ final class ProductController extends AbstractController
             $product = $this->handleRelations($product, $data);
             $product = $this->createMethodsByInput->createMethods($product, $data);
 
-            $now = new \DateTimeImmutable();
-            $product->setCreatedAt($now);
-            $product->setUpdatedAt($now);
+            do {
+                $code = sprintf(
+                    'PRD-%s-%s',
+                    (new \DateTimeImmutable())->format('Ymd'),
+                    strtoupper(bin2hex(random_bytes(3)))
+                );
+            } while ($this->doctrine->getRepository(Product::class)->findOneBy(['code' => $code]) !== null);
+
+            $product->setCode($code);
 
             $errors = $validator->validate($product);
             if (count($errors) > 0) {
