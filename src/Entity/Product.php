@@ -115,9 +115,11 @@ class Product
     private Collection $clientOrderRows;
 
     #[ORM\ManyToOne(inversedBy: 'weightProducts')]
+    #[Groups(['product_list', 'product_detail'])]
     private ?MeasurementUnit $weight_measurement_unit = null;
 
     #[ORM\ManyToOne(inversedBy: 'thicknessProducts')]
+    #[Groups(['product_list', 'product_detail'])]
     private ?MeasurementUnit $thickness_measurement_unit = null;
 
     #[ORM\ManyToOne(inversedBy: 'contactProducts')]
