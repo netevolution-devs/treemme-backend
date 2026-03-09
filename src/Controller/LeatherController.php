@@ -101,7 +101,7 @@ final class LeatherController extends AbstractController
             $leather = $this->handleRelations($leather, $data);
             $leather = $this->createMethodsByInput->createMethods($leather, $data);
 
-            $parts = [
+            $nameParts = [
                 $leather->getSpecies()?->getName(),
                 $leather->getProvenance()?->getNation()?->getName(),
                 $leather->getType()?->getName(),
@@ -111,12 +111,31 @@ final class LeatherController extends AbstractController
                 $leather->getFlay()?->getName(),
             ];
 
-            $parts = array_filter(
-                $parts,
-                static fn (?string $value): bool => $value !== null && trim($value) !== ''
-            );
+            $typeCode = strtoupper(trim((string) $leather->getType()?->getCode()));
+            $typeCode = $typeCode === '' ? '' : (mb_strlen($typeCode) === 1 ? $typeCode . $typeCode : mb_substr($typeCode, 0, 2));
 
-            $leather->setName(implode(' ', $parts));
+            $speciesCode = strtoupper(trim((string) $leather->getSpecies()?->getCode()));
+            $speciesCode = mb_substr($speciesCode, 0, 3);
+
+            $nationCode = strtoupper(trim((string) $leather->getProvenance()?->getNation()?->getName()));
+            $nationCode = mb_substr(str_replace(' ', '', $nationCode), 0, 3);
+
+            $weightCode = strtoupper(trim((string) $leather->getWeight()?->getName()));
+
+            $thicknessValue = (string) (method_exists($leather, 'getThicknessMm') ? $leather->getThicknessMm() : '');
+            $thicknessCode = preg_replace('/[^\d]/', '', $thicknessValue) ?? '';
+            if ($thicknessCode === '' || (int) $thicknessCode === 0) {
+                $thicknessCode = strtoupper(trim((string) $leather->getThickness()?->getName()));
+            }
+
+            $flayCode = strtoupper(trim((string) $leather->getFlay()?->getCode()));
+
+            $leather->setName(implode(' ', array_filter(
+                $nameParts,
+                static fn (?string $value): bool => $value !== null && trim($value) !== ''
+            )));
+
+            $leather->setCode($typeCode . $speciesCode . $nationCode . $weightCode . $thicknessCode . $flayCode);
 
             $errors = $validator->validate($leather);
             if (count($errors) > 0) {
