@@ -135,7 +135,10 @@ final class LeatherController extends AbstractController
                 static fn (?string $value): bool => $value !== null && trim($value) !== ''
             )));
 
-            $leather->setCode($typeCode . $speciesCode . $nationCode . $weightCode . $thicknessCode . $flayCode);
+            $code = $typeCode . $speciesCode . $nationCode . $weightCode . $thicknessCode . $flayCode;
+
+            $code = $code.str_replace([',', '-','.'], '', $leather->getName());
+            $leather->setCode($code);
 
             $errors = $validator->validate($leather);
             if (count($errors) > 0) {
