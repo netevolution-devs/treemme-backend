@@ -29,7 +29,7 @@ class BatchSelectionController extends AbstractController
     {
     }
 
-    #[Route('/batch_selection', name: 'post_batch_selection', methods: ['POST'])]
+    #[Route('/batch-selection', name: 'post_batch_selection', methods: ['POST'])]
     public function postBatchSelection(
         Request            $request,
         ValidatorInterface $validator,

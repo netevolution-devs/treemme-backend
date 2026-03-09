@@ -6,6 +6,7 @@ use App\Entity\Color;
 use App\Entity\Contact;
 use App\Entity\MeasurementUnit;
 use App\Entity\Product;
+use App\Entity\ProductCategory;
 use App\Entity\ProductType;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
@@ -211,6 +212,13 @@ final class ProductController extends AbstractController
                 $product->setContact($contact);
             }
             unset($data['contact_id']);
+        }
+        if(isset($data['product_category_id'])) {
+            $category = $this->doctrine->getRepository(ProductCategory::class)->find($data['product_category_id']);
+            if ($category) {
+                $product->setProductCategory($category);
+            }
+            unset($data['product_category_id']);
         }
 
         return $product;
