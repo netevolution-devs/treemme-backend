@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ProductCategoryRepository::class)]
 class ProductCategory
@@ -14,15 +15,19 @@ class ProductCategory
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['product_list', 'product_detail', 'product_category_list', 'product_category_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['product_list', 'product_detail', 'product_category_list', 'product_category_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['product_list', 'product_detail', 'product_category_list', 'product_category_detail'])]
     private ?string $code = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['product_category_detail'])]
     private ?string $note = null;
 
     /**
