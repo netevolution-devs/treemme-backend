@@ -139,17 +139,36 @@ final class LeatherController extends AbstractController
             $leather = $this->handleRelations($leather, $data);
             $leather = $this->createMethodsByInput->createMethods($leather, $data);
 
+            $parts = [
+                $leather->getSpecies()?->getName(),
+                $leather->getProvenance()?->getNation()?->getName(),
+                $leather->getType()?->getName(),
+                $leather->getWeight()?->getName(),
+                $leather->getStatus()?->getName(),
+                $leather->getThickness()?->getName(),
+                $leather->getFlay()?->getName(),
+            ];
+
+            $parts = array_filter(
+                $parts,
+                static fn (?string $value): bool => $value !== null && trim($value) !== ''
+            );
+
+            $leather->setName(implode(' ', $parts));
+
             $errors = $validator->validate($leather);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
                 return new JsonResponse($this->doResponse->doErrorResponse($errors));
             }
 
-            $this->doctrine->persist($leather);
-            $this->doctrine->flush();
+            $em = $this->doctrine;
+            $em->persist($leather);
+            $em->flush();
 
             $result = $this->groupSerializer->serializeGroup($leather, 'leather_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
+
         } catch (\Exception $e) {
             return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
         }
