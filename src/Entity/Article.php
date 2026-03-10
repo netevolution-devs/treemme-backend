@@ -60,11 +60,6 @@ class Article
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $client_color = null;
 
-    /**
-     * @var Collection<int, ClientOrderRow>
-     */
-    #[ORM\OneToMany(mappedBy: 'article', targetEntity: ClientOrderRow::class)]
-    private Collection $clientOrderRows;
 
     /**
      * @var Collection<int, Batch>
@@ -72,9 +67,11 @@ class Article
     #[ORM\OneToMany(mappedBy: 'article', targetEntity: Batch::class)]
     private Collection $batches;
 
+    #[ORM\ManyToOne(inversedBy: 'articles')]
+    private ?Product $product = null;
+
     public function __construct()
     {
-        $this->clientOrderRows = new ArrayCollection();
         $this->batches = new ArrayCollection();
     }
 
@@ -253,36 +250,6 @@ class Article
     }
 
     /**
-     * @return Collection<int, ClientOrderRow>
-     */
-    public function getClientOrderRows(): Collection
-    {
-        return $this->clientOrderRows;
-    }
-
-    public function addClientOrderRow(ClientOrderRow $clientOrderRow): static
-    {
-        if (!$this->clientOrderRows->contains($clientOrderRow)) {
-            $this->clientOrderRows->add($clientOrderRow);
-            $clientOrderRow->setArticle($this);
-        }
-
-        return $this;
-    }
-
-    public function removeClientOrderRow(ClientOrderRow $clientOrderRow): static
-    {
-        if ($this->clientOrderRows->removeElement($clientOrderRow)) {
-            // set the owning side to null (unless already changed)
-            if ($clientOrderRow->getArticle() === $this) {
-                $clientOrderRow->setArticle(null);
-            }
-        }
-
-        return $this;
-    }
-
-    /**
      * @return Collection<int, Batch>
      */
     public function getBatches(): Collection
@@ -308,6 +275,18 @@ class Article
                 $batch->setArticle(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getProduct(): ?Product
+    {
+        return $this->product;
+    }
+
+    public function setProduct(?Product $product): static
+    {
+        $this->product = $product;
 
         return $this;
     }
