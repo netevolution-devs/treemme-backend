@@ -473,6 +473,15 @@ final class BatchController extends AbstractController
 
         $newType = $this->doctrine->getRepository(BatchType::class)->findOneBy(['name' => 'Spaccato']);
 
+        $originalLeather = $reworkedBatch->getLeather();
+        $sfLeather = $originalLeather;
+        $scLeather = $originalLeather;
+
+        if ($originalLeather) {
+            $sfLeather = $this->getOrCreateLeatherForSplit($originalLeather, 'Fiore');
+            $scLeather = $this->getOrCreateLeatherForSplit($originalLeather, 'Crosta');
+        }
+
         $sfBatch = new Batch();
         $sfBatch->setBatchType($newType);
         $sfBatch->setBatchCode('SF' . $baseCode);
@@ -482,7 +491,7 @@ final class BatchController extends AbstractController
         $sfBatch->setQuantity($calculatedQuantity);
         $sfBatch->setStockItems($pieces);
         $sfBatch->setStockQuantity($calculatedQuantity);
-        $sfBatch->setLeather($reworkedBatch->getLeather());
+        $sfBatch->setLeather($sfLeather);
         $sfBatch->setSampling($reworkedBatch->isSampling() ?? false);
         $sfBatch->setSplitSelected($reworkedBatch->isSplitSelected() ?? false);
         $sfBatch->setCompleted(false);
@@ -506,7 +515,7 @@ final class BatchController extends AbstractController
         $scBatch->setQuantity($calculatedQuantity);
         $scBatch->setStockItems($pieces);
         $scBatch->setStockQuantity($calculatedQuantity);
-        $scBatch->setLeather($reworkedBatch->getLeather());
+        $scBatch->setLeather($scLeather);
         $scBatch->setSampling($reworkedBatch->isSampling() ?? false);
         $scBatch->setSplitSelected($reworkedBatch->isSplitSelected() ?? false);
         $scBatch->setCompleted(false);
@@ -987,8 +996,99 @@ final class BatchController extends AbstractController
             return $prefix . str_pad('1', $pad, '0', STR_PAD_LEFT);
         }
 
-        $n = (int) $m[1] + 1;
+        $n = (int)$m[1] + 1;
 
-        return $prefix . str_pad((string) $n, $pad, '0', STR_PAD_LEFT);
+        return $prefix . str_pad((string)$n, $pad, '0', STR_PAD_LEFT);
+    }
+
+    private function getOrCreateLeatherForSplit(Leather $originalLeather, string $newTypeName): Leather
+    {
+        $leatherRepo = $this->doctrine->getRepository(Leather::class);
+        $typeRepo = $this->doctrine->getRepository(LeatherType::class);
+
+        $newType = $typeRepo->findOneBy(['name' => $newTypeName]);
+        if (!$newType) {
+            $newType = new LeatherType();
+            $newType->setName($newTypeName);
+            $newType->setCode(mb_substr($newTypeName, 0, 2));
+            $this->doctrine->persist($newType);
+        }
+
+        // Logic from LeatherController to generate Name and Code
+        $nameParts = [
+            $originalLeather->getSpecies()?->getName(),
+            $originalLeather->getProvenance()?->getNation()?->getName(),
+            $newType->getName(),
+            $originalLeather->getWeight()?->getName(),
+            $originalLeather->getStatus()?->getName(),
+            $originalLeather->getThickness()?->getName(),
+            $originalLeather->getFlay()?->getName(),
+        ];
+
+        $newName = implode(' ', array_filter(
+            $nameParts,
+            static fn(?string $value): bool => $value !== null && trim($value) !== ''
+        ));
+
+        $typeCode = strtoupper(trim((string)$newType->getCode()));
+        $typeCode = $typeCode === '' ? '' : (mb_strlen($typeCode) === 1 ? $typeCode . $typeCode : mb_substr($typeCode, 0, 2));
+
+        $speciesCode = strtoupper(trim((string)$originalLeather->getSpecies()?->getCode()));
+        $speciesCode = mb_substr($speciesCode, 0, 3);
+
+        $nationCode = strtoupper(trim((string)$originalLeather->getProvenance()?->getNation()?->getName()));
+        $nationCode = mb_substr(str_replace(' ', '', $nationCode), 0, 3);
+
+        $weightCode = strtoupper(trim((string)$originalLeather->getWeight()?->getName()));
+
+        $thicknessCode = '';
+        if (method_exists($originalLeather, 'getThicknessMm')) {
+            $thicknessValue = (string)$originalLeather->getThicknessMm();
+            $thicknessCode = preg_replace('/[^\d]/', '', $thicknessValue) ?? '';
+        }
+        if ($thicknessCode === '' || (int)$thicknessCode === 0) {
+            $thicknessCode = strtoupper(trim((string)$originalLeather->getThickness()?->getName()));
+        }
+
+        $flayCode = strtoupper(trim((string)$originalLeather->getFlay()?->getCode()));
+
+        $newCode = $typeCode . $speciesCode . $nationCode . $weightCode . $thicknessCode . $flayCode;
+        $newCode = preg_replace('/[^A-Za-z0-9]/', '', $newCode);
+
+        $existingLeather = $leatherRepo->findOneBy(['code' => $newCode]);
+        if ($existingLeather) {
+            return $existingLeather;
+        }
+
+        $newLeather = new Leather();
+        $newLeather->setName($newName);
+        $newLeather->setCode($newCode);
+        $newLeather->setType($newType);
+
+        // Copy other properties
+        $newLeather->setSpecies($originalLeather->getSpecies());
+        $newLeather->setProvenance($originalLeather->getProvenance());
+        $newLeather->setWeight($originalLeather->getWeight());
+        $newLeather->setStatus($originalLeather->getStatus());
+        $newLeather->setThickness($originalLeather->getThickness());
+        $newLeather->setFlay($originalLeather->getFlay());
+        $newLeather->setContact($originalLeather->getContact());
+        $newLeather->setSupplier($originalLeather->getSupplier());
+
+        $newLeather->setSqftLeatherMin($originalLeather->getSqftLeatherMin());
+        $newLeather->setSqftLeatherMax($originalLeather->getSqftLeatherMax());
+        $newLeather->setSqftLeatherMedia($originalLeather->getSqftLeatherMedia());
+        $newLeather->setSqftLeatherExpected($originalLeather->getSqftLeatherExpected() ?? 0.0);
+        $newLeather->setKgLeatherMin($originalLeather->getKgLeatherMin());
+        $newLeather->setKgLeatherMax($originalLeather->getKgLeatherMax());
+        $newLeather->setKgLeatherMedia($originalLeather->getKgLeatherMedia());
+        $newLeather->setKgLeatherExpected($originalLeather->getKgLeatherExpected());
+        $newLeather->setContainerPiece($originalLeather->getContainerPiece());
+        $newLeather->setStatisticUpdate($originalLeather->isStatisticUpdate());
+        $newLeather->setCrustRevenueExpected($originalLeather->getCrustRevenueExpected());
+
+        $this->doctrine->persist($newLeather);
+
+        return $newLeather;
     }
 }

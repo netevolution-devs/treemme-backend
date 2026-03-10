@@ -35,9 +35,16 @@ class LeatherType
     #[ORM\OneToMany(mappedBy: 'type', targetEntity: Leather::class)]
     private Collection $leather;
 
+    /**
+     * @var Collection<int, ArticleType>
+     */
+    #[ORM\OneToMany(mappedBy: 'leather_type', targetEntity: ArticleType::class)]
+    private Collection $articleTypes;
+
     public function __construct()
     {
         $this->leather = new ArrayCollection();
+        $this->articleTypes = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -105,6 +112,36 @@ class LeatherType
             // set the owning side to null (unless already changed)
             if ($leather->getType() === $this) {
                 $leather->setType(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ArticleType>
+     */
+    public function getArticleTypes(): Collection
+    {
+        return $this->articleTypes;
+    }
+
+    public function addArticleType(ArticleType $articleType): static
+    {
+        if (!$this->articleTypes->contains($articleType)) {
+            $this->articleTypes->add($articleType);
+            $articleType->setLeatherType($this);
+        }
+
+        return $this;
+    }
+
+    public function removeArticleType(ArticleType $articleType): static
+    {
+        if ($this->articleTypes->removeElement($articleType)) {
+            // set the owning side to null (unless already changed)
+            if ($articleType->getLeatherType() === $this) {
+                $articleType->setLeatherType(null);
             }
         }
 
