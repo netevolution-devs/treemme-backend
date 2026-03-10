@@ -128,10 +128,24 @@ class Product
     #[ORM\ManyToOne(inversedBy: 'products')]
     private ?ProductCategory $product_category = null;
 
+    /**
+     * @var Collection<int, ClientOrderRow>
+     */
+    #[ORM\OneToMany(mappedBy: 'product', targetEntity: ClientOrderRow::class)]
+    private Collection $clientOrderRows;
+
+    /**
+     * @var Collection<int, Article>
+     */
+    #[ORM\OneToMany(mappedBy: 'product', targetEntity: Article::class)]
+    private Collection $articles;
+
     public function __construct()
     {
         $this->materialBills = new ArrayCollection();
         $this->recipes = new ArrayCollection();
+        $this->clientOrderRows = new ArrayCollection();
+        $this->articles = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -495,6 +509,66 @@ class Product
     public function setProductCategory(?ProductCategory $product_category): static
     {
         $this->product_category = $product_category;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ClientOrderRow>
+     */
+    public function getClientOrderRows(): Collection
+    {
+        return $this->clientOrderRows;
+    }
+
+    public function addClientOrderRow(ClientOrderRow $clientOrderRow): static
+    {
+        if (!$this->clientOrderRows->contains($clientOrderRow)) {
+            $this->clientOrderRows->add($clientOrderRow);
+            $clientOrderRow->setProduct($this);
+        }
+
+        return $this;
+    }
+
+    public function removeClientOrderRow(ClientOrderRow $clientOrderRow): static
+    {
+        if ($this->clientOrderRows->removeElement($clientOrderRow)) {
+            // set the owning side to null (unless already changed)
+            if ($clientOrderRow->getProduct() === $this) {
+                $clientOrderRow->setProduct(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Article>
+     */
+    public function getArticles(): Collection
+    {
+        return $this->articles;
+    }
+
+    public function addArticle(Article $article): static
+    {
+        if (!$this->articles->contains($article)) {
+            $this->articles->add($article);
+            $article->setProduct($this);
+        }
+
+        return $this;
+    }
+
+    public function removeArticle(Article $article): static
+    {
+        if ($this->articles->removeElement($article)) {
+            // set the owning side to null (unless already changed)
+            if ($article->getProduct() === $this) {
+                $article->setProduct(null);
+            }
+        }
 
         return $this;
     }

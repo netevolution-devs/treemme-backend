@@ -35,10 +35,6 @@ class ClientOrderRow
     #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?int $weight = null;
 
-    #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
-    #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
-    private ?Article $article = null;
 
     #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
     #[ORM\JoinColumn(nullable: false)]
@@ -111,6 +107,10 @@ class ClientOrderRow
     #[ORM\OneToMany(mappedBy: 'order_row', targetEntity: BatchOrder::class)]
     private Collection $batchOrders;
 
+    #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Product $product = null;
+
     public function __construct()
     {
         $this->batchOrders = new ArrayCollection();
@@ -165,18 +165,6 @@ class ClientOrderRow
     public function setWeight(?int $weight): static
     {
         $this->weight = $weight;
-
-        return $this;
-    }
-
-    public function getArticle(): ?Article
-    {
-        return $this->article;
-    }
-
-    public function setArticle(?Article $article): static
-    {
-        $this->article = $article;
 
         return $this;
     }
@@ -399,6 +387,18 @@ class ClientOrderRow
                 $batchOrder->setOrderRow(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getProduct(): ?Product
+    {
+        return $this->product;
+    }
+
+    public function setProduct(?Product $product): static
+    {
+        $this->product = $product;
 
         return $this;
     }
