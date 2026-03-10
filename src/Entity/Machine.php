@@ -6,6 +6,7 @@ use App\Repository\MachineRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: MachineRepository::class)]
 class Machine
@@ -13,21 +14,26 @@ class Machine
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['machine_list', 'machine_detail', 'batch_type_detail', 'production_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 25)]
+    #[Groups(['machine_list', 'machine_detail', 'batch_type_detail', 'production_detail'])]
     private ?string $prefix = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['machine_list', 'machine_detail', 'batch_type_detail', 'production_detail'])]
     private ?string $name = null;
 
     #[ORM\ManyToOne(inversedBy: 'machines')]
+    #[Groups(['machine_list', 'machine_detail'])]
     private ?BatchType $batch_type = null;
 
     /**
      * @var Collection<int, Production>
      */
     #[ORM\OneToMany(mappedBy: 'machine', targetEntity: Production::class, orphanRemoval: true)]
+    #[Groups(['machine_detail'])]
     private Collection $productions;
 
     public function __construct()
