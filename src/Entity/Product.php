@@ -108,12 +108,6 @@ class Product
     #[ORM\Column]
     private ?\DateTimeImmutable $updated_at = null;
 
-    /**
-     * @var Collection<int, ClientOrderRow>
-     */
-    #[ORM\OneToMany(mappedBy: 'product', targetEntity: ClientOrderRow::class)]
-    private Collection $clientOrderRows;
-
     #[ORM\ManyToOne(inversedBy: 'weightProducts')]
     #[Groups(['product_list', 'product_detail'])]
     private ?MeasurementUnit $weight_measurement_unit = null;
@@ -137,7 +131,6 @@ class Product
     public function __construct()
     {
         $this->materialBills = new ArrayCollection();
-        $this->clientOrderRows = new ArrayCollection();
         $this->recipes = new ArrayCollection();
     }
 
@@ -424,36 +417,6 @@ class Product
     public function setUpdatedAt(\DateTimeImmutable $updated_at): static
     {
         $this->updated_at = $updated_at;
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, ClientOrderRow>
-     */
-    public function getClientOrderRows(): Collection
-    {
-        return $this->clientOrderRows;
-    }
-
-    public function addClientOrderRow(ClientOrderRow $clientOrderRow): static
-    {
-        if (!$this->clientOrderRows->contains($clientOrderRow)) {
-            $this->clientOrderRows->add($clientOrderRow);
-            $clientOrderRow->setProduct($this);
-        }
-
-        return $this;
-    }
-
-    public function removeClientOrderRow(ClientOrderRow $clientOrderRow): static
-    {
-        if ($this->clientOrderRows->removeElement($clientOrderRow)) {
-            // set the owning side to null (unless already changed)
-            if ($clientOrderRow->getProduct() === $this) {
-                $clientOrderRow->setProduct(null);
-            }
-        }
 
         return $this;
     }

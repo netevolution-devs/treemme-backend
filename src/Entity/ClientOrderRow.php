@@ -38,7 +38,7 @@ class ClientOrderRow
     #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
-    private ?Product $product = null;
+    private ?Article $article = null;
 
     #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
     #[ORM\JoinColumn(nullable: false)]
@@ -169,14 +169,14 @@ class ClientOrderRow
         return $this;
     }
 
-    public function getProduct(): ?Product
+    public function getArticle(): ?Article
     {
-        return $this->product;
+        return $this->article;
     }
 
-    public function setProduct(?Product $product): static
+    public function setArticle(?Article $article): static
     {
-        $this->product = $product;
+        $this->article = $article;
 
         return $this;
     }

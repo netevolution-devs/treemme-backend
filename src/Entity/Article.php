@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\ArticleRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -57,6 +59,18 @@ class Article
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $client_color = null;
+
+    /**
+     * @var Collection<int, ClientOrderRow>
+     */
+    #[ORM\OneToMany(mappedBy: 'article', targetEntity: ClientOrderRow::class)]
+    private Collection $clientOrderRows;
+
+    public function __construct()
+    {
+        $this->clientOrderRows = new ArrayCollection();
+    }
+
 
     public function getId(): ?int
     {
@@ -227,6 +241,36 @@ class Article
     public function setClientColor(?string $client_color): static
     {
         $this->client_color = $client_color;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ClientOrderRow>
+     */
+    public function getClientOrderRows(): Collection
+    {
+        return $this->clientOrderRows;
+    }
+
+    public function addClientOrderRow(ClientOrderRow $clientOrderRow): static
+    {
+        if (!$this->clientOrderRows->contains($clientOrderRow)) {
+            $this->clientOrderRows->add($clientOrderRow);
+            $clientOrderRow->setArticle($this);
+        }
+
+        return $this;
+    }
+
+    public function removeClientOrderRow(ClientOrderRow $clientOrderRow): static
+    {
+        if ($this->clientOrderRows->removeElement($clientOrderRow)) {
+            // set the owning side to null (unless already changed)
+            if ($clientOrderRow->getArticle() === $this) {
+                $clientOrderRow->setArticle(null);
+            }
+        }
 
         return $this;
     }
