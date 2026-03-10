@@ -30,7 +30,7 @@ class SeaPort
     private ?int $container_deductible_day = null;
 
     #[ORM\Column(nullable: true)]
-    private ?float $constainer_parking_day_cost = null;
+    private ?float $container_parking_day_cost = null;
 
     public function getId(): ?int
     {
@@ -97,14 +97,14 @@ class SeaPort
         return $this;
     }
 
-    public function getConstainerParkingDayCost(): ?float
+    public function getContainerParkingDayCost(): ?float
     {
-        return $this->constainer_parking_day_cost;
+        return $this->container_parking_day_cost;
     }
 
-    public function setConstainerParkingDayCost(?float $constainer_parking_day_cost): static
+    public function setContainerParkingDayCost(?float $container_parking_day_cost): static
     {
-        $this->constainer_parking_day_cost = $constainer_parking_day_cost;
+        $this->container_parking_day_cost = $container_parking_day_cost;
 
         return $this;
     }
