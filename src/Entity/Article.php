@@ -1,0 +1,233 @@
+<?php
+
+namespace App\Entity;
+
+use App\Repository\ArticleRepository;
+use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\Mapping as ORM;
+
+#[ORM\Entity(repositoryClass: ArticleRepository::class)]
+class Article
+{
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    #[ORM\Column]
+    private ?int $id = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $code = null;
+
+    #[ORM\ManyToOne(inversedBy: 'articles')]
+    private ?Contact $client = null;
+
+    #[ORM\Column]
+    private ?bool $full_grain = null;
+
+    #[ORM\ManyToOne(inversedBy: 'articles')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?ArticleType $article_type = null;
+
+    #[ORM\Column(length: 255)]
+    private ?string $article_variation = null;
+
+    #[ORM\ManyToOne(inversedBy: 'articles')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?LeatherThickness $thickness = null;
+
+    #[ORM\ManyToOne(inversedBy: 'articles')]
+    private ?ArticlePrint $print = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $note = null;
+
+    #[ORM\ManyToOne(inversedBy: 'articles')]
+    private ?ColorType $color_type = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $shade = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $color = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $color_variation = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $color_note = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $client_color = null;
+
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+
+    public function getCode(): ?string
+    {
+        return $this->code;
+    }
+
+    public function setCode(?string $code): static
+    {
+        $this->code = $code;
+
+        return $this;
+    }
+
+    public function getClient(): ?Contact
+    {
+        return $this->client;
+    }
+
+    public function setClient(?Contact $client): static
+    {
+        $this->client = $client;
+
+        return $this;
+    }
+
+    public function isFullGrain(): ?bool
+    {
+        return $this->full_grain;
+    }
+
+    public function setFullGrain(bool $full_grain): static
+    {
+        $this->full_grain = $full_grain;
+
+        return $this;
+    }
+
+    public function getArticleType(): ?ArticleType
+    {
+        return $this->article_type;
+    }
+
+    public function setArticleType(?ArticleType $article_type): static
+    {
+        $this->article_type = $article_type;
+
+        return $this;
+    }
+
+    public function getArticleVariation(): ?string
+    {
+        return $this->article_variation;
+    }
+
+    public function setArticleVariation(string $article_variation): static
+    {
+        $this->article_variation = $article_variation;
+
+        return $this;
+    }
+
+    public function getThickness(): ?LeatherThickness
+    {
+        return $this->thickness;
+    }
+
+    public function setThickness(?LeatherThickness $thickness): static
+    {
+        $this->thickness = $thickness;
+
+        return $this;
+    }
+
+    public function getPrint(): ?ArticlePrint
+    {
+        return $this->print;
+    }
+
+    public function setPrint(?ArticlePrint $print): static
+    {
+        $this->print = $print;
+
+        return $this;
+    }
+
+    public function getNote(): ?string
+    {
+        return $this->note;
+    }
+
+    public function setNote(?string $note): static
+    {
+        $this->note = $note;
+
+        return $this;
+    }
+
+    public function getColorType(): ?ColorType
+    {
+        return $this->color_type;
+    }
+
+    public function setColorType(?ColorType $color_type): static
+    {
+        $this->color_type = $color_type;
+
+        return $this;
+    }
+
+    public function getShade(): ?string
+    {
+        return $this->shade;
+    }
+
+    public function setShade(?string $shade): static
+    {
+        $this->shade = $shade;
+
+        return $this;
+    }
+
+    public function getColor(): ?string
+    {
+        return $this->color;
+    }
+
+    public function setColor(?string $color): static
+    {
+        $this->color = $color;
+
+        return $this;
+    }
+
+    public function getColorVariation(): ?string
+    {
+        return $this->color_variation;
+    }
+
+    public function setColorVariation(?string $color_variation): static
+    {
+        $this->color_variation = $color_variation;
+
+        return $this;
+    }
+
+    public function getColorNote(): ?string
+    {
+        return $this->color_note;
+    }
+
+    public function setColorNote(?string $color_note): static
+    {
+        $this->color_note = $color_note;
+
+        return $this;
+    }
+
+    public function getClientColor(): ?string
+    {
+        return $this->client_color;
+    }
+
+    public function setClientColor(?string $client_color): static
+    {
+        $this->client_color = $client_color;
+
+        return $this;
+    }
+}

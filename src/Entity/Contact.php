@@ -143,6 +143,12 @@ class Contact
     #[ORM\OneToMany(mappedBy: 'contact', targetEntity: Product::class)]
     private Collection $contactProducts;
 
+    /**
+     * @var Collection<int, Article>
+     */
+    #[ORM\OneToMany(mappedBy: 'client', targetEntity: Article::class)]
+    private Collection $articles;
+
     public function __construct()
     {
         $this->contactAddresses = new ArrayCollection();
@@ -154,6 +160,7 @@ class Contact
         $this->agentContacts = new ArrayCollection();
         $this->clientOrders = new ArrayCollection();
         $this->contactProducts = new ArrayCollection();
+        $this->articles = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -622,6 +629,36 @@ class Contact
             // set the owning side to null (unless already changed)
             if ($contactProduct->getContact() === $this) {
                 $contactProduct->setContact(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Article>
+     */
+    public function getArticles(): Collection
+    {
+        return $this->articles;
+    }
+
+    public function addArticle(Article $article): static
+    {
+        if (!$this->articles->contains($article)) {
+            $this->articles->add($article);
+            $article->setClient($this);
+        }
+
+        return $this;
+    }
+
+    public function removeArticle(Article $article): static
+    {
+        if ($this->articles->removeElement($article)) {
+            // set the owning side to null (unless already changed)
+            if ($article->getClient() === $this) {
+                $article->setClient(null);
             }
         }
 
