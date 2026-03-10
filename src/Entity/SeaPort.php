@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\SeaPortRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: SeaPortRepository::class)]
 class SeaPort
@@ -12,24 +13,31 @@ class SeaPort
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['sea_port_list', 'sea_port_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['sea_port_list', 'sea_port_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['sea_port_detail'])]
     private ?string $note = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['sea_port_detail'])]
     private ?int $deductible_day = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['sea_port_detail'])]
     private ?float $parking_day_cost = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['sea_port_detail'])]
     private ?int $container_deductible_day = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['sea_port_detail'])]
     private ?float $container_parking_day_cost = null;
 
     public function getId(): ?int
