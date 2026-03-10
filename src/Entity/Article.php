@@ -66,9 +66,16 @@ class Article
     #[ORM\OneToMany(mappedBy: 'article', targetEntity: ClientOrderRow::class)]
     private Collection $clientOrderRows;
 
+    /**
+     * @var Collection<int, Batch>
+     */
+    #[ORM\OneToMany(mappedBy: 'article', targetEntity: Batch::class)]
+    private Collection $batches;
+
     public function __construct()
     {
         $this->clientOrderRows = new ArrayCollection();
+        $this->batches = new ArrayCollection();
     }
 
 
@@ -269,6 +276,36 @@ class Article
             // set the owning side to null (unless already changed)
             if ($clientOrderRow->getArticle() === $this) {
                 $clientOrderRow->setArticle(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Batch>
+     */
+    public function getBatches(): Collection
+    {
+        return $this->batches;
+    }
+
+    public function addBatch(Batch $batch): static
+    {
+        if (!$this->batches->contains($batch)) {
+            $this->batches->add($batch);
+            $batch->setArticle($this);
+        }
+
+        return $this;
+    }
+
+    public function removeBatch(Batch $batch): static
+    {
+        if ($this->batches->removeElement($batch)) {
+            // set the owning side to null (unless already changed)
+            if ($batch->getArticle() === $this) {
+                $batch->setArticle(null);
             }
         }
 

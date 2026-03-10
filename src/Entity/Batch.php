@@ -151,6 +151,9 @@ class Batch
     #[ORM\OneToMany(mappedBy: 'batch', targetEntity: Production::class, orphanRemoval: true)]
     private Collection $productions;
 
+    #[ORM\ManyToOne(inversedBy: 'batches')]
+    private ?Article $article = null;
+
     public function __construct()
     {
         $this->batchCosts = new ArrayCollection();
@@ -650,6 +653,18 @@ class Batch
                 $production->setBatch(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getArticle(): ?Article
+    {
+        return $this->article;
+    }
+
+    public function setArticle(?Article $article): static
+    {
+        $this->article = $article;
 
         return $this;
     }
