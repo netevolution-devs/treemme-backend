@@ -137,7 +137,7 @@ final class LeatherController extends AbstractController
 
             $code = $typeCode . $speciesCode . $nationCode . $weightCode . $thicknessCode . $flayCode;
 
-            $code = $code.str_replace([',', '-','.'], '', $leather->getName());
+            $code = preg_replace('/[^A-Za-z0-9]/', '', $code);
             $leather->setCode($code);
 
             $errors = $validator->validate($leather);
