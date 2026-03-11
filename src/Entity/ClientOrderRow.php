@@ -109,7 +109,7 @@ class ClientOrderRow
 
     #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?Article $product = null;
+    private ?Article $article = null;
 
     public function __construct()
     {
@@ -391,14 +391,14 @@ class ClientOrderRow
         return $this;
     }
 
-    public function getProduct(): ?Product
+    public function getArticle(): ?Article
     {
-        return $this->product;
+        return $this->article;
     }
 
-    public function setProduct(?Product $product): static
+    public function setArticle(?Article $article): static
     {
-        $this->product = $product;
+        $this->article = $article;
 
         return $this;
     }
