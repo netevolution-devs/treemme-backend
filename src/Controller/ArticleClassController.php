@@ -15,7 +15,6 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-#[Route('/api')]
 class ArticleClassController extends AbstractController
 {
     public function __construct(
@@ -29,18 +28,15 @@ class ArticleClassController extends AbstractController
     {
     }
 
-    #[Route('/article-classes', name: 'app_article_class_index', methods: ['GET'])]
-    public function index(): JsonResponse
+    #[Route('/article-class/{id}', name: 'app_article_class_show', methods: ['GET'], requirements: ['id' => '\d+'], defaults: ['id' => null])]
+    public function show(?int $id): JsonResponse
     {
-        $classes = $this->articleClassRepository->findAll();
-        $results = $this->groupSerializer->serializeGroup($classes, 'article_class_list');
+        if ($id === null) {
+            $classes = $this->articleClassRepository->findAll();
+            $results = $this->groupSerializer->serializeGroup($classes, 'article_class_list');
+            return new JsonResponse($this->doResponse->doResponse($results));
+        }
 
-        return new JsonResponse($this->doResponse->doResponse($results));
-    }
-
-    #[Route('/article-class/{id}', name: 'app_article_class_show', methods: ['GET'])]
-    public function show(int $id): JsonResponse
-    {
         $class = $this->articleClassRepository->find($id);
 
         if (!$class) {
@@ -60,7 +56,7 @@ class ArticleClassController extends AbstractController
         $class = new ArticleClass();
 
         try {
-            $this->createMethodsByInput->createMethods($class, $data);
+            $this->mapDataToEntity($class, $data);
         } catch (\Exception $e) {
             return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
         }
@@ -90,7 +86,7 @@ class ArticleClassController extends AbstractController
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
 
         try {
-            $this->createMethodsByInput->createMethods($class, $data);
+            $this->mapDataToEntity($class, $data);
         } catch (\Exception $e) {
             return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
         }
@@ -120,5 +116,14 @@ class ArticleClassController extends AbstractController
         $this->entityManager->flush();
 
         return new JsonResponse($this->doResponse->doResponse(null, status: 'Classe articolo eliminata correttamente'));
+    }
+
+    /**
+     * @throws \Exception
+     */
+    private function mapDataToEntity(ArticleClass $class, array $data): void
+    {
+        // Mappatura campi semplici
+        $this->createMethodsByInput->createMethods($class, $data);
     }
 }

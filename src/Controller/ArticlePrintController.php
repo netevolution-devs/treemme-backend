@@ -15,7 +15,6 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-#[Route('/api')]
 class ArticlePrintController extends AbstractController
 {
     public function __construct(
@@ -29,18 +28,15 @@ class ArticlePrintController extends AbstractController
     {
     }
 
-    #[Route('/article-prints', name: 'app_article_print_index', methods: ['GET'])]
-    public function index(): JsonResponse
+    #[Route('/article-print/{id}', name: 'app_article_print_show', methods: ['GET'], requirements: ['id' => '\d+'], defaults: ['id' => null])]
+    public function show(?int $id): JsonResponse
     {
-        $prints = $this->articlePrintRepository->findAll();
-        $results = $this->groupSerializer->serializeGroup($prints, 'article_print_list');
+        if ($id === null) {
+            $prints = $this->articlePrintRepository->findAll();
+            $results = $this->groupSerializer->serializeGroup($prints, 'article_print_list');
+            return new JsonResponse($this->doResponse->doResponse($results));
+        }
 
-        return new JsonResponse($this->doResponse->doResponse($results));
-    }
-
-    #[Route('/article-print/{id}', name: 'app_article_print_show', methods: ['GET'])]
-    public function show(int $id): JsonResponse
-    {
         $print = $this->articlePrintRepository->find($id);
 
         if (!$print) {
@@ -60,7 +56,7 @@ class ArticlePrintController extends AbstractController
         $print = new ArticlePrint();
 
         try {
-            $this->createMethodsByInput->createMethods($print, $data);
+            $this->mapDataToEntity($print, $data);
         } catch (\Exception $e) {
             return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
         }
@@ -90,7 +86,7 @@ class ArticlePrintController extends AbstractController
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
 
         try {
-            $this->createMethodsByInput->createMethods($print, $data);
+            $this->mapDataToEntity($print, $data);
         } catch (\Exception $e) {
             return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
         }
@@ -120,5 +116,14 @@ class ArticlePrintController extends AbstractController
         $this->entityManager->flush();
 
         return new JsonResponse($this->doResponse->doResponse(null, status: 'Stampa articolo eliminata correttamente'));
+    }
+
+    /**
+     * @throws \Exception
+     */
+    private function mapDataToEntity(ArticlePrint $print, array $data): void
+    {
+        // Mappatura campi semplici
+        $this->createMethodsByInput->createMethods($print, $data);
     }
 }
