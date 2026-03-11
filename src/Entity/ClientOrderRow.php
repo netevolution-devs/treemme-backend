@@ -109,6 +109,7 @@ class ClientOrderRow
 
     #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?Article $article = null;
 
     public function __construct()
