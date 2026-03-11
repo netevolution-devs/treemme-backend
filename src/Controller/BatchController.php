@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\LeatherType;
 use App\Entity\Production;
 use App\Entity\Machine;
 use App\Entity\Batch;
@@ -123,7 +124,7 @@ final class BatchController extends AbstractController
             $data = $request->request->all();
         }
 
-        if (!isset($data['order_row_id'])) {
+        if (!isset($data['client_order_row_id'])) {
             return new JsonResponse($this->doResponse->doErrorResponse('ID riga ordine mancante', 400));
         }
 
@@ -137,9 +138,9 @@ final class BatchController extends AbstractController
             $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
             $orderRowRepo = $this->doctrine->getRepository(ClientOrderRow::class);
 
-            $orderRow = $orderRowRepo->find($data['order_row_id']);
+            $orderRow = $orderRowRepo->find($data['client_order_row_id']);
             if (!$orderRow) {
-                throw new \Exception('Riga ordine ' . $data['order_row_id'] . ' non trovata');
+                throw new \Exception('Riga ordine ' . $data['client_order_row_id'] . ' non trovata');
             }
 
             $requestedQuantity = (float)$data['quantity'];
