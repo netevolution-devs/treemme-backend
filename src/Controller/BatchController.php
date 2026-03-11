@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\Entity\Production;
+use App\Entity\Machine;
 use App\Entity\Batch;
 use App\Entity\BatchOrder;
 use App\Entity\BatchComposition;
@@ -179,14 +181,49 @@ final class BatchController extends AbstractController
 
             $this->doctrine->persist($newBatch);
 
+            if (isset($data['scheduled_date']) && isset($data['machine_id'])) {
+                $machine = $this->doctrine->getRepository(Machine::class)->find($data['machine_id']);
+                if ($machine) {
+                    $production = new Production();
+                    $production->setBatch($newBatch);
+                    $production->setMachine($machine);
+                    
+                    $scheduledDate = null;
+                    try {
+                        $scheduledDate = new \DateTime($data['scheduled_date']);
+                    } catch (\Exception $e) {
+                        // Se il formato non è valido, possiamo ignorarlo o lanciare un errore
+                        // In questo caso, assumiamo che il client invii un formato valido gestito da DateTime
+                    }
+
+                    if ($scheduledDate) {
+                        $production->setScheduledDate($scheduledDate);
+                        $this->doctrine->persist($production);
+                    }
+                }
+            }
+
+            $this->handleRelations($newBatch, $data);
+
             // Aggiornamento giacenza riga ordine
             $orderRow->setQuantity((int)($currentStock - $requestedQuantity));
             $this->doctrine->persist($orderRow);
 
-            $batchOrder = new BatchOrder();
-            $batchOrder->setBatch($newBatch);
-            $batchOrder->setOrderRow($orderRow);
-            $this->doctrine->persist($batchOrder);
+
+            $alreadyExists = false;
+            foreach ($newBatch->getBatchOrders() as $bo) {
+                if ($bo->getOrderRow() === $orderRow) {
+                    $alreadyExists = true;
+                    break;
+                }
+            }
+
+            if (!$alreadyExists) {
+                $batchOrder = new BatchOrder();
+                $batchOrder->setBatch($newBatch);
+                $batchOrder->setOrderRow($orderRow);
+                $this->doctrine->persist($batchOrder);
+            }
 
             // Movimento in entrata nel nuovo lotto TF
             $inReason = $reasonRepo->createQueryBuilder('r')
