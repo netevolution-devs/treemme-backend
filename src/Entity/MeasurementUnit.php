@@ -14,15 +14,18 @@ class MeasurementUnit
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['measurement_unit_list', 'measurement_unit_detail', 'batch_list', 'batch_detail', 'product_list', 'product_detail'])]
+    #[Groups(['measurement_unit_list', 'measurement_unit_detail', 'batch_list', 'batch_detail',
+        'product_list', 'product_detail', 'client_order_row_detail', 'client_order_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['measurement_unit_list', 'measurement_unit_detail', 'batch_list', 'batch_detail', 'product_list', 'product_detail'])]
+    #[Groups(['measurement_unit_list', 'measurement_unit_detail', 'batch_list', 'batch_detail',
+        'product_list', 'product_detail', 'client_order_row_detail', 'client_order_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 10, nullable: true)]
-    #[Groups(['measurement_unit_list', 'measurement_unit_detail', 'batch_list', 'batch_detail', 'product_list', 'product_detail'])]
+    #[Groups(['measurement_unit_list', 'measurement_unit_detail', 'batch_list', 'batch_detail',
+        'product_list', 'product_detail', 'client_order_row_detail', 'client_order_detail'])]
     private ?string $prefix = null;
 
     /**
