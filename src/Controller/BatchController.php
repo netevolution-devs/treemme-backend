@@ -147,7 +147,7 @@ final class BatchController extends AbstractController
             $currentStock = (float)$orderRow->getQuantity();
 
             if ($currentStock < $requestedQuantity) {
-                throw new \Exception('Giacenza insufficiente sulla riga ordine. Disponibile: ' . $currentStock);
+                return new JsonResponse($this->doResponse->doErrorResponse('Giacenza insufficiente sulla riga ordine. Disponibile: ' . $currentStock), 400);
             }
 
             $article = $orderRow->getArticle();
