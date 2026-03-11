@@ -96,25 +96,26 @@ final class BatchController extends AbstractController
         ValidatorInterface $validator,
     ): JsonResponse
     {
-        return $this->createGenericProductionBatch($request, $validator, 'Tintura', 'TF');
+        return $this->createGenericProductionBatch($request, $validator, 'Tintura', 'TF', true);
     }
 
-    #[Route('/batch/refinish',
-        name: 'post_batch_refinish',
+    #[Route('/batch/refinement',
+        name: 'post_batch_refinement',
         methods: ['POST'])]
     public function createUfBatch(
         Request            $request,
         ValidatorInterface $validator,
     ): JsonResponse
     {
-        return $this->createGenericProductionBatch($request, $validator, 'Rifinizione', 'UF');
+        return $this->createGenericProductionBatch($request, $validator, 'Rifinizione', 'UF', false);
     }
 
     private function createGenericProductionBatch(
         Request            $request,
         ValidatorInterface $validator,
         string             $batchTypeName,
-        string             $prefix
+        string             $prefix,
+        bool               $createProduction = true
     ): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
@@ -202,7 +203,7 @@ final class BatchController extends AbstractController
 
             $this->doctrine->persist($newBatch);
 
-            if (isset($data['scheduled_date']) && isset($data['machine_id'])) {
+            if ($createProduction && isset($data['scheduled_date']) && isset($data['machine_id'])) {
                 $machine = $this->doctrine->getRepository(Machine::class)->find($data['machine_id']);
                 if ($machine) {
                     $production = new Production();
