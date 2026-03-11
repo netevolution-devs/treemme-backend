@@ -93,6 +93,9 @@ class Article
     #[ORM\OneToMany(mappedBy: 'article', targetEntity: ClientOrderRow::class)]
     private Collection $clientOrderRows;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $name = null;
+
     public function __construct()
     {
         $this->batches = new ArrayCollection();
@@ -342,6 +345,18 @@ class Article
                 $clientOrderRow->setArticle(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getName(): ?string
+    {
+        return $this->name;
+    }
+
+    public function setName(?string $name): static
+    {
+        $this->name = $name;
 
         return $this;
     }

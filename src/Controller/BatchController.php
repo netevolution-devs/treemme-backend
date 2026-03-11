@@ -130,13 +130,12 @@ final class BatchController extends AbstractController
                 throw new \Exception('Articolo non associato alla riga ordine');
             }
 
-            $tfBatchType = $batchTypeRepo->findOneBy(['name' => 'TF'])
-                ?? $batchTypeRepo->findOneBy(['prefix' => 'TF']);
+            $tfBatchType = $batchTypeRepo->findOneBy(['name' => 'Tintura']);
 
             if (!$tfBatchType) {
                 $tfBatchType = new BatchType();
-                $tfBatchType->setName('TF');
-                $tfBatchType->setPrefix('TF');
+                $tfBatchType->setName('Tintura');
+                $tfBatchType->setPrefix('T');
                 $tfBatchType->setSaleProcess(false);
                 $tfBatchType->setCreatedAt(new \DateTimeImmutable());
                 $tfBatchType->setUpdatedAt(new \DateTimeImmutable());

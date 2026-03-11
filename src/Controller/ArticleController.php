@@ -83,7 +83,7 @@ class ArticleController extends AbstractController
 
         $errors = $validator->validate($article);
         if (count($errors) > 0) {
-            $formattedErrors = $this->validatorOutputFormatter->formatErrors($errors);
+            $formattedErrors = $this->validatorOutputFormatter->formatOutput($errors);
             return new JsonResponse($this->doResponse->doErrorResponse($formattedErrors));
         }
 
@@ -113,7 +113,7 @@ class ArticleController extends AbstractController
 
         $errors = $validator->validate($article);
         if (count($errors) > 0) {
-            $formattedErrors = $this->validatorOutputFormatter->formatErrors($errors);
+            $formattedErrors = $this->validatorOutputFormatter->formatOutput($errors);
             return new JsonResponse($this->doResponse->doErrorResponse($formattedErrors));
         }
 
@@ -188,5 +188,23 @@ class ArticleController extends AbstractController
 
         // Mappatura campi semplici
         $this->createMethodsByInput->createMethods($article, $data);
+
+        $nameParts = [
+            $article->getArticleType()?->getArticleClass()?->getName(),
+            $article->getArticleType()?->getName(),
+            $article->getArticleVariation(),
+            $article->getThickness()?->getName(),
+            $article->getPrint()?->getName(),
+            $article->getColorType()?->getName(),
+            $article->getShade(),
+            $article->getColor(),
+            $article->getColorVariation(),
+            $article->getProduct()?->getName(),
+        ];
+
+        $article->setName(implode(' ', array_filter(
+            $nameParts,
+            static fn (?string $value): bool => $value !== null && trim($value) !== ''
+        )));
     }
 }
