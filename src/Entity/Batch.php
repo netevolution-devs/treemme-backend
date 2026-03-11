@@ -121,7 +121,7 @@ class Batch
     private Collection $sonBatches;
 
     #[ORM\ManyToOne(inversedBy: 'batches')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true)]
     #[Groups(['batch_list', 'batch_detail'])]
     private ?Leather $leather = null;
 
