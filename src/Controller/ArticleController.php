@@ -77,6 +77,18 @@ class ArticleController extends AbstractController
 
         try {
             $this->mapDataToEntity($article, $data);
+
+            if (!$article->getCode()) {
+                $prefix = 'AR';
+                $lastCode = $this->articleRepository->findLatestArticleCode($prefix);
+                
+                $nextNumber = 1;
+                if ($lastCode && preg_match('/' . preg_quote($prefix, '/') . '(\d+)$/', $lastCode, $matches)) {
+                    $nextNumber = (int)$matches[1] + 1;
+                }
+                
+                $article->setCode($prefix . str_pad((string)$nextNumber, 6, '0', STR_PAD_LEFT));
+            }
         } catch (\Exception $e) {
             return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
         }
