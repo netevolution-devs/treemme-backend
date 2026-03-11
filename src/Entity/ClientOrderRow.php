@@ -109,7 +109,7 @@ class ClientOrderRow
 
     #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?Product $product = null;
+    private ?Article $product = null;
 
     public function __construct()
     {

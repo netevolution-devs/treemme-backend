@@ -16,12 +16,12 @@ class Contact
     #[ORM\GeneratedValue]
     #[ORM\Column]
     #[Groups(['contact_list','contact_detail','contact_type_detail', 'leather_list',
-        'leather_detail','contact_client','contact_supplier','contact_agent_list','client_order_list', 'client_order_detail'])]
+        'leather_detail','contact_client','contact_supplier','contact_agent_list','client_order_list', 'client_order_detail', 'article_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
     #[Groups(['contact_list','contact_detail','contact_type_detail','leather_list',
-        'leather_detail','contact_client','contact_supplier','contact_agent_list','client_order_list', 'client_order_detail'])]
+        'leather_detail','contact_client','contact_supplier','contact_agent_list','client_order_list', 'client_order_detail', 'article_detail'])]
     private ?string $name = null;
 
     #[ORM\ManyToOne(inversedBy: 'contacts')]

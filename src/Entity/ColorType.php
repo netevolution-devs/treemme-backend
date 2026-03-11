@@ -14,11 +14,11 @@ class ColorType
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['color_type_list', 'color_type_detail', 'color_list', 'color_detail'])]
+    #[Groups(['color_type_list', 'color_type_detail', 'color_list', 'color_detail', 'article_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['color_type_list', 'color_type_detail', 'color_list', 'color_detail'])]
+    #[Groups(['color_type_list', 'color_type_detail', 'color_list', 'color_detail', 'article_detail'])]
     private ?string $name = null;
 
     /**

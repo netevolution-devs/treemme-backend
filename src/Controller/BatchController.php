@@ -99,8 +99,12 @@ final class BatchController extends AbstractController
             $data = $request->request->all();
         }
 
-        if (!isset($data['sources']) || !is_array($data['sources'])) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Sorgenti non valide', 400));
+        if (!isset($data['order_row_id'])) {
+            return new JsonResponse($this->doResponse->doErrorResponse('ID riga ordine mancante', 400));
+        }
+
+        if (!isset($data['quantity']) || (float)$data['quantity'] <= 0) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Quantità non valida', 400));
         }
 
         try {
@@ -109,12 +113,21 @@ final class BatchController extends AbstractController
             $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
             $orderRowRepo = $this->doctrine->getRepository(ClientOrderRow::class);
 
-            $orderRow = null;
-            if (isset($data['order_row_id'])) {
-                $orderRow = $orderRowRepo->find($data['order_row_id']);
-                if (!$orderRow) {
-                    throw new \Exception('Riga ordine ' . $data['order_row_id'] . ' non trovata');
-                }
+            $orderRow = $orderRowRepo->find($data['order_row_id']);
+            if (!$orderRow) {
+                throw new \Exception('Riga ordine ' . $data['order_row_id'] . ' non trovata');
+            }
+
+            $requestedQuantity = (float)$data['quantity'];
+            $currentStock = (float)$orderRow->getQuantity();
+
+            if ($currentStock < $requestedQuantity) {
+                throw new \Exception('Giacenza insufficiente sulla riga ordine. Disponibile: ' . $currentStock);
+            }
+
+            $product = $orderRow->getProduct();
+            if (!$product) {
+                throw new \Exception('Prodotto non associato alla riga ordine');
             }
 
             $tfBatchType = $batchTypeRepo->findOneBy(['name' => 'TF'])
@@ -143,87 +156,19 @@ final class BatchController extends AbstractController
             $newBatch->setSampling(false);
             $newBatch->setSplitSelected(false);
 
-            $totalPieces = 0;
-            $totalQuantity = 0.0;
-            $firstLeather = null;
-            $firstUnit = null;
-
-            foreach ($data['sources'] as $source) {
-                $sourceBatch = $batchRepo->find($source['batch_id']);
-                if (!$sourceBatch) {
-                    throw new \Exception('Lotto sorgente ' . $source['batch_id'] . ' non trovato');
-                }
-
-                $pieces = (int)($source['pieces'] ?? 0);
-                $quantity = (float)($source['quantity'] ?? 0.0);
-
-                if ($pieces <= 0) {
-                    throw new \Exception('Pezzi non validi per il lotto ' . $sourceBatch->getBatchCode());
-                }
-
-                if ($sourceBatch->getStockItems() < $pieces) {
-                    throw new \Exception('Disponibilità insufficiente per il lotto ' . $sourceBatch->getBatchCode());
-                }
-
-                if (!$firstLeather) $firstLeather = $sourceBatch->getLeather();
-                if (!$firstUnit) $firstUnit = $sourceBatch->getMeasurementUnit();
-
-                $sourceBatch->setStockItems($sourceBatch->getStockItems() - $pieces);
-                $sourceBatch->setStockQuantity($sourceBatch->getStockQuantity() - $quantity);
-
-                $composition = new BatchComposition();
-                $composition->setBatch($newBatch);
-                $composition->setFatherBatch($sourceBatch);
-                $composition->setFatherBatchPiece($pieces);
-                $composition->setFatherBatchQuantity($quantity);
-                $composition->setCompositionNote('Composizione lotto TF ' . $nextCode);
-                $this->doctrine->persist($composition);
-
-                // Movimento in uscita dal sorgente
-                $outReason = $reasonRepo->createQueryBuilder('r')
-                    ->join('r.reason_type', 't')
-                    ->where('r.name = :name')
-                    ->andWhere('t.movement_type = :type')
-                    ->setParameter('name', 'Scarico per lavorazione interna')
-                    ->setParameter('type', '-')
-                    ->getQuery()
-                    ->getOneOrNullResult()
-                    ?? $reasonRepo->findOneBy(['name' => 'Scarico Lavorazione'])
-                    ?? $reasonRepo->findOneBy(['name' => 'Vendita']);
-
-                if ($outReason) {
-                    $outMovement = new WarehouseMovement();
-                    $outMovement->setBatch($sourceBatch);
-                    $outMovement->setReason($outReason);
-                    $outMovement->setPiece($pieces);
-                    $outMovement->setQuantity($quantity);
-                    $outMovement->setDate(new \DateTime());
-                    $outMovement->setMovementNote('Uscita per creazione lotto ' . $nextCode);
-                    $this->doctrine->persist($outMovement);
-                }
-
-                $totalPieces += $pieces;
-                $totalQuantity += $quantity;
+            $articles = $product->getArticles();
+            if (!$articles->isEmpty()) {
+                $newBatch->setArticle($articles->first());
             }
 
-            $newBatch->setPieces($totalPieces);
-            $newBatch->setQuantity($totalQuantity);
-            $newBatch->setStockItems((float)$totalPieces);
-            $newBatch->setStockQuantity($totalQuantity);
-            $newBatch->setLeather($firstLeather);
-            $newBatch->setMeasurementUnit($firstUnit);
+            $newBatch->setMeasurementUnit($orderRow->getMeasurementUnit() ?? $product->getMeasurementUnit());
+            $newBatch->setPieces(0);
+            $newBatch->setQuantity($requestedQuantity);
+            $newBatch->setStockItems(0.0);
+            $newBatch->setStockQuantity($requestedQuantity);
 
-            $firstSourceId = $data['sources'][0]['batch_id'] ?? null;
-            $firstSourceBatch = $firstSourceId ? $batchRepo->find($firstSourceId) : null;
-            if ($firstSourceBatch) {
-                $newBatch->setSqFtAverageExpected($firstSourceBatch->getSqFtAverageExpected() ?? 0.0);
-                $newBatch->setSqFtAverageFound($firstSourceBatch->getSqFtAverageFound() ?? 0.0);
-                $newBatch->setSelectionNote($firstSourceBatch->getSelectionNote());
-                $newBatch->setBatchNote($firstSourceBatch->getBatchNote());
-            } else {
-                $newBatch->setSqFtAverageExpected(0.0);
-                $newBatch->setSqFtAverageFound(0.0);
-            }
+            $newBatch->setSqFtAverageExpected(0.0);
+            $newBatch->setSqFtAverageFound(0.0);
 
             $now = new \DateTimeImmutable();
             $newBatch->setCreatedAt($now);
@@ -237,33 +182,35 @@ final class BatchController extends AbstractController
 
             $this->doctrine->persist($newBatch);
 
-            if ($orderRow) {
-                $batchOrder = new BatchOrder();
-                $batchOrder->setBatch($newBatch);
-                $batchOrder->setOrderRow($orderRow);
-                $this->doctrine->persist($batchOrder);
-            }
+            // Aggiornamento giacenza riga ordine
+            $orderRow->setQuantity((int)($currentStock - $requestedQuantity));
+            $this->doctrine->persist($orderRow);
+
+            $batchOrder = new BatchOrder();
+            $batchOrder->setBatch($newBatch);
+            $batchOrder->setOrderRow($orderRow);
+            $this->doctrine->persist($batchOrder);
 
             // Movimento in entrata nel nuovo lotto TF
-        $inReason = $reasonRepo->createQueryBuilder('r')
-            ->join('r.reason_type', 't')
-            ->where('r.name = :name')
-            ->andWhere('t.movement_type = :type')
-            ->setParameter('name', 'Carico da produzione')
-            ->setParameter('type', '+')
-            ->getQuery()
-            ->getOneOrNullResult()
-            ?? $reasonRepo->findOneBy(['name' => 'Carico Lavorazione'])
-            ?? $reasonRepo->findOneBy(['name' => 'Acquisto']);
+            $inReason = $reasonRepo->createQueryBuilder('r')
+                ->join('r.reason_type', 't')
+                ->where('r.name = :name')
+                ->andWhere('t.movement_type = :type')
+                ->setParameter('name', 'Carico da produzione')
+                ->setParameter('type', '+')
+                ->getQuery()
+                ->getOneOrNullResult()
+                ?? $reasonRepo->findOneBy(['name' => 'Carico Lavorazione'])
+                ?? $reasonRepo->findOneBy(['name' => 'Acquisto']);
 
             if ($inReason) {
                 $inMovement = new WarehouseMovement();
                 $inMovement->setBatch($newBatch);
                 $inMovement->setReason($inReason);
-                $inMovement->setPiece($totalPieces);
-                $inMovement->setQuantity($totalQuantity);
+                $inMovement->setPiece(0);
+                $inMovement->setQuantity($requestedQuantity);
                 $inMovement->setDate(new \DateTime());
-                $inMovement->setMovementNote('Entrata lotto TF da composizione lotti');
+                $inMovement->setMovementNote('Entrata lotto TF da riga ordine');
                 $this->doctrine->persist($inMovement);
             }
 
