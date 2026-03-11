@@ -129,12 +129,6 @@ class Product
     private ?ProductCategory $product_category = null;
 
     /**
-     * @var Collection<int, ClientOrderRow>
-     */
-    #[ORM\OneToMany(mappedBy: 'product', targetEntity: ClientOrderRow::class)]
-    private Collection $clientOrderRows;
-
-    /**
      * @var Collection<int, Article>
      */
     #[ORM\OneToMany(mappedBy: 'product', targetEntity: Article::class)]
@@ -144,7 +138,6 @@ class Product
     {
         $this->materialBills = new ArrayCollection();
         $this->recipes = new ArrayCollection();
-        $this->clientOrderRows = new ArrayCollection();
         $this->articles = new ArrayCollection();
     }
 
@@ -509,36 +502,6 @@ class Product
     public function setProductCategory(?ProductCategory $product_category): static
     {
         $this->product_category = $product_category;
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, ClientOrderRow>
-     */
-    public function getClientOrderRows(): Collection
-    {
-        return $this->clientOrderRows;
-    }
-
-    public function addClientOrderRow(ClientOrderRow $clientOrderRow): static
-    {
-        if (!$this->clientOrderRows->contains($clientOrderRow)) {
-            $this->clientOrderRows->add($clientOrderRow);
-            $clientOrderRow->setProduct($this);
-        }
-
-        return $this;
-    }
-
-    public function removeClientOrderRow(ClientOrderRow $clientOrderRow): static
-    {
-        if ($this->clientOrderRows->removeElement($clientOrderRow)) {
-            // set the owning side to null (unless already changed)
-            if ($clientOrderRow->getProduct() === $this) {
-                $clientOrderRow->setProduct(null);
-            }
-        }
 
         return $this;
     }
