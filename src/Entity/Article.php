@@ -94,6 +94,7 @@ class Article
     private Collection $clientOrderRows;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['article_list', 'article_detail'])]
     private ?string $name = null;
 
     public function __construct()
