@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ArticleRepository::class)]
 class Article
@@ -14,50 +15,65 @@ class Article
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['article_list', 'article_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['article_list', 'article_detail'])]
     private ?string $code = null;
 
     #[ORM\ManyToOne(inversedBy: 'articles')]
+    #[Groups(['article_list', 'article_detail'])]
     private ?Contact $client = null;
 
     #[ORM\Column]
+    #[Groups(['article_list', 'article_detail'])]
     private ?bool $full_grain = null;
 
     #[ORM\ManyToOne(inversedBy: 'articles')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['article_list', 'article_detail'])]
     private ?ArticleType $article_type = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['article_list', 'article_detail'])]
     private ?string $article_variation = null;
 
     #[ORM\ManyToOne(inversedBy: 'articles')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['article_list', 'article_detail'])]
     private ?LeatherThickness $thickness = null;
 
     #[ORM\ManyToOne(inversedBy: 'articles')]
+    #[Groups(['article_list', 'article_detail'])]
     private ?ArticlePrint $print = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['article_detail'])]
     private ?string $note = null;
 
     #[ORM\ManyToOne(inversedBy: 'articles')]
+    #[Groups(['article_list', 'article_detail'])]
     private ?ColorType $color_type = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['article_list', 'article_detail'])]
     private ?string $shade = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['article_list', 'article_detail'])]
     private ?string $color = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['article_list', 'article_detail'])]
     private ?string $color_variation = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['article_detail'])]
     private ?string $color_note = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['article_list', 'article_detail'])]
     private ?string $client_color = null;
 
 
@@ -68,6 +84,7 @@ class Article
     private Collection $batches;
 
     #[ORM\ManyToOne(inversedBy: 'articles')]
+    #[Groups(['article_list', 'article_detail'])]
     private ?Product $product = null;
 
     public function __construct()
