@@ -15,15 +15,15 @@ class ArticleClass
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['article_class_list', 'article_class_detail', 'article_detail'])]
+    #[Groups(['article_class_list', 'article_class_detail', 'article_detail', 'article_type_list', 'article_type_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['article_class_list', 'article_class_detail', 'article_detail'])]
+    #[Groups(['article_class_list', 'article_class_detail', 'article_detail', 'article_type_list', 'article_type_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['article_class_list', 'article_class_detail', 'article_detail'])]
+    #[Groups(['article_class_list', 'article_class_detail', 'article_detail', 'article_type_detail'])]
     private ?string $description = null;
 
     /**

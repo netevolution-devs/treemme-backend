@@ -125,9 +125,9 @@ final class BatchController extends AbstractController
                 throw new \Exception('Giacenza insufficiente sulla riga ordine. Disponibile: ' . $currentStock);
             }
 
-            $product = $orderRow->getProduct();
-            if (!$product) {
-                throw new \Exception('Prodotto non associato alla riga ordine');
+            $article = $orderRow->getArticle();
+            if (!$article) {
+                throw new \Exception('Articolo non associato alla riga ordine');
             }
 
             $tfBatchType = $batchTypeRepo->findOneBy(['name' => 'TF'])
@@ -156,12 +156,10 @@ final class BatchController extends AbstractController
             $newBatch->setSampling(false);
             $newBatch->setSplitSelected(false);
 
-            $articles = $product->getArticles();
-            if (!$articles->isEmpty()) {
-                $newBatch->setArticle($articles->first());
-            }
+            $newBatch->setArticle($article);
 
-            $newBatch->setMeasurementUnit($orderRow->getMeasurementUnit() ?? $product->getMeasurementUnit());
+            $product = $article->getProduct();
+            $newBatch->setMeasurementUnit($orderRow->getMeasurementUnit() ?? ($product ? $product->getMeasurementUnit() : null));
             $newBatch->setPieces(0);
             $newBatch->setQuantity($requestedQuantity);
             $newBatch->setStockItems(0.0);
