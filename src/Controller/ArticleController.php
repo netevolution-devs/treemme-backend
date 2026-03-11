@@ -34,16 +34,28 @@ class ArticleController extends AbstractController
     {
     }
 
-    #[Route('/articles', name: 'app_article_index', methods: ['GET'])]
-    public function index(Request $request): JsonResponse
+    #[Route('/article/{id}', name: 'app_article_index', methods: ['GET'], defaults: ['id' => null], requirements: ['id' => '\d+'])]
+    public function index(Request $request, ?int $id = null): JsonResponse
     {
+        if ($id) {
+            $article = $this->articleRepository->find($id);
+
+            if (!$article) {
+                return new JsonResponse($this->doResponse->doErrorResponse('Articolo non trovato', status_code: 404));
+            }
+
+            $results = $this->groupSerializer->serializeGroup($article, 'article_detail');
+
+            return new JsonResponse($this->doResponse->doResponse($results));
+        }
+
         $clientId = $request->query->get('client');
 
         if ($clientId) {
             $client = $this->entityManager->getRepository(Contact::class)->find($clientId);
 
             if (!$client) {
-                return new JsonResponse($this->doResponse->doErrorResponse('Cliente non trovato' ), 404);
+                return new JsonResponse($this->doResponse->doErrorResponse('Cliente non trovato'), 404);
             }
 
             $articles = $this->articleRepository->findBy(['client' => $client]);
@@ -52,20 +64,6 @@ class ArticleController extends AbstractController
         }
 
         $results = $this->groupSerializer->serializeGroup($articles, 'article_list');
-
-        return new JsonResponse($this->doResponse->doResponse($results));
-    }
-
-    #[Route('/article/{id}', name: 'app_article_show', methods: ['GET'])]
-    public function show(int $id): JsonResponse
-    {
-        $article = $this->articleRepository->find($id);
-
-        if (!$article) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Articolo non trovato', status_code: 404));
-        }
-
-        $results = $this->groupSerializer->serializeGroup($article, 'article_detail');
 
         return new JsonResponse($this->doResponse->doResponse($results));
     }
