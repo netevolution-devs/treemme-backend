@@ -83,7 +83,7 @@ class ClientOrderRow
 
     #[ORM\Column(nullable: true)]
     #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
-    private ?\DateTime $delivey_date_request = null;
+    private ?\DateTime $delivery_date_request = null;
 
     #[ORM\Column(nullable: true)]
     #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
@@ -301,14 +301,14 @@ class ClientOrderRow
         return $this;
     }
 
-    public function getDeliveyDateRequest(): ?\DateTime
+    public function getDeliveryDateRequest(): ?\DateTime
     {
-        return $this->delivey_date_request;
+        return $this->delivery_date_request;
     }
 
-    public function setDeliveyDateRequest(?\DateTime $delivey_date_request): static
+    public function setDeliveryDateRequest(?\DateTime $delivery_date_request): static
     {
-        $this->delivey_date_request = $delivey_date_request;
+        $this->delivery_date_request = $delivery_date_request;
 
         return $this;
     }
