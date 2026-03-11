@@ -17,7 +17,6 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-#[Route('/api')]
 class ArticleTypeController extends AbstractController
 {
     public function __construct(
@@ -31,25 +30,22 @@ class ArticleTypeController extends AbstractController
     {
     }
 
-    #[Route('/article-types', name: 'app_article_type_index', methods: ['GET'])]
-    public function index(): JsonResponse
+    #[Route('/article-type/{id}', name: 'app_article_type_show', methods: ['GET'], requirements: ['id' => '\d+'], defaults: ['id' => null])]
+    public function show(?int $id): JsonResponse
     {
-        $articleTypes = $this->articleTypeRepository->findAll();
-        $results = $this->groupSerializer->serializeGroup($articleTypes, 'article_type_list');
+        if ($id === null) {
+            $types = $this->articleTypeRepository->findAll();
+            $results = $this->groupSerializer->serializeGroup($types, 'article_type_list');
+            return new JsonResponse($this->doResponse->doResponse($results));
+        }
 
-        return new JsonResponse($this->doResponse->doResponse($results));
-    }
+        $type = $this->articleTypeRepository->find($id);
 
-    #[Route('/article-type/{id}', name: 'app_article_type_show', methods: ['GET'])]
-    public function show(int $id): JsonResponse
-    {
-        $articleType = $this->articleTypeRepository->find($id);
-
-        if (!$articleType) {
+        if (!$type) {
             return new JsonResponse($this->doResponse->doErrorResponse('Tipo articolo non trovato', status_code: 404));
         }
 
-        $results = $this->groupSerializer->serializeGroup($articleType, 'article_type_detail');
+        $results = $this->groupSerializer->serializeGroup($type, 'article_type_detail');
 
         return new JsonResponse($this->doResponse->doResponse($results));
     }
@@ -59,45 +55,45 @@ class ArticleTypeController extends AbstractController
     {
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
 
-        $articleType = new ArticleType();
+        $type = new ArticleType();
 
         try {
-            $this->mapDataToEntity($articleType, $data);
+            $this->mapDataToEntity($type, $data);
         } catch (\Exception $e) {
             return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
         }
 
-        $errors = $validator->validate($articleType);
+        $errors = $validator->validate($type);
         if (count($errors) > 0) {
             $formattedErrors = $this->validatorOutputFormatter->formatErrors($errors);
             return new JsonResponse($this->doResponse->doErrorResponse($formattedErrors));
         }
 
-        $this->entityManager->persist($articleType);
+        $this->entityManager->persist($type);
         $this->entityManager->flush();
 
-        $results = $this->groupSerializer->serializeGroup($articleType, 'article_type_detail');
+        $results = $this->groupSerializer->serializeGroup($type, 'article_type_detail');
         return new JsonResponse($this->doResponse->doResponse($results));
     }
 
     #[Route('/article-type/{id}', name: 'app_article_type_update', methods: ['PUT', 'PATCH'])]
     public function update(Request $request, int $id, ValidatorInterface $validator): JsonResponse
     {
-        $articleType = $this->articleTypeRepository->find($id);
+        $type = $this->articleTypeRepository->find($id);
 
-        if (!$articleType) {
+        if (!$type) {
             return new JsonResponse($this->doResponse->doErrorResponse('Tipo articolo non trovato', status_code: 404));
         }
 
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
 
         try {
-            $this->mapDataToEntity($articleType, $data);
+            $this->mapDataToEntity($type, $data);
         } catch (\Exception $e) {
             return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
         }
 
-        $errors = $validator->validate($articleType);
+        $errors = $validator->validate($type);
         if (count($errors) > 0) {
             $formattedErrors = $this->validatorOutputFormatter->formatErrors($errors);
             return new JsonResponse($this->doResponse->doErrorResponse($formattedErrors));
@@ -105,20 +101,20 @@ class ArticleTypeController extends AbstractController
 
         $this->entityManager->flush();
 
-        $results = $this->groupSerializer->serializeGroup($articleType, 'article_type_detail');
+        $results = $this->groupSerializer->serializeGroup($type, 'article_type_detail');
         return new JsonResponse($this->doResponse->doResponse($results));
     }
 
     #[Route('/article-type/{id}', name: 'app_article_type_delete', methods: ['DELETE'])]
     public function delete(int $id): JsonResponse
     {
-        $articleType = $this->articleTypeRepository->find($id);
+        $type = $this->articleTypeRepository->find($id);
 
-        if (!$articleType) {
+        if (!$type) {
             return new JsonResponse($this->doResponse->doErrorResponse('Tipo articolo non trovato', status_code: 404));
         }
 
-        $this->entityManager->remove($articleType);
+        $this->entityManager->remove($type);
         $this->entityManager->flush();
 
         return new JsonResponse($this->doResponse->doResponse(null, status: 'Tipo articolo eliminato correttamente'));
@@ -127,22 +123,23 @@ class ArticleTypeController extends AbstractController
     /**
      * @throws \Exception
      */
-    private function mapDataToEntity(ArticleType $articleType, array $data): void
+    private function mapDataToEntity(ArticleType $type, array $data): void
     {
         if (isset($data['leather_type_id'])) {
             $leatherType = $this->entityManager->getRepository(LeatherType::class)->find($data['leather_type_id']);
             if (!$leatherType) throw new \Exception("Tipo pelle con ID {$data['leather_type_id']} non trovato");
-            $articleType->setLeatherType($leatherType);
+            $type->setLeatherType($leatherType);
             unset($data['leather_type_id']);
         }
 
         if (isset($data['article_class_id'])) {
             $articleClass = $this->entityManager->getRepository(ArticleClass::class)->find($data['article_class_id']);
-            if (!$articleClass) throw new \Exception("Classe articolo con ID {$data['article_class_id']} non trovato");
-            $articleType->setArticleClass($articleClass);
+            if (!$articleClass) throw new \Exception("Classe articolo con ID {$data['article_class_id']} non trovata");
+            $type->setArticleClass($articleClass);
             unset($data['article_class_id']);
         }
 
-        $this->createMethodsByInput->createMethods($articleType, $data);
+        // Mappatura campi semplici
+        $this->createMethodsByInput->createMethods($type, $data);
     }
 }
