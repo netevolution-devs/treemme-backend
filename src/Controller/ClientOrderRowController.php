@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\Article;
 use App\Entity\ClientOrderRow;
 use App\Entity\ClientOrder;
 use App\Entity\Product;
@@ -160,12 +161,12 @@ final class ClientOrderRowController extends AbstractController
             unset($data['client_order_id']);
         }
 
-        if (isset($data['product_id'])) {
-            $product = $this->doctrine->getRepository(Product::class)->find($data['product_id']);
-            if ($product) {
-                $clientOrderRow->setProduct($product);
+        if (isset($data['article_id'])) {
+            $article = $this->doctrine->getRepository(Article::class)->find($data['article_id']);
+            if ($article) {
+                $clientOrderRow->setArticle($article);
             }
-            unset($data['product_id']);
+            unset($data['article_id']);
         }
 
         if (isset($data['measurement_unit_id'])) {
