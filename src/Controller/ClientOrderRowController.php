@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Article;
 use App\Entity\ClientOrderRow;
 use App\Entity\ClientOrder;
+use App\Entity\Currency;
 use App\Entity\Product;
 use App\Entity\MeasurementUnit;
 use App\Service\CreateMethodsByInput;
@@ -175,6 +176,14 @@ final class ClientOrderRowController extends AbstractController
                 $clientOrderRow->setMeasurementUnit($unit);
             }
             unset($data['measurement_unit_id']);
+        }
+
+        if (isset($data['currency_id'])) {
+            $unit = $this->doctrine->getRepository(Currency::class)->find($data['currency_id']);
+            if ($unit) {
+                $clientOrderRow->setCurrency($unit);
+            }
+            unset($data['currency_id']);
         }
 
         return $clientOrderRow;
