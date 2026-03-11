@@ -15,11 +15,11 @@ class Article
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['article_list', 'article_detail'])]
+    #[Groups(['article_list', 'article_detail', 'client_order_row_detail', 'client_order_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['article_list', 'article_detail'])]
+    #[Groups(['article_list', 'article_detail', 'client_order_row_detail', 'client_order_detail'])]
     private ?string $code = null;
 
     #[ORM\ManyToOne(inversedBy: 'articles')]
@@ -94,7 +94,7 @@ class Article
     private Collection $clientOrderRows;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['article_list', 'article_detail'])]
+    #[Groups(['article_list', 'article_detail', 'client_order_row_detail', 'client_order_detail'])]
     private ?string $name = null;
 
     public function __construct()
