@@ -112,6 +112,9 @@ class ClientOrderRow
     #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?Article $article = null;
 
+    #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
+    private ?Currency $currency = null;
+
     public function __construct()
     {
         $this->batchOrders = new ArrayCollection();
@@ -400,6 +403,18 @@ class ClientOrderRow
     public function setArticle(?Article $article): static
     {
         $this->article = $article;
+
+        return $this;
+    }
+
+    public function getCurrency(): ?Currency
+    {
+        return $this->currency;
+    }
+
+    public function setCurrency(?Currency $currency): static
+    {
+        $this->currency = $currency;
 
         return $this;
     }

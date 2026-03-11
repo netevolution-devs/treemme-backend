@@ -36,9 +36,16 @@ class Currency
     #[Groups(['currency_detail'])]
     private Collection $batchCosts;
 
+    /**
+     * @var Collection<int, ClientOrderRow>
+     */
+    #[ORM\OneToMany(mappedBy: 'currency', targetEntity: ClientOrderRow::class)]
+    private Collection $clientOrderRows;
+
     public function __construct()
     {
         $this->batchCosts = new ArrayCollection();
+        $this->clientOrderRows = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -106,6 +113,36 @@ class Currency
             // set the owning side to null (unless already changed)
             if ($batchCost->getCurrency() === $this) {
                 $batchCost->setCurrency(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ClientOrderRow>
+     */
+    public function getClientOrderRows(): Collection
+    {
+        return $this->clientOrderRows;
+    }
+
+    public function addClientOrderRow(ClientOrderRow $clientOrderRow): static
+    {
+        if (!$this->clientOrderRows->contains($clientOrderRow)) {
+            $this->clientOrderRows->add($clientOrderRow);
+            $clientOrderRow->setCurrency($this);
+        }
+
+        return $this;
+    }
+
+    public function removeClientOrderRow(ClientOrderRow $clientOrderRow): static
+    {
+        if ($this->clientOrderRows->removeElement($clientOrderRow)) {
+            // set the owning side to null (unless already changed)
+            if ($clientOrderRow->getCurrency() === $this) {
+                $clientOrderRow->setCurrency(null);
             }
         }
 
