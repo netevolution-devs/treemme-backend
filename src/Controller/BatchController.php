@@ -88,8 +88,8 @@ final class BatchController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse($results));
     }
 
-    #[Route('/batch/create-tf',
-        name: 'post_batch_tf',
+    #[Route('/batch/dye',
+        name: 'post_batch_dye',
         methods: ['POST'])]
     public function createTfBatch(
         Request            $request,
@@ -99,8 +99,8 @@ final class BatchController extends AbstractController
         return $this->createGenericProductionBatch($request, $validator, 'Tintura', 'TF');
     }
 
-    #[Route('/batch/create-uf',
-        name: 'post_batch_uf',
+    #[Route('/batch/refinish',
+        name: 'post_batch_refinish',
         methods: ['POST'])]
     public function createUfBatch(
         Request            $request,
