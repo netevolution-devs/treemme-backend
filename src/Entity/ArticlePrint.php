@@ -6,6 +6,7 @@ use App\Repository\ArticlePrintRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ArticlePrintRepository::class)]
 class ArticlePrint
@@ -13,9 +14,11 @@ class ArticlePrint
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['article_print_list', 'article_print_detail', 'article_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['article_print_list', 'article_print_detail', 'article_detail'])]
     private ?string $name = null;
 
     /**
