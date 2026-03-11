@@ -8,6 +8,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\Serializer\Annotation\Groups;
+use JMS\Serializer\Annotation\VirtualProperty;
 
 #[ORM\Entity(repositoryClass: ClientOrderRowRepository::class)]
 class ClientOrderRow
@@ -417,5 +418,20 @@ class ClientOrderRow
         $this->currency = $currency;
 
         return $this;
+    }
+
+    #[VirtualProperty]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
+    public function getAvailableQuantity(): float
+    {
+        $producedQuantity = 0;
+        foreach ($this->batchOrders as $batchOrder) {
+            $batch = $batchOrder->getBatch();
+            if ($batch) {
+                $producedQuantity += $batch->getQuantity();
+            }
+        }
+
+        return (float)($this->quantity - $producedQuantity);
     }
 }
