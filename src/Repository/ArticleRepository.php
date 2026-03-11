@@ -31,13 +31,21 @@ class ArticleRepository extends ServiceEntityRepository
 //        ;
 //    }
 
-//    public function findOneBySomeField($value): ?Article
-//    {
-//        return $this->createQueryBuilder('a')
-//            ->andWhere('a.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->getQuery()
-//            ->getOneOrNullResult()
-//        ;
-//    }
+    public function findLatestArticleCode(string $prefix): ?string
+    {
+        try {
+            return $this->createQueryBuilder('a')
+                ->select('a.code')
+                ->where('a.code LIKE :prefix')
+                ->setParameter('prefix', $prefix . '%')
+                ->orderBy('a.code', 'DESC')
+                ->setMaxResults(1)
+                ->getQuery()
+                ->getSingleScalarResult();
+        } catch (\Doctrine\ORM\NoResultException $e) {
+            return null;
+        } catch (\Doctrine\ORM\NonUniqueResultException $e) {
+            return null;
+        }
+    }
 }
