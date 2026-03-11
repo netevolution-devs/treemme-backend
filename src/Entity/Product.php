@@ -23,7 +23,7 @@ class Product
     private ?string $product_code = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['product_list', 'product_detail', 'supplier_detail', 'product_type_detail', 'measurement_unit_detail', 'color_detail', 'material_bill_list', 'material_bill_detail'])]
+    #[Groups(['product_list', 'product_detail', 'supplier_detail', 'product_type_detail', 'measurement_unit_detail', 'color_detail', 'material_bill_list', 'material_bill_detail', 'article_list', 'article_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 255)]

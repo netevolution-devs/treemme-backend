@@ -6,6 +6,7 @@ use App\Repository\ArticleTypeRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ArticleTypeRepository::class)]
 class ArticleType
@@ -13,17 +14,21 @@ class ArticleType
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['article_list', 'article_detail', 'article_type_list', 'article_type_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['article_list', 'article_detail', 'article_type_list', 'article_type_detail'])]
     private ?string $name = null;
 
     #[ORM\ManyToOne(inversedBy: 'articleTypes')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['article_list', 'article_detail', 'article_type_list', 'article_type_detail'])]
     private ?LeatherType $leather_type = null;
 
     #[ORM\ManyToOne(inversedBy: 'articleTypes')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['article_list', 'article_detail', 'article_type_list', 'article_type_detail'])]
     private ?ArticleClass $article_class = null;
 
     /**
