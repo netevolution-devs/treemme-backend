@@ -96,6 +96,27 @@ final class BatchController extends AbstractController
         ValidatorInterface $validator,
     ): JsonResponse
     {
+        return $this->createGenericProductionBatch($request, $validator, 'Tintura', 'TF');
+    }
+
+    #[Route('/batch/create-uf',
+        name: 'post_batch_uf',
+        methods: ['POST'])]
+    public function createUfBatch(
+        Request            $request,
+        ValidatorInterface $validator,
+    ): JsonResponse
+    {
+        return $this->createGenericProductionBatch($request, $validator, 'Rifinizione', 'UF');
+    }
+
+    private function createGenericProductionBatch(
+        Request            $request,
+        ValidatorInterface $validator,
+        string             $batchTypeName,
+        string             $prefix
+    ): JsonResponse
+    {
         $data = json_decode($request->getContent(), true);
         if (!$data) {
             $data = $request->request->all();
@@ -132,24 +153,24 @@ final class BatchController extends AbstractController
                 throw new \Exception('Articolo non associato alla riga ordine');
             }
 
-            $tfBatchType = $batchTypeRepo->findOneBy(['name' => 'Tintura']);
+            $batchType = $batchTypeRepo->findOneBy(['name' => $batchTypeName]);
 
-            if (!$tfBatchType) {
-                $tfBatchType = new BatchType();
-                $tfBatchType->setName('Tintura');
-                $tfBatchType->setPrefix('T');
-                $tfBatchType->setSaleProcess(false);
-                $tfBatchType->setCreatedAt(new \DateTimeImmutable());
-                $tfBatchType->setUpdatedAt(new \DateTimeImmutable());
-                $this->doctrine->persist($tfBatchType);
+            if (!$batchType) {
+                $batchType = new BatchType();
+                $batchType->setName($batchTypeName);
+                $batchType->setPrefix($prefix[0]);
+                $batchType->setSaleProcess(false);
+                $batchType->setCreatedAt(new \DateTimeImmutable());
+                $batchType->setUpdatedAt(new \DateTimeImmutable());
+                $this->doctrine->persist($batchType);
             }
 
-            $lastTfBatch = $batchRepo->findLatestBatchByPrefix('TF');
-            $lastCode = $lastTfBatch ? $lastTfBatch->getBatchCode() : null;
-            $nextCode = $this->nextSequentialCode($lastCode, 'TF', 6);
+            $lastBatch = $batchRepo->findLatestBatchByPrefix($prefix);
+            $lastCode = $lastBatch ? $lastBatch->getBatchCode() : null;
+            $nextCode = $this->nextSequentialCode($lastCode, $prefix, 6);
 
             $newBatch = new Batch();
-            $newBatch->setBatchType($tfBatchType);
+            $newBatch->setBatchType($batchType);
             $newBatch->setBatchCode($nextCode);
             $newBatch->setBatchDate(new \DateTime());
             $newBatch->setCompleted(false);
@@ -192,8 +213,6 @@ final class BatchController extends AbstractController
                     try {
                         $scheduledDate = new \DateTime($data['scheduled_date']);
                     } catch (\Exception $e) {
-                        // Se il formato non è valido, possiamo ignorarlo o lanciare un errore
-                        // In questo caso, assumiamo che il client invii un formato valido gestito da DateTime
                     }
 
                     if ($scheduledDate) {
@@ -225,7 +244,7 @@ final class BatchController extends AbstractController
                 $this->doctrine->persist($batchOrder);
             }
 
-            // Movimento in entrata nel nuovo lotto TF
+            // Movimento in entrata nel nuovo lotto (TF o UF)
             $inReason = $reasonRepo->createQueryBuilder('r')
                 ->join('r.reason_type', 't')
                 ->where('r.name = :name')
@@ -244,7 +263,7 @@ final class BatchController extends AbstractController
                 $inMovement->setPiece(0);
                 $inMovement->setQuantity($requestedQuantity);
                 $inMovement->setDate(new \DateTime());
-                $inMovement->setMovementNote('Entrata lotto TF da riga ordine');
+                $inMovement->setMovementNote('Entrata lotto ' . $prefix . ' da riga ordine');
                 $this->doctrine->persist($inMovement);
             }
 
