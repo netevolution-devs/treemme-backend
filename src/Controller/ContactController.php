@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Contact;
 use App\Entity\ContactAgent;
+use App\Entity\ContactSubcontractor;
 use App\Entity\ContactType;
 use App\Entity\ContactTitle;
 use App\Service\CreateMethodsByInput;
@@ -298,6 +299,27 @@ final class ContactController extends AbstractController
                 }
             }
             unset($data['agent_id']);
+        }
+
+        if (isset($data['subcontractor_id'])) {
+            $subcontractor = $this->doctrine->getRepository(Contact::class)->find($data['subcontractor_id']);
+            if ($subcontractor) {
+                $contactSubcontractorFound = false;
+                foreach ($contact->getContactSubcontractors() as $contactSubcontractor) {
+                    if ($contactSubcontractor->getSubcontractor()->getId() === $subcontractor->getId()) {
+                        $contactSubcontractorFound = true;
+                        break;
+                    }
+                }
+
+                if (!$contactSubcontractorFound) {
+                    $contactSubcontractor = new ContactSubcontractor();
+                    $contactSubcontractor->setSubcontractor($agent);
+                    $contactSubcontractor->setContact($contact);
+                    $contact->addContactSubcontractor($contactSubcontractor);
+                }
+            }
+            unset($data['subcontractor_id']);
         }
 
         return $contact;
