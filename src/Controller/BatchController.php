@@ -226,11 +226,6 @@ final class BatchController extends AbstractController
 
             $this->handleRelations($newBatch, $data);
 
-            // Aggiornamento giacenza riga ordine
-            $orderRow->setQuantity((int)($currentStock - $requestedQuantity));
-            $this->doctrine->persist($orderRow);
-
-
             $alreadyExists = false;
             foreach ($newBatch->getBatchOrders() as $bo) {
                 if ($bo->getOrderRow() === $orderRow) {
