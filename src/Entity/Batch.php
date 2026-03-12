@@ -111,6 +111,7 @@ class Batch
      * @var Collection<int, BatchComposition>
      */
     #[ORM\OneToMany(mappedBy: 'batch', targetEntity: BatchComposition::class, orphanRemoval: true)]
+    #[Groups(['batch_detail'])]
     private Collection $batchCompositions;
 
     /**
@@ -149,6 +150,7 @@ class Batch
      * @var Collection<int, Production>
      */
     #[ORM\OneToMany(mappedBy: 'batch', targetEntity: Production::class, orphanRemoval: true)]
+    #[Groups(['batch_detail'])]
     private Collection $productions;
 
     #[ORM\ManyToOne(inversedBy: 'batches')]
