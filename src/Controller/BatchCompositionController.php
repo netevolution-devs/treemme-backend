@@ -65,6 +65,25 @@ final class BatchCompositionController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse($results));
     }
 
+    #[Route('/batch/{batch_id}/batch-composition',
+        name: 'get_batch_composition_by_batch',
+        defaults: ['batch_id' => null],
+        requirements: ['batch_id' => '\d*'],
+        methods: ['GET', 'HEAD'])]
+    public function getBatchCompositionByBatch(?int $batch_id): JsonResponse
+    {
+        $batch = $this->doctrine->getRepository(Batch::class)->find($batch_id);
+
+        if (!$batch) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Batch not found', 404));
+        }
+
+        $batchComposition = $this->doctrine->getRepository(BatchComposition::class)->findBy(['batch' => $batch]);
+        $results = $this->groupSerializer->serializeGroup($batchComposition, 'batch_composition_list');
+
+        return new JsonResponse($this->doResponse->doResponse($results));
+    }
+
     #[Route('/batch-composition',
         name: 'post_batch_composition',
         methods: ['POST'])]
