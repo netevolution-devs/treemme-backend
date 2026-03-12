@@ -13,6 +13,7 @@ class Production
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['production_list', 'production_detail', 'batch_detail'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'productions')]
@@ -22,14 +23,15 @@ class Production
 
     #[ORM\ManyToOne(inversedBy: 'productions')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['production_list', 'production_detail'])]
+    #[Groups(['production_list', 'production_detail', 'batch_detail'])]
     private ?Machine $machine = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['production_list', 'production_detail'])]
+    #[Groups(['production_list', 'production_detail', 'batch_detail'])]
     private ?string $production_note = null;
 
     #[ORM\Column]
+    #[Groups(['production_list', 'production_detail', 'batch_detail'])]
     private ?\DateTime $scheduled_date = null;
 
     public function getId(): ?int
