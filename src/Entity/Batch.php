@@ -16,7 +16,7 @@ class Batch
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['batch_list', 'batch_detail', 'batch_type_detail', 'measurement_unit_detail', 'user_detail'])]
+    #[Groups(['batch_list', 'batch_detail', 'batch_type_detail', 'measurement_unit_detail', 'user_detail', 'production_list', 'production_detail'])]
     private ?int $id = null;
 
     #[ORM\Column]
@@ -24,15 +24,15 @@ class Batch
     private ?bool $completed = null;
 
     #[ORM\Column]
-    #[Groups(['batch_list', 'batch_detail'])]
+    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail'])]
     private ?bool $checked = null;
 
     #[ORM\ManyToOne(inversedBy: 'batches')]
-    #[Groups(['batch_list', 'batch_detail'])]
+    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail'])]
     private ?BatchType $batch_type = null;
 
     #[ORM\Column(length: 50)]
-    #[Groups(['batch_list', 'batch_detail'])]
+    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail'])]
     private ?string $batch_code = null;
 
     #[ORM\Column(nullable: true)]
@@ -40,7 +40,7 @@ class Batch
     private ?\DateTime $batch_date = null;
 
     #[ORM\Column]
-    #[Groups(['batch_list', 'batch_detail'])]
+    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail'])]
     private ?int $pieces = null;
 
     #[ORM\ManyToOne(inversedBy: 'batches')]
@@ -48,7 +48,7 @@ class Batch
     private ?MeasurementUnit $measurement_unit = null;
 
     #[ORM\Column]
-    #[Groups(['batch_list', 'batch_detail'])]
+    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail'])]
     private ?float $quantity = null;
 
     #[ORM\Column]

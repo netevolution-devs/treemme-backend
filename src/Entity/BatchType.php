@@ -14,11 +14,11 @@ class BatchType
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['batch_type_list', 'batch_type_detail', 'batch_detail', 'machine_detail'])]
+    #[Groups(['batch_type_list', 'batch_type_detail', 'batch_detail', 'machine_detail', 'production_list', 'production_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['batch_type_list', 'batch_type_detail', 'batch_detail', 'machine_detail'])]
+    #[Groups(['batch_type_list', 'batch_type_detail', 'batch_detail', 'machine_detail', 'production_list', 'production_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 10, nullable: true)]

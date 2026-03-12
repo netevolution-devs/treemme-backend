@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\ProductionRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ProductionRepository::class)]
 class Production
@@ -16,13 +17,16 @@ class Production
 
     #[ORM\ManyToOne(inversedBy: 'productions')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['production_list', 'production_detail'])]
     private ?Batch $batch = null;
 
     #[ORM\ManyToOne(inversedBy: 'productions')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['production_list', 'production_detail'])]
     private ?Machine $machine = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['production_list', 'production_detail'])]
     private ?string $production_note = null;
 
     #[ORM\Column]
