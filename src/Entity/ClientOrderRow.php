@@ -114,6 +114,7 @@ class ClientOrderRow
     private ?Article $article = null;
 
     #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?Currency $currency = null;
 
     public function __construct()
