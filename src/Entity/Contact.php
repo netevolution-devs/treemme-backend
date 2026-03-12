@@ -164,6 +164,12 @@ class Contact
     #[ORM\OneToMany(mappedBy: 'subcontractor', targetEntity: ContactSubcontractor::class, orphanRemoval: true)]
     private Collection $subcontractorContacts;
 
+    /**
+     * @var Collection<int, Ddt>
+     */
+    #[ORM\OneToMany(mappedBy: 'subcontractor', targetEntity: Ddt::class)]
+    private Collection $ddts;
+
     public function __construct()
     {
         $this->contactAddresses = new ArrayCollection();
@@ -178,6 +184,7 @@ class Contact
         $this->articles = new ArrayCollection();
         $this->contactSubcontractors = new ArrayCollection();
         $this->subcontractorContacts = new ArrayCollection();
+        $this->ddts = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -748,6 +755,36 @@ class Contact
             // set the owning side to null (unless already changed)
             if ($subcontractorContact->getSubcontractor() === $this) {
                 $subcontractorContact->setSubcontractor(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Ddt>
+     */
+    public function getDdts(): Collection
+    {
+        return $this->ddts;
+    }
+
+    public function addDdt(Ddt $ddt): static
+    {
+        if (!$this->ddts->contains($ddt)) {
+            $this->ddts->add($ddt);
+            $ddt->setSubcontractor($this);
+        }
+
+        return $this;
+    }
+
+    public function removeDdt(Ddt $ddt): static
+    {
+        if ($this->ddts->removeElement($ddt)) {
+            // set the owning side to null (unless already changed)
+            if ($ddt->getSubcontractor() === $this) {
+                $ddt->setSubcontractor(null);
             }
         }
 
