@@ -152,6 +152,7 @@ class Batch
     private Collection $productions;
 
     #[ORM\ManyToOne(inversedBy: 'batches')]
+    #[Groups(['batch_list', 'batch_detail'])]
     private ?Article $article = null;
 
     public function __construct()

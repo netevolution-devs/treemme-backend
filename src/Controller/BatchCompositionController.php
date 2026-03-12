@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\Entity\WarehouseMovement;
+use App\Entity\WarehouseMovementReason;
 use App\Entity\BatchComposition;
 use App\Entity\Batch;
 use App\Service\CreateMethodsByInput;
@@ -88,6 +90,8 @@ final class BatchCompositionController extends AbstractController
             $em->persist($batchComposition);
             $em->flush();
 
+            $this->createMovements($batchComposition);
+
             $result = $this->groupSerializer->serializeGroup($batchComposition, 'batch_composition_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
 
@@ -122,8 +126,11 @@ final class BatchCompositionController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse($errors));
             }
 
+            $this->deleteExistingMovements($batchComposition);
             $this->doctrine->persist($batchComposition);
             $this->doctrine->flush();
+
+            $this->createMovements($batchComposition);
 
             $result = $this->groupSerializer->serializeGroup($batchComposition, 'batch_composition_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
@@ -142,10 +149,90 @@ final class BatchCompositionController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse('BatchComposition not found', 404));
         }
 
+        $this->deleteExistingMovements($batchComposition);
         $this->doctrine->remove($batchComposition);
         $this->doctrine->flush();
 
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
+    }
+
+    private function createMovements(BatchComposition $batchComposition): void
+    {
+        $fatherBatch = $batchComposition->getFatherBatch();
+        $batch = $batchComposition->getBatch();
+        $pieces = $batchComposition->getFatherBatchPiece();
+        $quantity = $batchComposition->getFatherBatchQuantity();
+
+        if (!$fatherBatch || !$batch) {
+            return;
+        }
+
+        $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
+
+        // Scarico dal padre
+        $outReason = $reasonRepo->createQueryBuilder('r')
+            ->join('r.reason_type', 't')
+            ->where('r.name = :name')
+            ->andWhere('t.movement_type = :type')
+            ->setParameter('name', 'Scarico Lavorazione')
+            ->setParameter('type', '-')
+            ->getQuery()
+            ->getOneOrNullResult()
+            ?? $reasonRepo->findOneBy(['name' => 'Scarico Lavorazione'])
+            ?? $reasonRepo->findOneBy(['name' => 'Lavorazione Esterna (Uscita)']);
+
+        if ($outReason) {
+            $outMovement = new WarehouseMovement();
+            $outMovement->setBatch($fatherBatch);
+            $outMovement->setReason($outReason);
+            $outMovement->setQuantity($quantity);
+            $outMovement->setPiece($pieces);
+            $outMovement->setDate(new \DateTime());
+            $outMovement->setMovementNote('Scarico per composizione lotto ' . $batch->getBatchCode() . ' (ID Comp: ' . $batchComposition->getId() . ')');
+            $this->doctrine->persist($outMovement);
+        }
+
+        // Carico nel figlio
+        $inReason = $reasonRepo->createQueryBuilder('r')
+            ->join('r.reason_type', 't')
+            ->where('r.name = :name')
+            ->andWhere('t.movement_type = :type')
+            ->setParameter('name', 'Carico Lavorazione')
+            ->setParameter('type', '+')
+            ->getQuery()
+            ->getOneOrNullResult()
+            ?? $reasonRepo->findOneBy(['name' => 'Carico Lavorazione'])
+            ?? $reasonRepo->findOneBy(['name' => 'Lavorazione Esterna (Entrata)']);
+
+        if ($inReason) {
+            $inMovement = new WarehouseMovement();
+            $inMovement->setBatch($batch);
+            $inMovement->setReason($inReason);
+            $inMovement->setQuantity($quantity);
+            $inMovement->setPiece($pieces);
+            $inMovement->setDate(new \DateTime());
+            $inMovement->setMovementNote('Carico da composizione lotto ' . $fatherBatch->getBatchCode() . ' (ID Comp: ' . $batchComposition->getId() . ')');
+            $this->doctrine->persist($inMovement);
+        }
+
+        $this->doctrine->flush();
+    }
+
+    private function deleteExistingMovements(BatchComposition $batchComposition): void
+    {
+        $movementRepo = $this->doctrine->getRepository(WarehouseMovement::class);
+        $noteToSearch = '(ID Comp: ' . $batchComposition->getId() . ')';
+
+        $movements = $movementRepo->createQueryBuilder('m')
+            ->where('m.movement_note LIKE :note')
+            ->setParameter('note', '%' . $noteToSearch . '%')
+            ->getQuery()
+            ->getResult();
+
+        foreach ($movements as $movement) {
+            $this->doctrine->remove($movement);
+        }
+        $this->doctrine->flush();
     }
 
     private function handleRelations(BatchComposition $batchComposition, array &$data): BatchComposition
