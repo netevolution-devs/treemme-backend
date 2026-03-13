@@ -154,7 +154,7 @@ class Batch
     private Collection $productions;
 
     #[ORM\ManyToOne(inversedBy: 'batches')]
-    #[Groups(['batch_list', 'batch_detail'])]
+    #[Groups(['batch_list', 'batch_detail', 'ddt_row_list', 'ddt_row_detail'])]
     private ?Article $article = null;
 
     /**
