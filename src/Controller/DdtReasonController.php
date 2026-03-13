@@ -143,6 +143,8 @@ final class DdtReasonController extends AbstractController
                 throw new \Exception('Causale magazzino non trovata');
             }
             $reason->setWarehouseMovementReason($wmReason);
+
+            unset($data['warehouse_movement_reason_id']);
         }
     }
 }
