@@ -9,6 +9,8 @@ use App\Entity\Article;
 use App\Entity\MeasurementUnit;
 use App\Entity\Currency;
 use App\Entity\WarehouseMovement;
+use App\Entity\WarehouseMovementReason;
+use App\Entity\WarehouseMovementReasonType;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -164,6 +166,60 @@ final class DdtRowController extends AbstractController
         $this->doctrine->flush();
 
         return new JsonResponse($this->doResponse->doResponse(['message' => 'Riga DDT eliminata con successo']));
+    }
+
+    #[Route('/ddt-row/{id}/return',
+        name: 'post_ddt_row_return',
+        requirements: ['id' => '\d+'],
+        methods: ['POST'])]
+    public function postDdtRowReturn(int $id, Request $request): JsonResponse
+    {
+        $ddtRow = $this->doctrine->getRepository(DdtRow::class)->find($id);
+        if (!$ddtRow) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Riga DDT non trovata', 404));
+        }
+
+        $batch = $ddtRow->getBatch();
+        if (!$batch) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Lotto non trovato per questa riga', 404));
+        }
+
+        $data = json_decode($request->getContent(), true) ?? $request->request->all();
+        $quantity = $data['quantity'] ?? $ddtRow->getQuantity();
+        $pieces = $data['pieces'] ?? $ddtRow->getPieces();
+
+        $reason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Carico']);
+        if (!$reason) {
+            $reasonTypeIn = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => 'In']);
+            if ($reasonTypeIn) {
+                $reason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['reason_type' => $reasonTypeIn]);
+            }
+        }
+
+        if (!$reason) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Causale di magazzino "Carico" non trovata', 400));
+        }
+
+        $warehouseMovement = new WarehouseMovement();
+        $warehouseMovement->setBatch($batch);
+        $warehouseMovement->setQuantity($quantity);
+        $warehouseMovement->setPiece($pieces);
+        $warehouseMovement->setReason($reason);
+        $warehouseMovement->setDdtNumber($ddtRow->getDdt()->getDdtNumber());
+        $warehouseMovement->setDdtDate($ddtRow->getDdt()->getDdtDate());
+        $warehouseMovement->setDate(new \DateTime());
+        $warehouseMovement->setMovementNote('Rientro riga DDT ' . $ddtRow->getId());
+
+        $this->doctrine->persist($warehouseMovement);
+
+        $batch->setStockQuantity($batch->getStockQuantity() + $quantity);
+        $batch->setStockItems($batch->getStockItems() + $pieces);
+
+        $this->doctrine->persist($batch);
+        $this->doctrine->flush();
+
+        $results = $this->groupSerializer->serializeGroup([$ddtRow], 'ddt_row_detail');
+        return new JsonResponse($this->doResponse->doResponse($results[0]));
     }
 
     private function handleData(DdtRow $ddtRow, array $data): void

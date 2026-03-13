@@ -14,26 +14,29 @@ class WarehouseMovementReason
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['batch_detail'])]
+    #[Groups(['reason_list', 'reason_detail', 'batch_detail', 'ddt_reason_list', 'ddt_reason_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['batch_detail'])]
+    #[Groups(['reason_list', 'reason_detail', 'batch_detail', 'ddt_reason_list', 'ddt_reason_detail'])]
     private ?string $name = null;
 
     #[ORM\ManyToOne(inversedBy: 'warehouseMovementReasons')]
+    #[Groups(['reason_list', 'reason_detail'])]
     private ?WarehouseMovementReasonType $reason_type = null;
 
     /**
      * @var Collection<int, WarehouseMovement>
      */
     #[ORM\OneToMany(mappedBy: 'reason', targetEntity: WarehouseMovement::class)]
+    #[Groups(['reason_detail'])]
     private Collection $warehouseMovements;
 
     /**
      * @var Collection<int, DdtReason>
      */
     #[ORM\OneToMany(mappedBy: 'warehouse_movement_reason', targetEntity: DdtReason::class, orphanRemoval: true)]
+    #[Groups(['reason_detail'])]
     private Collection $ddtReasons;
 
     public function __construct()
