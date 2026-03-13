@@ -96,7 +96,7 @@ class BatchComposition
         return $this->composition_note;
     }
 
-    public function setCompositionNote(string $composition_note): static
+    public function setCompositionNote(?string $composition_note): static
     {
         $this->composition_note = $composition_note;
 
