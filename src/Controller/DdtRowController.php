@@ -83,8 +83,8 @@ final class DdtRowController extends AbstractController
         $ddtRow = new DdtRow();
         $ddtRow->setDdt($ddt);
         try {
+            $this->handleRelations($ddtRow, $data);
             $this->createMethodsByInput->createMethods($ddtRow, $data);
-            $this->handleData($ddtRow, $data);
         } catch (\Exception $e) {
             return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage(), 400));
         }
@@ -134,8 +134,8 @@ final class DdtRowController extends AbstractController
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
 
         try {
+            $this->handleRelations($ddtRow, $data);
             $this->createMethodsByInput->createMethods($ddtRow, $data);
-            $this->handleData($ddtRow, $data);
         } catch (\Exception $e) {
             return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage(), 400));
         }
@@ -222,35 +222,89 @@ final class DdtRowController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse($results[0]));
     }
 
-    private function handleData(DdtRow $ddtRow, array $data): void
+    #[Route('/ddt-row/{id}/transfer',
+        name: 'post_ddt_row_transfer',
+        requirements: ['id' => '\d+'],
+        methods: ['POST'])]
+    public function postDdtRowTransfer(int $id, Request $request): JsonResponse
+    {
+        $ddtRow = $this->doctrine->getRepository(DdtRow::class)->find($id);
+        if (!$ddtRow) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Riga DDT non trovata', 404));
+        }
+
+        $batch = $ddtRow->getBatch();
+        if (!$batch) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Lotto non trovato per questa riga', 404));
+        }
+
+        $data = json_decode($request->getContent(), true) ?? $request->request->all();
+        $quantity = $data['quantity'] ?? $ddtRow->getQuantity();
+        $pieces = $data['pieces'] ?? $ddtRow->getPieces();
+
+        $reasonIn = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Carico']);
+        if (!$reasonIn) {
+            $reasonTypeIn = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => 'In']);
+            if ($reasonTypeIn) {
+                $reasonIn = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['reason_type' => $reasonTypeIn]);
+            }
+        }
+
+        if (!$reasonIn) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Causale di magazzino "Carico" non trovata', 400));
+        }
+
+        $warehouseMovement = new WarehouseMovement();
+        $warehouseMovement->setBatch($batch);
+        $warehouseMovement->setQuantity($quantity);
+        $warehouseMovement->setPiece($pieces);
+        $warehouseMovement->setReason($reasonIn);
+        $warehouseMovement->setDdtNumber($ddtRow->getDdt()->getDdtNumber());
+        $warehouseMovement->setDdtDate($ddtRow->getDdt()->getDdtDate());
+        $warehouseMovement->setDate(new \DateTime());
+        $warehouseMovement->setMovementNote('Rientro riga DDT ' . $ddtRow->getId());
+
+        $this->doctrine->persist($warehouseMovement);
+
+        $batch->setStockQuantity($batch->getStockQuantity() + $quantity);
+        $batch->setStockItems($batch->getStockItems() + $pieces);
+
+        $this->doctrine->persist($batch);
+        $this->doctrine->flush();
+
+        $results = $this->groupSerializer->serializeGroup([$ddtRow], 'ddt_row_detail');
+        return new JsonResponse($this->doResponse->doResponse($results[0]));
+    }
+
+    private function handleRelations(DdtRow $ddtRow, array &$data): void
     {
         if (isset($data['batch_id'])) {
             $batch = $this->doctrine->getRepository(Batch::class)->find($data['batch_id']);
-            if (!$batch) {
-                throw new \Exception('Lotto non trovato');
+            if ($batch) {
+                $ddtRow->setBatch($batch);
             }
-            $ddtRow->setBatch($batch);
+            unset($data['batch_id']);
         }
         if (isset($data['article_id'])) {
             $article = $this->doctrine->getRepository(Article::class)->find($data['article_id']);
-            if (!$article) {
-                throw new \Exception('Articolo non trovato');
+            if ($article) {
+                $ddtRow->setArticle($article);
             }
-            $ddtRow->setArticle($article);
+            unset($data['article_id']);
         }
         if (isset($data['measurement_unit_id'])) {
             $mu = $this->doctrine->getRepository(MeasurementUnit::class)->find($data['measurement_unit_id']);
-            if (!$mu) {
-                throw new \Exception('Unità di misura non trovata');
+            if ($mu) {
+                $ddtRow->setMeasurementUnit($mu);
             }
-            $ddtRow->setMeasurementUnit($mu);
+            unset($data['measurement_unit_id']);
         }
         if (isset($data['currency_id'])) {
             $currency = $this->doctrine->getRepository(Currency::class)->find($data['currency_id']);
-            if (!$currency) {
-                throw new \Exception('Valuta non trovata');
+            if ($currency) {
+                $ddtRow->setCurrency($currency);
             }
-            $ddtRow->setCurrency($currency);
+            unset($data['currency_id']);
         }
     }
 }
