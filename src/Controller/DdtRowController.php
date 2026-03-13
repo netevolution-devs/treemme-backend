@@ -66,6 +66,18 @@ final class DdtRowController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse($results));
     }
 
+    #[Route('/ddt-row/subcontracting-not-returned',
+        name: 'get_ddt_row_subcontracting_not_returned',
+        methods: ['GET'])]
+    public function getDdtRowSubcontractingNotReturned(): JsonResponse
+    {
+        $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
+        $ddtRows = $ddtRowRepository->findSubcontractingNotReturned();
+
+        $results = $this->groupSerializer->serializeGroup($ddtRows, 'ddt_row_list');
+        return new JsonResponse($this->doResponse->doResponse($results));
+    }
+
     #[Route('/ddt/{ddtId}/row',
         name: 'post_ddt_row',
         requirements: ['ddtId' => '\d+'],
