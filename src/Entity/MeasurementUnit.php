@@ -84,6 +84,12 @@ class MeasurementUnit
     #[ORM\OneToMany(mappedBy: 'end_um', targetEntity: MeasurementUnitCoefficient::class, orphanRemoval: true)]
     private Collection $EndMeasurementUnitCoefficients;
 
+    /**
+     * @var Collection<int, DdtRow>
+     */
+    #[ORM\OneToMany(mappedBy: 'measurement_unit', targetEntity: DdtRow::class)]
+    private Collection $ddtRows;
+
     public function __construct()
     {
         $this->batches = new ArrayCollection();
@@ -94,6 +100,7 @@ class MeasurementUnit
         $this->leatherStatuses = new ArrayCollection();
         $this->MeasurementUnitCoefficients = new ArrayCollection();
         $this->EndMeasurementUnitCoefficients = new ArrayCollection();
+        $this->ddtRows = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -383,6 +390,36 @@ class MeasurementUnit
             // set the owning side to null (unless already changed)
             if ($endMeasurementUnitCoefficient->getEndUm() === $this) {
                 $endMeasurementUnitCoefficient->setEndUm(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, DdtRow>
+     */
+    public function getDdtRows(): Collection
+    {
+        return $this->ddtRows;
+    }
+
+    public function addDdtRow(DdtRow $ddtRow): static
+    {
+        if (!$this->ddtRows->contains($ddtRow)) {
+            $this->ddtRows->add($ddtRow);
+            $ddtRow->setMeasurementUnit($this);
+        }
+
+        return $this;
+    }
+
+    public function removeDdtRow(DdtRow $ddtRow): static
+    {
+        if ($this->ddtRows->removeElement($ddtRow)) {
+            // set the owning side to null (unless already changed)
+            if ($ddtRow->getMeasurementUnit() === $this) {
+                $ddtRow->setMeasurementUnit(null);
             }
         }
 

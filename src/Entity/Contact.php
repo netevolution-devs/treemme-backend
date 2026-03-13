@@ -149,6 +149,27 @@ class Contact
     #[ORM\OneToMany(mappedBy: 'client', targetEntity: Article::class)]
     private Collection $articles;
 
+    #[ORM\Column]
+    private ?bool $subcontractor = null;
+
+    /**
+     * @var Collection<int, ContactSubcontractor>
+     */
+    #[ORM\OneToMany(mappedBy: 'contact', targetEntity: ContactSubcontractor::class, orphanRemoval: true)]
+    private Collection $contactSubcontractors;
+
+    /**
+     * @var Collection<int, ContactSubcontractor>
+     */
+    #[ORM\OneToMany(mappedBy: 'subcontractor', targetEntity: ContactSubcontractor::class, orphanRemoval: true)]
+    private Collection $subcontractorContacts;
+
+    /**
+     * @var Collection<int, Ddt>
+     */
+    #[ORM\OneToMany(mappedBy: 'subcontractor', targetEntity: Ddt::class)]
+    private Collection $ddts;
+
     public function __construct()
     {
         $this->contactAddresses = new ArrayCollection();
@@ -161,6 +182,9 @@ class Contact
         $this->clientOrders = new ArrayCollection();
         $this->contactProducts = new ArrayCollection();
         $this->articles = new ArrayCollection();
+        $this->contactSubcontractors = new ArrayCollection();
+        $this->subcontractorContacts = new ArrayCollection();
+        $this->ddts = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -659,6 +683,108 @@ class Contact
             // set the owning side to null (unless already changed)
             if ($article->getClient() === $this) {
                 $article->setClient(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function isSubcontractor(): ?bool
+    {
+        return $this->subcontractor;
+    }
+
+    public function setSubcontractor(bool $subcontractor): static
+    {
+        $this->subcontractor = $subcontractor;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ContactSubcontractor>
+     */
+    public function getContactSubcontractors(): Collection
+    {
+        return $this->contactSubcontractors;
+    }
+
+    public function addContactSubcontractor(ContactSubcontractor $contactSubcontractor): static
+    {
+        if (!$this->contactSubcontractors->contains($contactSubcontractor)) {
+            $this->contactSubcontractors->add($contactSubcontractor);
+            $contactSubcontractor->setContact($this);
+        }
+
+        return $this;
+    }
+
+    public function removeContactSubcontractor(ContactSubcontractor $contactSubcontractor): static
+    {
+        if ($this->contactSubcontractors->removeElement($contactSubcontractor)) {
+            // set the owning side to null (unless already changed)
+            if ($contactSubcontractor->getContact() === $this) {
+                $contactSubcontractor->setContact(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ContactSubcontractor>
+     */
+    public function getSubcontractorContacts(): Collection
+    {
+        return $this->subcontractorContacts;
+    }
+
+    public function addSubcontractorContact(ContactSubcontractor $subcontractorContact): static
+    {
+        if (!$this->subcontractorContacts->contains($subcontractorContact)) {
+            $this->subcontractorContacts->add($subcontractorContact);
+            $subcontractorContact->setSubcontractor($this);
+        }
+
+        return $this;
+    }
+
+    public function removeSubcontractorContact(ContactSubcontractor $subcontractorContact): static
+    {
+        if ($this->subcontractorContacts->removeElement($subcontractorContact)) {
+            // set the owning side to null (unless already changed)
+            if ($subcontractorContact->getSubcontractor() === $this) {
+                $subcontractorContact->setSubcontractor(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Ddt>
+     */
+    public function getDdts(): Collection
+    {
+        return $this->ddts;
+    }
+
+    public function addDdt(Ddt $ddt): static
+    {
+        if (!$this->ddts->contains($ddt)) {
+            $this->ddts->add($ddt);
+            $ddt->setSubcontractor($this);
+        }
+
+        return $this;
+    }
+
+    public function removeDdt(Ddt $ddt): static
+    {
+        if ($this->ddts->removeElement($ddt)) {
+            // set the owning side to null (unless already changed)
+            if ($ddt->getSubcontractor() === $this) {
+                $ddt->setSubcontractor(null);
             }
         }
 
