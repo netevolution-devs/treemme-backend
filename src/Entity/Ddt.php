@@ -34,17 +34,16 @@ class Ddt
     #[Groups(['ddt_list', 'ddt_detail'])]
     private ?Contact $subcontractor = null;
 
-    #[ORM\ManyToOne(inversedBy: 'ddts')]
-    #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['ddt_list', 'ddt_detail'])]
-    private ?DdtPurpose $ddt_purpose = null;
-
     /**
      * @var Collection<int, DdtRow>
      */
     #[ORM\OneToMany(mappedBy: 'ddt', targetEntity: DdtRow::class, orphanRemoval: true)]
     #[Groups(['ddt_detail'])]
     private Collection $ddtRows;
+
+    #[ORM\ManyToOne(inversedBy: 'ddts')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?DdtReason $reason = null;
 
     public function __construct()
     {
@@ -104,18 +103,6 @@ class Ddt
         return $this;
     }
 
-    public function getDdtPurpose(): ?DdtPurpose
-    {
-        return $this->ddt_purpose;
-    }
-
-    public function setDdtPurpose(?DdtPurpose $ddt_purpose): static
-    {
-        $this->ddt_purpose = $ddt_purpose;
-
-        return $this;
-    }
-
     /**
      * @return Collection<int, DdtRow>
      */
@@ -142,6 +129,18 @@ class Ddt
                 $ddtRow->setDdt(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getReason(): ?DdtReason
+    {
+        return $this->reason;
+    }
+
+    public function setReason(?DdtReason $reason): static
+    {
+        $this->reason = $reason;
 
         return $this;
     }

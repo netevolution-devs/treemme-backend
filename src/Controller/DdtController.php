@@ -4,7 +4,8 @@ namespace App\Controller;
 
 use App\Entity\Ddt;
 use App\Entity\Contact;
-use App\Entity\DdtPurpose;
+use App\Entity\DdtReason;
+use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
 use App\Service\ValidatorOutputFormatter;
@@ -17,17 +18,20 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 final class DdtController extends AbstractController
 {
+    private $createMethodsByInput;
     private $doctrine;
     private $doResponse;
     private $groupSerializer;
     private $validatorOutputFormatter;
 
     public function __construct(
+        CreateMethodsByInput     $createMethodsByInput,
         EntityManagerInterface   $entityManager,
         DoResponseService        $doResponseService,
         GroupSerializerService   $groupSerializer,
         ValidatorOutputFormatter $validatorOutputFormatter
     ) {
+        $this->createMethodsByInput = $createMethodsByInput;
         $this->doctrine = $entityManager;
         $this->doResponse = $doResponseService;
         $this->groupSerializer = $groupSerializer;
@@ -66,6 +70,7 @@ final class DdtController extends AbstractController
 
         $ddt = new Ddt();
         try {
+            $ddt = $this->createMethodsByInput->createMethods($ddt, $data);
             $this->handleData($ddt, $data);
         } catch (\Exception $e) {
             return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage(), 400));
@@ -97,6 +102,7 @@ final class DdtController extends AbstractController
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
 
         try {
+            $this->createMethodsByInput->createMethods($ddt, $data);
             $this->handleData($ddt, $data);
         } catch (\Exception $e) {
             return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage(), 400));
@@ -132,15 +138,6 @@ final class DdtController extends AbstractController
 
     private function handleData(Ddt $ddt, array $data): void
     {
-        if (isset($data['ddt_number'])) {
-            $ddt->setDdtNumber($data['ddt_number']);
-        }
-        if (isset($data['ddt_date'])) {
-            $ddt->setDdtDate(new \DateTime($data['ddt_date']));
-        }
-        if (isset($data['ddt_start_date'])) {
-            $ddt->setDdtStartDate($data['ddt_start_date'] ? new \DateTime($data['ddt_start_date']) : null);
-        }
         if (isset($data['subcontractor_id'])) {
             $subcontractor = $this->doctrine->getRepository(Contact::class)->find($data['subcontractor_id']);
             if (!$subcontractor) {
@@ -148,12 +145,13 @@ final class DdtController extends AbstractController
             }
             $ddt->setSubcontractor($subcontractor);
         }
-        if (isset($data['ddt_purpose_id'])) {
-            $purpose = $this->doctrine->getRepository(DdtPurpose::class)->find($data['ddt_purpose_id']);
-            if (!$purpose) {
-                throw new \Exception('Causale DDT non trovata');
+
+        if (isset($data['reason_id'])) {
+            $reason = $this->doctrine->getRepository(DdtReason::class)->find($data['reason_id']);
+            if (!$reason) {
+                throw new \Exception('Motivo non trovato');
             }
-            $ddt->setDdtPurpose($purpose);
+            $ddt->setReason($reason);
         }
     }
 }

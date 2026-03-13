@@ -8,6 +8,8 @@ use App\Entity\Batch;
 use App\Entity\Article;
 use App\Entity\MeasurementUnit;
 use App\Entity\Currency;
+use App\Entity\WarehouseMovement;
+use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
 use App\Service\ValidatorOutputFormatter;
@@ -20,17 +22,20 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 final class DdtRowController extends AbstractController
 {
+    private $createMethodsByInput;
     private $doctrine;
     private $doResponse;
     private $groupSerializer;
     private $validatorOutputFormatter;
 
     public function __construct(
+        CreateMethodsByInput     $createMethodsByInput,
         EntityManagerInterface   $entityManager,
         DoResponseService        $doResponseService,
         GroupSerializerService   $groupSerializer,
         ValidatorOutputFormatter $validatorOutputFormatter
     ) {
+        $this->createMethodsByInput = $createMethodsByInput;
         $this->doctrine = $entityManager;
         $this->doResponse = $doResponseService;
         $this->groupSerializer = $groupSerializer;
@@ -76,6 +81,7 @@ final class DdtRowController extends AbstractController
         $ddtRow = new DdtRow();
         $ddtRow->setDdt($ddt);
         try {
+            $this->createMethodsByInput->createMethods($ddtRow, $data);
             $this->handleData($ddtRow, $data);
         } catch (\Exception $e) {
             return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage(), 400));
@@ -83,10 +89,29 @@ final class DdtRowController extends AbstractController
 
         $errors = $validator->validate($ddtRow);
         if (count($errors) > 0) {
-            return new JsonResponse($this->doResponse->doErrorResponse($this->validatorOutputFormatter->formatErrors($errors), 400));
+            return new JsonResponse($this->doResponse->doErrorResponse($this->validatorOutputFormatter->formatOutput($errors), 400));
         }
 
         $this->doctrine->persist($ddtRow);
+        $this->doctrine->flush();
+
+        $batch = $ddtRow->getBatch();
+
+        $batch->setStockQuantity($batch->getStockQuantity() - $ddtRow->getQuantity());
+        $batch->setStockItems($batch->getStockItems() - $ddtRow->getPieces());
+
+        $this->doctrine->persist($batch);
+
+        $wearhouseMovement = new WarehouseMovement();
+        $wearhouseMovement->setBatch($batch);
+        $wearhouseMovement->setQuantity($ddtRow->getQuantity());
+        $wearhouseMovement->setPiece($ddtRow->getPieces());
+        $wearhouseMovement->setReason($ddtRow->getDdt()->getReason()->getWarehouseMovementReason());
+        $wearhouseMovement->setDdtDate($ddt->getDate());
+        $wearhouseMovement->setDate($ddt->getDate());
+        $wearhouseMovement->setMovementNote('Riga DDT ' . $ddtRow->getId());
+
+        $this->doctrine->persist($wearhouseMovement);
         $this->doctrine->flush();
 
         $results = $this->groupSerializer->serializeGroup([$ddtRow], 'ddt_row_detail');
@@ -107,6 +132,7 @@ final class DdtRowController extends AbstractController
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
 
         try {
+            $this->createMethodsByInput->createMethods($ddtRow, $data);
             $this->handleData($ddtRow, $data);
         } catch (\Exception $e) {
             return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage(), 400));
@@ -114,7 +140,7 @@ final class DdtRowController extends AbstractController
 
         $errors = $validator->validate($ddtRow);
         if (count($errors) > 0) {
-            return new JsonResponse($this->doResponse->doErrorResponse($this->validatorOutputFormatter->formatErrors($errors), 400));
+            return new JsonResponse($this->doResponse->doErrorResponse($this->validatorOutputFormatter->formatOutput($errors), 400));
         }
 
         $this->doctrine->flush();
@@ -142,9 +168,6 @@ final class DdtRowController extends AbstractController
 
     private function handleData(DdtRow $ddtRow, array $data): void
     {
-        if (isset($data['order_note'])) {
-            $ddtRow->setOrderNote($data['order_note']);
-        }
         if (isset($data['batch_id'])) {
             $batch = $this->doctrine->getRepository(Batch::class)->find($data['batch_id']);
             if (!$batch) {
@@ -159,9 +182,6 @@ final class DdtRowController extends AbstractController
             }
             $ddtRow->setArticle($article);
         }
-        if (isset($data['pieces'])) {
-            $ddtRow->setPieces((int)$data['pieces']);
-        }
         if (isset($data['measurement_unit_id'])) {
             $mu = $this->doctrine->getRepository(MeasurementUnit::class)->find($data['measurement_unit_id']);
             if (!$mu) {
@@ -169,42 +189,12 @@ final class DdtRowController extends AbstractController
             }
             $ddtRow->setMeasurementUnit($mu);
         }
-        if (isset($data['quantity'])) {
-            $ddtRow->setQuantity((float)$data['quantity']);
-        }
-        if (isset($data['price'])) {
-            $ddtRow->setPrice((float)$data['price']);
-        }
-        if (isset($data['total_value'])) {
-            $ddtRow->setTotalValue((float)$data['total_value']);
-        }
         if (isset($data['currency_id'])) {
             $currency = $this->doctrine->getRepository(Currency::class)->find($data['currency_id']);
             if (!$currency) {
                 throw new \Exception('Valuta non trovata');
             }
             $ddtRow->setCurrency($currency);
-        }
-        if (isset($data['currency_price'])) {
-            $ddtRow->setCurrencyPrice((float)$data['currency_price']);
-        }
-        if (isset($data['currency_change'])) {
-            $ddtRow->setCurrencyChange((float)$data['currency_change']);
-        }
-        if (isset($data['currency_total_value'])) {
-            $ddtRow->setCurrencyTotalValue((float)$data['currency_total_value']);
-        }
-        if (isset($data['KG_weight'])) {
-            $ddtRow->setKGWeight((float)$data['KG_weight']);
-        }
-        if (isset($data['row_note'])) {
-            $ddtRow->setRowNote($data['row_note']);
-        }
-        if (isset($data['whole_piece'])) {
-            $ddtRow->setWholePiece((int)$data['whole_piece']);
-        }
-        if (isset($data['half_piece'])) {
-            $ddtRow->setHalfPiece((int)$data['half_piece']);
         }
     }
 }

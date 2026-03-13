@@ -2,30 +2,30 @@
 
 namespace App\Entity;
 
-use App\Repository\DdtPurposeRepository;
+use App\Repository\DdtReasonRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use JMS\Serializer\Annotation\Groups;
 
-#[ORM\Entity(repositoryClass: DdtPurposeRepository::class)]
-class DdtPurpose
+#[ORM\Entity(repositoryClass: DdtReasonRepository::class)]
+class DdtReason
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['ddt_list', 'ddt_detail', 'ddt_purpose_list'])]
     private ?int $id = null;
 
-    #[ORM\ManyToOne(targetEntity: self::class, inversedBy: 'ddtPurposes')]
+    #[ORM\Column(length: 255)]
+    private ?string $name = null;
+
+    #[ORM\ManyToOne(inversedBy: 'ddtReasons')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['ddt_list', 'ddt_detail', 'ddt_purpose_list'])]
-    private ?self $ddt_purpose = null;
+    private ?WarehouseMovementReason $warehouse_movement_reason = null;
 
     /**
      * @var Collection<int, Ddt>
      */
-    #[ORM\OneToMany(mappedBy: 'ddt_purpose', targetEntity: Ddt::class)]
+    #[ORM\OneToMany(mappedBy: 'reason', targetEntity: Ddt::class)]
     private Collection $ddts;
 
     public function __construct()
@@ -38,14 +38,26 @@ class DdtPurpose
         return $this->id;
     }
 
-    public function getDdtPurpose(): ?self
+    public function getName(): ?string
     {
-        return $this->ddt_purpose;
+        return $this->name;
     }
 
-    public function setDdtPurpose(?self $ddt_purpose): static
+    public function setName(string $name): static
     {
-        $this->ddt_purpose = $ddt_purpose;
+        $this->name = $name;
+
+        return $this;
+    }
+
+    public function getWarehouseMovementReason(): ?WarehouseMovementReason
+    {
+        return $this->warehouse_movement_reason;
+    }
+
+    public function setWarehouseMovementReason(?WarehouseMovementReason $warehouse_movement_reason): static
+    {
+        $this->warehouse_movement_reason = $warehouse_movement_reason;
 
         return $this;
     }
@@ -62,7 +74,7 @@ class DdtPurpose
     {
         if (!$this->ddts->contains($ddt)) {
             $this->ddts->add($ddt);
-            $ddt->setDdtPurpose($this);
+            $ddt->setReason($this);
         }
 
         return $this;
@@ -72,12 +84,11 @@ class DdtPurpose
     {
         if ($this->ddts->removeElement($ddt)) {
             // set the owning side to null (unless already changed)
-            if ($ddt->getDdtPurpose() === $this) {
-                $ddt->setDdtPurpose(null);
+            if ($ddt->getReason() === $this) {
+                $ddt->setReason(null);
             }
         }
 
         return $this;
     }
-
 }
