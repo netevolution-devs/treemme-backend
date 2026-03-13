@@ -30,9 +30,16 @@ class WarehouseMovementReason
     #[ORM\OneToMany(mappedBy: 'reason', targetEntity: WarehouseMovement::class)]
     private Collection $warehouseMovements;
 
+    /**
+     * @var Collection<int, DdtReason>
+     */
+    #[ORM\OneToMany(mappedBy: 'warehouse_movement_reason', targetEntity: DdtReason::class, orphanRemoval: true)]
+    private Collection $ddtReasons;
+
     public function __construct()
     {
         $this->warehouseMovements = new ArrayCollection();
+        $this->ddtReasons = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -88,6 +95,36 @@ class WarehouseMovementReason
             // set the owning side to null (unless already changed)
             if ($warehouseMovement->getReason() === $this) {
                 $warehouseMovement->setReason(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, DdtReason>
+     */
+    public function getDdtReasons(): Collection
+    {
+        return $this->ddtReasons;
+    }
+
+    public function addDdtReason(DdtReason $ddtReason): static
+    {
+        if (!$this->ddtReasons->contains($ddtReason)) {
+            $this->ddtReasons->add($ddtReason);
+            $ddtReason->setWarehouseMovementReason($this);
+        }
+
+        return $this;
+    }
+
+    public function removeDdtReason(DdtReason $ddtReason): static
+    {
+        if ($this->ddtReasons->removeElement($ddtReason)) {
+            // set the owning side to null (unless already changed)
+            if ($ddtReason->getWarehouseMovementReason() === $this) {
+                $ddtReason->setWarehouseMovementReason(null);
             }
         }
 
