@@ -18,12 +18,12 @@ class BatchComposition
 
     #[ORM\ManyToOne(inversedBy: 'batchCompositions')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['batch_composition_list', 'batch_composition_detail', 'batch_detail'])]
+    #[Groups(['batch_composition_list', 'batch_composition_detail'])]
     private ?Batch $batch = null;
 
     #[ORM\ManyToOne(inversedBy: 'sonBatches')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['batch_composition_list', 'batch_composition_detail'])]
+    #[Groups(['batch_composition_list', 'batch_composition_detail', 'batch_detail'])]
     private ?Batch $father_batch = null;
 
     #[ORM\Column]
@@ -96,7 +96,7 @@ class BatchComposition
         return $this->composition_note;
     }
 
-    public function setCompositionNote(string $composition_note): static
+    public function setCompositionNote(?string $composition_note): static
     {
         $this->composition_note = $composition_note;
 
