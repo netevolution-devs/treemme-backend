@@ -70,8 +70,8 @@ final class DdtController extends AbstractController
 
         $ddt = new Ddt();
         try {
+            $this->handleRelations($ddt, $data);
             $ddt = $this->createMethodsByInput->createMethods($ddt, $data);
-            $this->handleData($ddt, $data);
         } catch (\Exception $e) {
             return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage(), 400));
         }
@@ -102,8 +102,8 @@ final class DdtController extends AbstractController
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
 
         try {
+            $this->handleRelations($ddt, $data);
             $this->createMethodsByInput->createMethods($ddt, $data);
-            $this->handleData($ddt, $data);
         } catch (\Exception $e) {
             return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage(), 400));
         }
@@ -136,22 +136,22 @@ final class DdtController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse(['message' => 'DDT eliminato con successo']));
     }
 
-    private function handleData(Ddt $ddt, array $data): void
+    private function handleRelations(Ddt $ddt, array &$data): void
     {
         if (isset($data['subcontractor_id'])) {
             $subcontractor = $this->doctrine->getRepository(Contact::class)->find($data['subcontractor_id']);
-            if (!$subcontractor) {
-                throw new \Exception('Terzista non trovato');
+            if ($subcontractor) {
+                $ddt->setSubcontractor($subcontractor);
             }
-            $ddt->setSubcontractor($subcontractor);
+            unset($data['subcontractor_id']);
         }
 
         if (isset($data['reason_id'])) {
             $reason = $this->doctrine->getRepository(DdtReason::class)->find($data['reason_id']);
-            if (!$reason) {
-                throw new \Exception('Motivo non trovato');
+            if ($reason) {
+                $ddt->setReason($reason);
             }
-            $ddt->setReason($reason);
+            unset($data['reason_id']);
         }
     }
 }

@@ -68,6 +68,7 @@ final class WarehouseMovementReasonTypeController extends AbstractController
 
         $reasonType = new WarehouseMovementReasonType();
         try {
+            $this->handleRelations($reasonType, $data);
             $reasonType = $this->createMethodsByInput->createMethods($reasonType, $data);
         } catch (\Exception $e) {
             return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage(), 400));
@@ -99,6 +100,7 @@ final class WarehouseMovementReasonTypeController extends AbstractController
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
 
         try {
+            $this->handleRelations($reasonType, $data);
             $this->createMethodsByInput->createMethods($reasonType, $data);
         } catch (\Exception $e) {
             return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage(), 400));
@@ -130,5 +132,9 @@ final class WarehouseMovementReasonTypeController extends AbstractController
         $this->doctrine->flush();
 
         return new JsonResponse($this->doResponse->doResponse(['message' => 'Tipo causale magazzino eliminato con successo']));
+    }
+
+    private function handleRelations(WarehouseMovementReasonType $reasonType, array &$data): void
+    {
     }
 }

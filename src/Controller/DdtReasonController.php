@@ -65,12 +65,14 @@ final class DdtReasonController extends AbstractController
         methods: ['POST'])]
     public function postDdtReason(Request $request, ValidatorInterface $validator): JsonResponse
     {
-        $data = json_decode($request->getContent(), true) ?? $request->request->all();
+        $data = $request->request->all();
 
         $reason = new DdtReason();
+
         try {
+            $this->handleRelations($reason, $data);
             $reason = $this->createMethodsByInput->createMethods($reason, $data);
-            $this->handleData($reason, $data);
+
         } catch (\Exception $e) {
             return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage(), 400));
         }
@@ -101,8 +103,8 @@ final class DdtReasonController extends AbstractController
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
 
         try {
+            $this->handleRelations($reason, $data);
             $this->createMethodsByInput->createMethods($reason, $data);
-            $this->handleData($reason, $data);
         } catch (\Exception $e) {
             return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage(), 400));
         }
@@ -135,14 +137,14 @@ final class DdtReasonController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse(['message' => 'Causale DDT eliminata con successo']));
     }
 
-    private function handleData(DdtReason $reason, array $data): void
+    private function handleRelations(DdtReason $reason, array &$data): void
     {
         if (isset($data['warehouse_movement_reason_id'])) {
             $wmReason = $this->doctrine->getRepository(WarehouseMovementReason::class)->find($data['warehouse_movement_reason_id']);
-            if (!$wmReason) {
-                throw new \Exception('Causale magazzino non trovata');
+
+            if ($wmReason) {
+                $reason->setWarehouseMovementReason($wmReason);
             }
-            $reason->setWarehouseMovementReason($wmReason);
 
             unset($data['warehouse_movement_reason_id']);
         }

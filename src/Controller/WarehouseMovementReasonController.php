@@ -69,8 +69,8 @@ final class WarehouseMovementReasonController extends AbstractController
 
         $reason = new WarehouseMovementReason();
         try {
+            $this->handleRelations($reason, $data);
             $reason = $this->createMethodsByInput->createMethods($reason, $data);
-            $this->handleData($reason, $data);
         } catch (\Exception $e) {
             return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage(), 400));
         }
@@ -101,8 +101,8 @@ final class WarehouseMovementReasonController extends AbstractController
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
 
         try {
+            $this->handleRelations($reason, $data);
             $this->createMethodsByInput->createMethods($reason, $data);
-            $this->handleData($reason, $data);
         } catch (\Exception $e) {
             return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage(), 400));
         }
@@ -135,14 +135,14 @@ final class WarehouseMovementReasonController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse(['message' => 'Causale magazzino eliminata con successo']));
     }
 
-    private function handleData(WarehouseMovementReason $reason, array $data): void
+    private function handleRelations(WarehouseMovementReason $reason, array &$data): void
     {
         if (isset($data['reason_type_id'])) {
             $reasonType = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->find($data['reason_type_id']);
-            if (!$reasonType) {
-                throw new \Exception('Tipo causale non trovato');
+            if ($reasonType) {
+                $reason->setReasonType($reasonType);
             }
-            $reason->setReasonType($reasonType);
+            unset($data['reason_type_id']);
         }
     }
 }
