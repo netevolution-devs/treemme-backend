@@ -6,6 +6,7 @@ use App\Repository\DdtPurposeRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: DdtPurposeRepository::class)]
 class DdtPurpose
@@ -13,10 +14,12 @@ class DdtPurpose
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['ddt_list', 'ddt_detail', 'ddt_purpose_list'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(targetEntity: self::class, inversedBy: 'ddtPurposes')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['ddt_list', 'ddt_detail', 'ddt_purpose_list'])]
     private ?self $ddt_purpose = null;
 
     /**

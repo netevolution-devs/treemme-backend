@@ -42,10 +42,17 @@ class Currency
     #[ORM\OneToMany(mappedBy: 'currency', targetEntity: ClientOrderRow::class)]
     private Collection $clientOrderRows;
 
+    /**
+     * @var Collection<int, DdtRow>
+     */
+    #[ORM\OneToMany(mappedBy: 'currency', targetEntity: DdtRow::class)]
+    private Collection $ddtRows;
+
     public function __construct()
     {
         $this->batchCosts = new ArrayCollection();
         $this->clientOrderRows = new ArrayCollection();
+        $this->ddtRows = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -143,6 +150,36 @@ class Currency
             // set the owning side to null (unless already changed)
             if ($clientOrderRow->getCurrency() === $this) {
                 $clientOrderRow->setCurrency(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, DdtRow>
+     */
+    public function getDdtRows(): Collection
+    {
+        return $this->ddtRows;
+    }
+
+    public function addDdtRow(DdtRow $ddtRow): static
+    {
+        if (!$this->ddtRows->contains($ddtRow)) {
+            $this->ddtRows->add($ddtRow);
+            $ddtRow->setCurrency($this);
+        }
+
+        return $this;
+    }
+
+    public function removeDdtRow(DdtRow $ddtRow): static
+    {
+        if ($this->ddtRows->removeElement($ddtRow)) {
+            // set the owning side to null (unless already changed)
+            if ($ddtRow->getCurrency() === $this) {
+                $ddtRow->setCurrency(null);
             }
         }
 
