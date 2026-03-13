@@ -354,16 +354,7 @@ final class BatchController extends AbstractController
 
         $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
 
-        $outReason = $reasonRepo->createQueryBuilder('r')
-            ->join('r.reason_type', 't')
-            ->where('r.name = :name')
-            ->andWhere('t.movement_type = :type')
-            ->setParameter('name', 'Scarico per lavorazione esterna')
-            ->setParameter('type', '-')
-            ->getQuery()
-            ->getOneOrNullResult()
-            ?? $reasonRepo->findOneBy(['name' => 'Lavorazione Esterna (Uscita)'])
-            ?? $reasonRepo->findOneBy(['name' => 'Scarico Lavorazione']);
+        $outReason = $reasonRepo->findOneBy(['name' => 'Scarico']);
 
         if ($outReason) {
             $outMovement = new WarehouseMovement();
@@ -376,16 +367,7 @@ final class BatchController extends AbstractController
             $this->doctrine->persist($outMovement);
         }
 
-        $inReason = $reasonRepo->createQueryBuilder('r')
-            ->join('r.reason_type', 't')
-            ->where('r.name = :name')
-            ->andWhere('t.movement_type = :type')
-            ->setParameter('name', 'Carico da lavorazione esterna')
-            ->setParameter('type', '+')
-            ->getQuery()
-            ->getOneOrNullResult()
-            ?? $reasonRepo->findOneBy(['name' => 'Lavorazione Esterna (Entrata)'])
-            ?? $reasonRepo->findOneBy(['name' => 'Carico Lavorazione']);
+        $inReason = $reasonRepo->findOneBy(['name' => 'Carico']);
 
         if ($inReason) {
             $inMovement = new WarehouseMovement();
@@ -394,28 +376,8 @@ final class BatchController extends AbstractController
             $inMovement->setQuantity($newQuantity);
             $inMovement->setPiece($piecesToRework);
             $inMovement->setDate(new \DateTime());
-            $inMovement->setMovementNote('Entrata da riverdimento');
+            $inMovement->setMovementNote('Entrata da riverdimento del lotto ' . $fatherBatch->getBatchCode());
             $this->doctrine->persist($inMovement);
-        }
-
-        $outReasonR = $reasonRepo->createQueryBuilder('r')
-            ->join('r.reason_type', 't')
-            ->where('r.name = :name')
-            ->andWhere('t.movement_type = :type')
-            ->setParameter('name', 'Scarico')
-            ->setParameter('type', '-')
-            ->getQuery()
-            ->getOneOrNullResult();
-
-        if ($outReasonR) {
-            $outMov = new WarehouseMovement();
-            $outMov->setBatch($newBatch);
-            $outMov->setReason($outReasonR);
-            $outMov->setQuantity($newQuantity);
-            $outMov->setPiece($piecesToRework);
-            $outMov->setDate(new \DateTime());
-            $outMov->setMovementNote('Scarico per lavorazione esterna (Riverdimento)');
-            $this->doctrine->persist($outMov);
         }
 
         $this->doctrine->flush();
@@ -697,16 +659,11 @@ final class BatchController extends AbstractController
             $this->doctrine->persist($batch);
 
             $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
-            $inReason = $reasonRepo->createQueryBuilder('r')
-                ->join('r.reason_type', 't')
-                ->where('r.name = :name')
-                ->andWhere('t.movement_type = :type')
-                ->setParameter('name', 'Carico iniziale')
-                ->setParameter('type', '+')
-                ->getQuery()
-                ->getOneOrNullResult()
-                ?? $reasonRepo->findOneBy(['name' => 'Carico Iniziale'])
-                ?? $reasonRepo->findOneBy(['name' => 'Acquisto']);
+            $inReason = $reasonRepo->findOneBy(['name' => 'Carico']);
+
+            if(!$inReason) {
+                return new JsonResponse($this->doResponse->doErrorResponse('Causale "Carico" non trovata'), 400);
+            }
 
             if ($inReason) {
                 $movement = new WarehouseMovement();

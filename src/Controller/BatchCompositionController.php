@@ -102,6 +102,13 @@ final class BatchCompositionController extends AbstractController
                 $fatherBatch = $this->doctrine->getRepository(Batch::class)->find($data['father_batch_id']);
             }
 
+            //Calcolo della quantità da convertire
+            $fatherBatchPiecesToConvert = $data['father_batch_piece'] ?? 0;
+            $fatherBatchPiecesTotal = $fatherBatch->getPieces() ?? 0;
+            $fatherBatchQuantityTotal = $fatherBatch->getQuantity() ?? 0;
+            $pieceQuantity = $fatherBatchQuantityTotal / $fatherBatchPiecesTotal;
+            $quantityToConvert = $fatherBatchPiecesToConvert * $pieceQuantity;
+
             $batchComposition = $this->handleRelations($batchComposition, $data);
             $batchComposition = $this->createMethodsByInput->createMethods($batchComposition, $data);
 
@@ -118,11 +125,13 @@ final class BatchCompositionController extends AbstractController
                     ]);
 
                     if ($coefficient) {
-                        $childQuantity = $batchComposition->getFatherBatchQuantity() * $coefficient->getCoefficient();
+                        $childQuantity = $quantityToConvert * $coefficient->getCoefficient();
                     }
                 }
                 $batch->setStockQuantity($batch->getStockQuantity() + $childQuantity);
                 $batch->setStockItems($batch->getStockItems() + $batchComposition->getFatherBatchPiece());
+                $batch->setPieces($batch->getPieces() + $batchComposition->getFatherBatchPiece());
+                $batch->setQuantity($batch->getQuantity() + $batchComposition->getFatherBatchQuantity());
                 $this->doctrine->persist($batch);
             }
 
@@ -237,16 +246,7 @@ final class BatchCompositionController extends AbstractController
         $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
 
         // Scarico dal padre
-        $outReason = $reasonRepo->createQueryBuilder('r')
-            ->join('r.reason_type', 't')
-            ->where('r.name = :name')
-            ->andWhere('t.movement_type = :type')
-            ->setParameter('name', 'Scarico Lavorazione')
-            ->setParameter('type', '-')
-            ->getQuery()
-            ->getOneOrNullResult()
-            ?? $reasonRepo->findOneBy(['name' => 'Scarico Lavorazione'])
-            ?? $reasonRepo->findOneBy(['name' => 'Lavorazione Esterna (Uscita)']);
+        $outReason = $reasonRepo->findOneBy(['name' => 'Scarico']);
 
         if ($outReason) {
             $outMovement = new WarehouseMovement();
@@ -255,21 +255,12 @@ final class BatchCompositionController extends AbstractController
             $outMovement->setQuantity($quantity);
             $outMovement->setPiece($pieces);
             $outMovement->setDate(new \DateTime());
-            $outMovement->setMovementNote('Scarico per composizione lotto ' . $batch->getBatchCode() . ' (ID Comp: ' . $batchComposition->getId() . ')');
+            $outMovement->setMovementNote('Scarico per composizione lotto ' . $batch->getBatchCode());
             $this->doctrine->persist($outMovement);
         }
 
         // Carico nel figlio
-        $inReason = $reasonRepo->createQueryBuilder('r')
-            ->join('r.reason_type', 't')
-            ->where('r.name = :name')
-            ->andWhere('t.movement_type = :type')
-            ->setParameter('name', 'Carico Lavorazione')
-            ->setParameter('type', '+')
-            ->getQuery()
-            ->getOneOrNullResult()
-            ?? $reasonRepo->findOneBy(['name' => 'Carico Lavorazione'])
-            ?? $reasonRepo->findOneBy(['name' => 'Lavorazione Esterna (Entrata)']);
+        $inReason =  $reasonRepo->findOneBy(['name' => 'Carico']);
 
         if ($inReason) {
             $inMovement = new WarehouseMovement();
@@ -278,7 +269,7 @@ final class BatchCompositionController extends AbstractController
             $inMovement->setQuantity($childQuantity);
             $inMovement->setPiece($pieces);
             $inMovement->setDate(new \DateTime());
-            $inMovement->setMovementNote('Carico da composizione lotto ' . $fatherBatch->getBatchCode() . ' (ID Comp: ' . $batchComposition->getId() . ')');
+            $inMovement->setMovementNote('Carico da composizione lotto ' . $fatherBatch->getBatchCode());
             $this->doctrine->persist($inMovement);
         }
 
