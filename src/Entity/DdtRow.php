@@ -21,13 +21,9 @@ class DdtRow
     private ?string $order_note = null;
 
     #[ORM\ManyToOne(inversedBy: 'ddtRows')]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
-    private ?Batch $batch = null;
-
-    #[ORM\ManyToOne(inversedBy: 'ddtRows')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
-    private ?Article $article = null;
+    private ?Batch $batch = null;
 
     #[ORM\Column]
     #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
@@ -111,18 +107,6 @@ class DdtRow
     public function setBatch(?Batch $batch): static
     {
         $this->batch = $batch;
-
-        return $this;
-    }
-
-    public function getArticle(): ?Article
-    {
-        return $this->article;
-    }
-
-    public function setArticle(?Article $article): static
-    {
-        $this->article = $article;
 
         return $this;
     }

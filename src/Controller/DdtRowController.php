@@ -5,7 +5,6 @@ namespace App\Controller;
 use App\Entity\Ddt;
 use App\Entity\DdtRow;
 use App\Entity\Batch;
-use App\Entity\Article;
 use App\Entity\MeasurementUnit;
 use App\Entity\Currency;
 use App\Entity\WarehouseMovement;
@@ -266,10 +265,29 @@ final class DdtRowController extends AbstractController
 
         $this->doctrine->persist($warehouseMovement);
 
-        $batch->setStockQuantity($batch->getStockQuantity() + $quantity);
-        $batch->setStockItems($batch->getStockItems() + $pieces);
+        $reasonOut = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Scarico']);
+        if (!$reasonOut) {
+            $reasonTypeOut = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => 'Out']);
+            if ($reasonTypeOut) {
+                $reasonOut = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['reason_type' => $reasonTypeOut]);
+            }
+        }
 
-        $this->doctrine->persist($batch);
+        if (!$reasonOut) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Causale di magazzino "Scarico" non trovata', 400));
+        }
+
+        $warehouseMovement = new WarehouseMovement();
+        $warehouseMovement->setBatch($batch);
+        $warehouseMovement->setQuantity($quantity);
+        $warehouseMovement->setPiece($pieces);
+        $warehouseMovement->setReason($reasonOut);
+        $warehouseMovement->setDdtNumber($ddtRow->getDdt()->getDdtNumber());
+        $warehouseMovement->setDdtDate($ddtRow->getDdt()->getDdtDate());
+        $warehouseMovement->setDate(new \DateTime());
+        $warehouseMovement->setMovementNote('Uscita riga DDT ' . $ddtRow->getId());
+
+        $this->doctrine->persist($warehouseMovement);
         $this->doctrine->flush();
 
         $results = $this->groupSerializer->serializeGroup([$ddtRow], 'ddt_row_detail');
@@ -284,13 +302,6 @@ final class DdtRowController extends AbstractController
                 $ddtRow->setBatch($batch);
             }
             unset($data['batch_id']);
-        }
-        if (isset($data['article_id'])) {
-            $article = $this->doctrine->getRepository(Article::class)->find($data['article_id']);
-            if ($article) {
-                $ddtRow->setArticle($article);
-            }
-            unset($data['article_id']);
         }
         if (isset($data['measurement_unit_id'])) {
             $mu = $this->doctrine->getRepository(MeasurementUnit::class)->find($data['measurement_unit_id']);
