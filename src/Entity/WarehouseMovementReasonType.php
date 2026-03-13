@@ -6,6 +6,7 @@ use App\Repository\WarehouseMovementReasonTypeRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: WarehouseMovementReasonTypeRepository::class)]
 class WarehouseMovementReasonType
@@ -13,18 +14,22 @@ class WarehouseMovementReasonType
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['reason_type_list', 'reason_type_detail', 'reason_list', 'reason_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['reason_type_list', 'reason_type_detail', 'reason_list', 'reason_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 5)]
+    #[Groups(['reason_type_list', 'reason_type_detail', 'reason_list', 'reason_detail'])]
     private ?string $movement_type = null;
 
     /**
      * @var Collection<int, WarehouseMovementReason>
      */
     #[ORM\OneToMany(mappedBy: 'reason_type', targetEntity: WarehouseMovementReason::class)]
+    #[Groups(['reason_type_detail'])]
     private Collection $warehouseMovementReasons;
 
     public function __construct()
