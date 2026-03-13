@@ -98,10 +98,17 @@ class Article
     #[Groups(['article_list', 'article_detail', 'client_order_row_detail', 'client_order_detail', 'batch_list', 'batch_detail'])]
     private ?string $name = null;
 
+    /**
+     * @var Collection<int, DdtRow>
+     */
+    #[ORM\OneToMany(mappedBy: 'article', targetEntity: DdtRow::class, orphanRemoval: true)]
+    private Collection $ddtRows;
+
     public function __construct()
     {
         $this->batches = new ArrayCollection();
         $this->clientOrderRows = new ArrayCollection();
+        $this->ddtRows = new ArrayCollection();
     }
 
 
@@ -359,6 +366,36 @@ class Article
     public function setName(?string $name): static
     {
         $this->name = $name;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, DdtRow>
+     */
+    public function getDdtRows(): Collection
+    {
+        return $this->ddtRows;
+    }
+
+    public function addDdtRow(DdtRow $ddtRow): static
+    {
+        if (!$this->ddtRows->contains($ddtRow)) {
+            $this->ddtRows->add($ddtRow);
+            $ddtRow->setArticle($this);
+        }
+
+        return $this;
+    }
+
+    public function removeDdtRow(DdtRow $ddtRow): static
+    {
+        if ($this->ddtRows->removeElement($ddtRow)) {
+            // set the owning side to null (unless already changed)
+            if ($ddtRow->getArticle() === $this) {
+                $ddtRow->setArticle(null);
+            }
+        }
 
         return $this;
     }

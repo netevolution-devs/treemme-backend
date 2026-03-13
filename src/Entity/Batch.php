@@ -157,6 +157,12 @@ class Batch
     #[Groups(['batch_list', 'batch_detail'])]
     private ?Article $article = null;
 
+    /**
+     * @var Collection<int, DdtRow>
+     */
+    #[ORM\OneToMany(mappedBy: 'batch', targetEntity: DdtRow::class)]
+    private Collection $ddtRows;
+
     public function __construct()
     {
         $this->batchCosts = new ArrayCollection();
@@ -166,6 +172,7 @@ class Batch
         $this->batchSelections = new ArrayCollection();
         $this->batchOrders = new ArrayCollection();
         $this->productions = new ArrayCollection();
+        $this->ddtRows = new ArrayCollection();
     }
 
     #[VirtualProperty]
@@ -668,6 +675,36 @@ class Batch
     public function setArticle(?Article $article): static
     {
         $this->article = $article;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, DdtRow>
+     */
+    public function getDdtRows(): Collection
+    {
+        return $this->ddtRows;
+    }
+
+    public function addDdtRow(DdtRow $ddtRow): static
+    {
+        if (!$this->ddtRows->contains($ddtRow)) {
+            $this->ddtRows->add($ddtRow);
+            $ddtRow->setBatch($this);
+        }
+
+        return $this;
+    }
+
+    public function removeDdtRow(DdtRow $ddtRow): static
+    {
+        if ($this->ddtRows->removeElement($ddtRow)) {
+            // set the owning side to null (unless already changed)
+            if ($ddtRow->getBatch() === $this) {
+                $ddtRow->setBatch(null);
+            }
+        }
 
         return $this;
     }
