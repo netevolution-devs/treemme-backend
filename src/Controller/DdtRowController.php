@@ -80,19 +80,12 @@ final class DdtRowController extends AbstractController
 
     #[Route('/ddt-row',
         name: 'post_ddt_row',
-        requirements: ['ddtId' => '\d+'],
         methods: ['POST'])]
-    public function postDdtRow(int $ddtId, Request $request, ValidatorInterface $validator): JsonResponse
+    public function postDdtRow(Request $request, ValidatorInterface $validator): JsonResponse
     {
-        $ddt = $this->doctrine->getRepository(Ddt::class)->find($ddtId);
-        if (!$ddt) {
-            return new JsonResponse($this->doResponse->doErrorResponse('DDT non trovato', 404));
-        }
-
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
-
         $ddtRow = new DdtRow();
-        $ddtRow->setDdt($ddt);
+
         try {
             $this->handleRelations($ddtRow, $data);
             $this->createMethodsByInput->createMethods($ddtRow, $data);
