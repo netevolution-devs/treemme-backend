@@ -82,6 +82,7 @@ class DdtRow
     private ?int $half_piece = null;
 
     #[ORM\ManyToOne(inversedBy: 'ddtRows')]
+    #[Groups(['ddt_row_detail'])]
     private ?Selection $selection = null;
 
     public function getId(): ?int
