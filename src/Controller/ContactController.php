@@ -96,6 +96,8 @@ final class ContactController extends AbstractController
                 $group = 'contact_supplier';
             } else if ($type == 'agent') {
                 $group = 'contact_agent_list';
+            } else if ($type == 'subcontractor') {
+                $group = 'contact_subcontractor_list';
             }
         }
 
