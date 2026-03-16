@@ -33,7 +33,9 @@ class DdtRowRepository extends ServiceEntityRepository
                 WHERE rt2.movement_type = \'In\'
             )')
             ->andWhere('rt.movement_type = :out_type')
+            ->andWhere('drn.name = :reason_name')
             ->setParameter('out_type', 'Out')
+            ->setParameter('reason_name', 'C/O Lavorazione')
             ->groupBy('dr.id', 'd.ddt_date')
             ->having('dr.quantity > SUM(COALESCE(wm.quantity, 0))')
             ->getQuery()

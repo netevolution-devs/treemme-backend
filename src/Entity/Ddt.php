@@ -43,6 +43,7 @@ class Ddt
 
     #[ORM\ManyToOne(inversedBy: 'ddts')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['ddt_list', 'ddt_detail'])]
     private ?DdtReason $reason = null;
 
     public function __construct()
