@@ -82,6 +82,9 @@ class DdtRow
     #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
     private ?int $half_piece = null;
 
+    #[ORM\ManyToOne(inversedBy: 'ddtRows')]
+    private ?Selection $selection = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -275,6 +278,18 @@ class DdtRow
     public function setHalfPiece(?int $half_piece): static
     {
         $this->half_piece = $half_piece;
+
+        return $this;
+    }
+
+    public function getSelection(): ?Selection
+    {
+        return $this->selection;
+    }
+
+    public function setSelection(?Selection $selection): static
+    {
+        $this->selection = $selection;
 
         return $this;
     }
