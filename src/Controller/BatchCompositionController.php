@@ -102,18 +102,30 @@ final class BatchCompositionController extends AbstractController
                 $fatherBatch = $this->doctrine->getRepository(Batch::class)->find($data['father_batch_id']);
             }
 
-            //Calcolo della quantità da convertire
-            $fatherBatchPiecesToConvert = $data['father_batch_piece'] ?? 0;
-            $fatherBatchPiecesTotal = $fatherBatch->getPieces() ?? 0;
-            $fatherBatchQuantityTotal = $fatherBatch->getQuantity() ?? 0;
-            $pieceQuantity = $fatherBatchQuantityTotal / $fatherBatchPiecesTotal;
-            $quantityToConvert = $fatherBatchPiecesToConvert * $pieceQuantity;
+            $quantityToConvert = null;
+            if ($fatherBatch) {
+                $fatherBatchPiecesToConvert = isset($data['father_batch_piece']) ? (float) $data['father_batch_piece'] : 0.0;
+                $fatherBatchPiecesTotal = (float) ($fatherBatch->getPieces() ?? 0);
+                $fatherBatchQuantityTotal = (float) ($fatherBatch->getQuantity() ?? 0);
+
+                if ($fatherBatchPiecesTotal > 0) {
+                    $pieceQuantity = $fatherBatchQuantityTotal / $fatherBatchPiecesTotal;
+                    $quantityToConvert = $fatherBatchPiecesToConvert * $pieceQuantity;
+                } else {
+                    $quantityToConvert = 0.0;
+                }
+            }
 
             $batchComposition = $this->handleRelations($batchComposition, $data);
             $batchComposition = $this->createMethodsByInput->createMethods($batchComposition, $data);
 
+            if ($batchComposition->getFatherBatchQuantity() === null && $quantityToConvert !== null) {
+                $batchComposition->setFatherBatchQuantity($quantityToConvert);
+            }
+
             $batch = $batchComposition->getBatch();
-            $childQuantity = $batchComposition->getFatherBatchQuantity();
+            $childQuantity = (float) ($batchComposition->getFatherBatchQuantity() ?? 0.0);
+
             if ($fatherBatch && $batch) {
                 $fatherUm = $fatherBatch->getMeasurementUnit();
                 $childUm = $batch->getMeasurementUnit();
@@ -125,13 +137,14 @@ final class BatchCompositionController extends AbstractController
                     ]);
 
                     if ($coefficient) {
-                        $childQuantity = $quantityToConvert * $coefficient->getCoefficient();
+                        $childQuantity = (float) ($batchComposition->getFatherBatchQuantity() ?? 0.0) * $coefficient->getCoefficient();
                     }
                 }
+
                 $batch->setStockQuantity($batch->getStockQuantity() + $childQuantity);
                 $batch->setStockItems($batch->getStockItems() + $batchComposition->getFatherBatchPiece());
                 $batch->setPieces($batch->getPieces() + $batchComposition->getFatherBatchPiece());
-                $batch->setQuantity($batch->getQuantity() + $batchComposition->getFatherBatchQuantity());
+                $batch->setQuantity($batch->getQuantity() + (float) ($batchComposition->getFatherBatchQuantity() ?? 0.0));
                 $this->doctrine->persist($batch);
             }
 
@@ -141,9 +154,9 @@ final class BatchCompositionController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse($errors));
             }
 
-            if($fatherBatch){
+            if ($fatherBatch) {
                 $fatherBatch->setStockItems($fatherBatch->getStockItems() - $batchComposition->getFatherBatchPiece());
-                $fatherBatch->setStockQuantity($fatherBatch->getStockQuantity() - $batchComposition->getFatherBatchQuantity());
+                $fatherBatch->setStockQuantity($fatherBatch->getStockQuantity() - (float) ($batchComposition->getFatherBatchQuantity() ?? 0.0));
                 $this->doctrine->persist($fatherBatch);
             }
 
@@ -224,7 +237,7 @@ final class BatchCompositionController extends AbstractController
         $pieces = $batchComposition->getFatherBatchPiece();
         $quantity = $batchComposition->getFatherBatchQuantity();
 
-        if (!$fatherBatch || !$batch) {
+        if (!$fatherBatch || !$batch || $quantity === null) {
             return;
         }
 
