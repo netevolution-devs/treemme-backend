@@ -7,6 +7,7 @@ use App\Entity\DdtRow;
 use App\Entity\Batch;
 use App\Entity\MeasurementUnit;
 use App\Entity\Currency;
+use App\Entity\Selection;
 use App\Entity\WarehouseMovement;
 use App\Entity\WarehouseMovementReason;
 use App\Entity\WarehouseMovementReasonType;
@@ -330,6 +331,13 @@ final class DdtRowController extends AbstractController
                 $ddtRow->setCurrency($currency);
             }
             unset($data['currency_id']);
+        }
+        if (isset($data['selection_id'])) {
+            $selection = $this->doctrine->getRepository(Selection::class)->find($data['selection_id']);
+            if ($selection) {
+                $ddtRow->setSelection($selection);
+            }
+            unset($data['selection_id']);
         }
     }
 }
