@@ -6,6 +6,7 @@ use App\Repository\DdtRowRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\Serializer\Annotation\Groups;
+use JMS\Serializer\Annotation\SerializedName;
 
 #[ORM\Entity(repositoryClass: DdtRowRepository::class)]
 class DdtRow
@@ -67,6 +68,7 @@ class DdtRow
     private ?float $currency_total_value = null;
 
     #[ORM\Column(nullable: true)]
+    #[SerializedName('kg_weight')]
     #[Groups(['ddt_row_detail'])]
     private ?float $KG_weight = null;
 
