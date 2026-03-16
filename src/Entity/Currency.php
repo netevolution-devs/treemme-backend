@@ -7,6 +7,8 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\Serializer\Annotation\Groups;
+use JMS\Serializer\Annotation\VirtualProperty;
+use JMS\Serializer\Annotation\SerializedName;
 
 #[ORM\Entity(repositoryClass: CurrencyRepository::class)]
 class Currency
@@ -48,11 +50,18 @@ class Currency
     #[ORM\OneToMany(mappedBy: 'currency', targetEntity: DdtRow::class)]
     private Collection $ddtRows;
 
+    /**
+     * @var Collection<int, CurrencyChange>
+     */
+    #[ORM\OneToMany(mappedBy: 'currency', targetEntity: CurrencyChange::class, orphanRemoval: true)]
+    private Collection $currencyChanges;
+
     public function __construct()
     {
         $this->batchCosts = new ArrayCollection();
         $this->clientOrderRows = new ArrayCollection();
         $this->ddtRows = new ArrayCollection();
+        $this->currencyChanges = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -184,5 +193,52 @@ class Currency
         }
 
         return $this;
+    }
+
+    /**
+     * @return Collection<int, CurrencyChange>
+     */
+    public function getCurrencyChanges(): Collection
+    {
+        return $this->currencyChanges;
+    }
+
+    public function addCurrencyChange(CurrencyChange $currencyChange): static
+    {
+        if (!$this->currencyChanges->contains($currencyChange)) {
+            $this->currencyChanges->add($currencyChange);
+            $currencyChange->setCurrency($this);
+        }
+
+        return $this;
+    }
+
+    public function removeCurrencyChange(CurrencyChange $currencyChange): static
+    {
+        if ($this->currencyChanges->removeElement($currencyChange)) {
+            // set the owning side to null (unless already changed)
+            if ($currencyChange->getCurrency() === $this) {
+                $currencyChange->setCurrency(null);
+            }
+        }
+
+        return $this;
+    }
+
+    #[VirtualProperty]
+    #[SerializedName("last_change")]
+    #[Groups(['currency_list', 'currency_detail'])]
+    public function getLastChange(): ?CurrencyChange
+    {
+        if ($this->currencyChanges->isEmpty()) {
+            return null;
+        }
+
+        $changes = $this->currencyChanges->toArray();
+        usort($changes, function ($a, $b) {
+            return $b->getDate() <=> $a->getDate() ?: $b->getId() <=> $a->getId();
+        });
+
+        return $changes[0];
     }
 }
