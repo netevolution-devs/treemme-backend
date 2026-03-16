@@ -16,19 +16,19 @@ class Currency
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['currency_list', 'currency_detail', 'batch_cost_detail', 'client_order_row_detail', 'client_order_detail'])]
+    #[Groups(['currency_list', 'currency_detail', 'batch_cost_detail', 'client_order_row_detail', 'client_order_detail', 'ddt_row_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 10)]
-    #[Groups(['currency_list', 'currency_detail', 'batch_cost_detail', 'client_order_row_detail', 'client_order_detail'])]
+    #[Groups(['currency_list', 'currency_detail', 'batch_cost_detail', 'client_order_row_detail', 'client_order_detail', 'ddt_row_detail'])]
     private ?string $abbreviation = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['currency_list', 'currency_detail', 'batch_cost_detail', 'client_order_row_detail', 'client_order_detail'])]
+    #[Groups(['currency_list', 'currency_detail', 'batch_cost_detail', 'client_order_row_detail', 'client_order_detail', 'ddt_row_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 1)]
-    #[Groups(['currency_list', 'currency_detail', 'batch_cost_detail', 'client_order_row_detail', 'client_order_detail'])]
+    #[Groups(['currency_list', 'currency_detail', 'batch_cost_detail', 'client_order_row_detail', 'client_order_detail', 'ddt_row_detail'])]
     private ?string $sign = null;
 
     /**
