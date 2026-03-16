@@ -43,10 +43,17 @@ class Selection
     #[ORM\OneToMany(mappedBy: 'selection', targetEntity: BatchSelection::class, orphanRemoval: true)]
     private Collection $batchSelections;
 
+    /**
+     * @var Collection<int, DdtRow>
+     */
+    #[ORM\OneToMany(mappedBy: 'selection', targetEntity: DdtRow::class)]
+    private Collection $ddtRows;
+
     public function __construct()
     {
         $this->selections = new ArrayCollection();
         $this->batchSelections = new ArrayCollection();
+        $this->ddtRows = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -156,6 +163,36 @@ class Selection
             // set the owning side to null (unless already changed)
             if ($batchSelection->getSelection() === $this) {
                 $batchSelection->setSelection(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, DdtRow>
+     */
+    public function getDdtRows(): Collection
+    {
+        return $this->ddtRows;
+    }
+
+    public function addDdtRow(DdtRow $ddtRow): static
+    {
+        if (!$this->ddtRows->contains($ddtRow)) {
+            $this->ddtRows->add($ddtRow);
+            $ddtRow->setSelection($this);
+        }
+
+        return $this;
+    }
+
+    public function removeDdtRow(DdtRow $ddtRow): static
+    {
+        if ($this->ddtRows->removeElement($ddtRow)) {
+            // set the owning side to null (unless already changed)
+            if ($ddtRow->getSelection() === $this) {
+                $ddtRow->setSelection(null);
             }
         }
 
