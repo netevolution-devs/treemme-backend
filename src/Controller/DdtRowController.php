@@ -99,6 +99,11 @@ final class DdtRowController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse($this->validatorOutputFormatter->formatOutput($errors), 400));
         }
 
+        if ($ddtRow->getPrice()) {
+            $ddtRow->setTotalValue($ddtRow->getPrice() * $ddtRow->getPieces());
+            $ddtRow->setCurrencyTotalValue($ddtRow->getCurrencyPrice() * $ddtRow->getPieces());
+        }
+
         $this->doctrine->persist($ddtRow);
         $this->doctrine->flush();
 
