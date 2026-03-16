@@ -78,7 +78,7 @@ final class DdtRowController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse($results));
     }
 
-    #[Route('/ddt/{ddtId}/row',
+    #[Route('/ddt-row',
         name: 'post_ddt_row',
         requirements: ['ddtId' => '\d+'],
         methods: ['POST'])]
@@ -308,6 +308,13 @@ final class DdtRowController extends AbstractController
 
     private function handleRelations(DdtRow $ddtRow, array &$data): void
     {
+        if (isset($data['ddt_id'])) {
+            $ddt = $this->doctrine->getRepository(Ddt::class)->find($data['ddt_id']);
+            if ($ddt) {
+                $ddtRow->setDdt($ddt);
+            }
+            unset($data['ddt_id']);
+        }
         if (isset($data['batch_id'])) {
             $batch = $this->doctrine->getRepository(Batch::class)->find($data['batch_id']);
             if ($batch) {
