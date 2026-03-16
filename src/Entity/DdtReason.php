@@ -14,11 +14,11 @@ class DdtReason
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['ddt_reason_list', 'ddt_reason_detail'])]
+    #[Groups(['ddt_reason_list', 'ddt_reason_detail', 'ddt_list', 'ddt_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['ddt_reason_list', 'ddt_reason_detail'])]
+    #[Groups(['ddt_reason_list', 'ddt_reason_detail', 'ddt_list', 'ddt_detail'])]
     private ?string $name = null;
 
     #[ORM\ManyToOne(inversedBy: 'ddtReasons')]
