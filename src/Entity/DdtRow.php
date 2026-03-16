@@ -67,6 +67,7 @@ class DdtRow
     private ?float $currency_total_value = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['ddt_row_detail'])]
     private ?float $KG_weight = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
@@ -82,6 +83,7 @@ class DdtRow
     private ?int $half_piece = null;
 
     #[ORM\ManyToOne(inversedBy: 'ddtRows')]
+    #[Groups(['ddt_row_detail'])]
     private ?Selection $selection = null;
 
     public function getId(): ?int
