@@ -108,13 +108,15 @@ final class DdtRowController extends AbstractController
 
         $this->doctrine->persist($batch);
 
+        $ddt = $ddtRow->getDdt();
+
         $wearhouseMovement = new WarehouseMovement();
         $wearhouseMovement->setBatch($batch);
         $wearhouseMovement->setQuantity($ddtRow->getQuantity());
         $wearhouseMovement->setPiece($ddtRow->getPieces());
         $wearhouseMovement->setReason($ddtRow->getDdt()->getReason()->getWarehouseMovementReason());
-        $wearhouseMovement->setDdtDate($ddt->getDate());
-        $wearhouseMovement->setDate($ddt->getDate());
+        $wearhouseMovement->setDdtDate($ddt->getDdtDate());
+        $wearhouseMovement->setDate($ddt->getDdtDate());
         $wearhouseMovement->setMovementNote('Riga DDT ' . $ddtRow->getId());
 
         $this->doctrine->persist($wearhouseMovement);
