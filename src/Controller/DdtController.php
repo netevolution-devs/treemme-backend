@@ -78,7 +78,7 @@ final class DdtController extends AbstractController
 
         $errors = $validator->validate($ddt);
         if (count($errors) > 0) {
-            return new JsonResponse($this->doResponse->doErrorResponse($this->validatorOutputFormatter->formatErrors($errors), 400));
+            return new JsonResponse($this->doResponse->doErrorResponse($this->validatorOutputFormatter->formatOutput($errors), 400));
         }
 
         $this->doctrine->persist($ddt);
@@ -110,7 +110,7 @@ final class DdtController extends AbstractController
 
         $errors = $validator->validate($ddt);
         if (count($errors) > 0) {
-            return new JsonResponse($this->doResponse->doErrorResponse($this->validatorOutputFormatter->formatErrors($errors), 400));
+            return new JsonResponse($this->doResponse->doErrorResponse($this->validatorOutputFormatter->formatOutput($errors), 400));
         }
 
         $this->doctrine->flush();
