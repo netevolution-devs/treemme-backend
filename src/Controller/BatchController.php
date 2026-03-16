@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\LeatherType;
+use App\Entity\MeasurementUnitCoefficient;
 use App\Entity\Production;
 use App\Entity\Machine;
 use App\Entity\Batch;
@@ -589,29 +590,36 @@ final class BatchController extends AbstractController
                 $nextCode = $this->nextSequentialCode($lastCode, $yearPrefix, 4);
                 $batch->setBatchCode($nextCode);
             }
-            if ($batch->getSqFtAverageExpected() === null) {
-                $batch->setSqFtAverageExpected((float) 0);
-            }
-
-            if($batch->getMeasurementUnit()){
+            if ($batch->getMeasurementUnit()) {
                 $measurementUnit = $batch->getMeasurementUnit();
+                $pieces = (float)($data['pieces'] ?? $batch->getPieces() ?? 0);
+                $quantity = (float)($data['quantity'] ?? $batch->getQuantity() ?? 0);
 
-                if ($measurementUnit->getPrefix() == 'MQ') {
-                    $coefficientUm = $measurementUnit->getMeasurementUnitCoefficients()->first();
+                if ($pieces > 0) {
+                    if ($measurementUnit->getPrefix() === 'SQFT' || $measurementUnit->getPrefix() === 'PQ') {
+                        $batch->setSqFtAverageExpected($quantity / $pieces);
+                    } else {
+                        $targetUm = $this->doctrine->getRepository(MeasurementUnit::class)->findOneBy(['prefix' => 'SQFT'])
+                            ?? $this->doctrine->getRepository(MeasurementUnit::class)->findOneBy(['prefix' => 'PQ']);
 
-                    if(!isset($data['pieces']) || $data['pieces'] == 0) {
-                        return new JsonResponse(['error' => 'Pieces is required'], 400);
+                        if ($targetUm) {
+                            $coefficientEntity = $this->doctrine->getRepository(MeasurementUnitCoefficient::class)->findOneBy([
+                                'start_um' => $measurementUnit,
+                                'end_um' => $targetUm
+                            ]);
+
+                            if ($coefficientEntity) {
+                                $batch->setSqFtAverageExpected(($quantity * $coefficientEntity->getCoefficient()) / $pieces);
+                            }
+                        }
                     }
-                    if(!isset($data['quantity']) || $data['quantity'] == 0) {
-                        return new JsonResponse(['error' => 'Quantity is required'], 400);
-                    }
-
-                    $batch->setSqFtAverageFound($data['pieces'] / ($coefficientUm->getCoefficient() * $data['quantity']));
-                } elseif($batch->getMeasurementUnit()->getPrefix() == 'PQ') {
-                    $batch->setSqFtAverageFound($data['pieces'] / $data['quantity']);
                 }
             } else {
                 return new JsonResponse(['error' => 'Measurement unit not found'], 400);
+            }
+
+            if ($batch->getSqFtAverageExpected() === null || $batch->getSqFtAverageExpected() == 0.0) {
+                $batch->setSqFtAverageExpected($batch->getSqFtAverageFound() ?? (float)0);
             }
             
             if ($batch->isCompleted() === null) {
