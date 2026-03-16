@@ -25,6 +25,7 @@ class Selection
     private ?int $weight = null;
 
     #[ORM\Column]
+    #[Groups(['batch_selection_detail', 'batch_detail', 'selection_list', 'selection_detail', 'batch_list'])]
     private ?float $value = null;
 
     #[ORM\ManyToOne(targetEntity: self::class, inversedBy: 'selections')]
