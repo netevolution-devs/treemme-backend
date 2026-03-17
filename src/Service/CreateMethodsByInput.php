@@ -20,6 +20,28 @@ class CreateMethodsByInput
                 throw new \RuntimeException($field . ' non trovato');
             }
 
+            if ($value === null) {
+                $value = null;
+            } else if (is_string($value)) {
+                $trimmed = trim($value);
+                if ($trimmed === '' || strtolower($trimmed) === 'null') {
+                    $value = null;
+                } else if (strtolower($trimmed) === 'true') {
+                    $value = true;
+                } else if (strtolower($trimmed) === 'false') {
+                    $value = false;
+                } else {
+                    $numericCandidate = str_replace(',', '.', $trimmed);
+                    if (is_numeric($numericCandidate) && (float)$numericCandidate == 0.0) {
+                        $value = null;
+                    }
+                }
+            } else if (is_int($value) || is_float($value)) {
+                if ((float)$value == 0.0) {
+                    $value = null;
+                }
+            }
+
             if (is_string($value) && (
                     DateTime::createFromFormat('Y-m-d', substr($value, 0, 10)) !== false
                     || DateTime::createFromFormat('d/m/Y', substr($value, 0, 10)) !== false
@@ -54,9 +76,14 @@ class CreateMethodsByInput
                     throw new \RuntimeException('Errore in inserimento data: ' . $e->getMessage());
                 }
 
+            } else if (is_bool($value)) {
+                // Se è già booleano, non facciamo nulla e saltiamo la parte successiva.
             } else {
-                $value_to_number = str_replace(',', '.', $value);
-                $value = is_numeric($value_to_number) ? (float)$value_to_number : $value;
+                // Conversione numerica sicura evitando deprecazioni con NULL
+                if ($value !== null) {
+                    $value_to_number = is_string($value) ? str_replace(',', '.', $value) : $value;
+                    $value = is_numeric($value_to_number) ? (float)$value_to_number : $value;
+                }
             }
 
             $entity->{$method}($value);

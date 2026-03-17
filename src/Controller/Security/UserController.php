@@ -2,6 +2,7 @@
 
 namespace App\Controller\Security;
 
+use App\Entity\GroupRoleWorkArea;
 use App\Entity\User;
 use App\Service\ActionLoggerService;
 use App\Service\CreateMethodsByInput;
@@ -15,6 +16,7 @@ use Nelmio\ApiDocBundle\Annotation\Model;
 use Nelmio\ApiDocBundle\Annotation\Security;
 use OpenApi\Annotations as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -110,7 +112,7 @@ class UserController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse('indirizzo email già esistente',$e->getFile()));
         }
 
-        $actionLoggerService->logAction('add_new_user', $this->groupSerializer->serializeGroup($user, 'detail'));
+        $actionLoggerService->logAction('add_new_user', $this->groupSerializer->serializeGroup($user, 'user_detail'));
 
         return new JsonResponse($this->doResponse->doResponse(['id' => $user->getId()]));
     }
@@ -120,6 +122,67 @@ class UserController extends AbstractController
     {
         $user = $this->userService->getCurrentUser();
 
-        return new JsonResponse($this->doResponse->doResponse($this->groupSerializer->serializeGroup($user,'detail')));
+        $groupUsers = $user->getGroupUsers();
+        $roles = [];
+        $accessControl = [];
+
+        foreach ($groupUsers as $groupUser) {
+            $group = $groupUser->getGroup();
+            if ($group) {
+                $groupRoleWorkAreas = $this->doctrine->getRepository(GroupRoleWorkArea::class)->findBy(['group' => $group]);
+                foreach ($groupRoleWorkAreas as $grwa) {
+                    $role = $grwa->getRole();
+                    $workArea = $grwa->getWorkArea();
+                    
+                    if ($role) {
+                        $roles[] = $role->getName();
+                    }
+
+                    $accessControl[] = [
+                        'group' => $group->getName(),
+                        'role' => $role ? $role->getName() : null,
+                        'work_area' => $workArea ? $workArea->getName() : null,
+                        'can_get' => $grwa->isCanGet(),
+                        'can_post' => $grwa->isCanPost(),
+                        'can_put' => $grwa->isCanPut(),
+                        'can_delete' => $grwa->isCanDelete(),
+                    ];
+                }
+            }
+        }
+
+        $user->setRoles(array_unique($roles));
+        
+        $userData = $this->groupSerializer->serializeGroup($user, 'user_detail');
+        $userData['access_control'] = $accessControl;
+
+        return new JsonResponse($this->doResponse->doResponse($userData));
+    }
+
+    #[Route('/logout', name: 'logout')]
+    public function logout(): JsonResponse
+    {
+        $bearerCookie = Cookie::create('BEARER')
+            ->withValue('')
+            ->withExpires(new \DateTime('-1 day'))
+            ->withPath('/')
+            ->withHttpOnly(true)
+            ->withSameSite('None')
+            ->withSecure(true);
+
+        $refreshTokenCookie = Cookie::create('REFRESH_TOKEN')
+            ->withValue('')
+            ->withExpires(new \DateTime('-1 day'))
+            ->withPath('/')
+            ->withHttpOnly(true)
+            ->withSameSite('None')
+            ->withSecure(true);
+
+        $response = new JsonResponse('Logout success');
+
+        $response->headers->setCookie($bearerCookie);
+        $response->headers->setCookie($refreshTokenCookie);
+
+        return $response;
     }
 }
