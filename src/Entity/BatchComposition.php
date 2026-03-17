@@ -18,7 +18,7 @@ class BatchComposition
 
     #[ORM\ManyToOne(inversedBy: 'batchCompositions')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['batch_composition_list', 'batch_composition_detail'])]
+    #[Groups(['batch_composition_list', 'batch_composition_detail', 'batch_detail'])]
     private ?Batch $batch = null;
 
     #[ORM\ManyToOne(inversedBy: 'sonBatches')]
