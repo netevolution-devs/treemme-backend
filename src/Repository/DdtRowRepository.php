@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\DdtRow;
+use App\Entity\WarehouseMovement;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -16,29 +17,6 @@ class DdtRowRepository extends ServiceEntityRepository
         parent::__construct($registry, DdtRow::class);
     }
 
-    /**
-     * @return DdtRow[] Returns an array of DdtRow objects that are in subcontracting and not yet returned
-     */
-    public function findSubcontractingNotReturned(): array
-    {
-        $qb = $this->createQueryBuilder('dr');
-
-        return $qb
-            ->join('dr.ddt', 'd')
-            ->join('d.reason', 'drn')
-            ->join('dr.batch', 'b')
-            ->join('b.warehouseMovements', 'wm')
-            ->join('wm.reason', 'wmr')
-            ->join('wmr.reason_type', 'rt')
-            ->andWhere('drn.name = :ddtReasonName')
-            ->andWhere('wmr.name = :movementReasonName')
-            ->andWhere('rt.name = :movementType')
-            ->setParameter('ddtReasonName', 'C/O Lavorazione')
-            ->setParameter('movementReasonName', 'C/O Lavorazione')
-            ->setParameter('movementType', 'Scarico')
-            ->getQuery()
-            ->getResult();
-    }
 
     //    /**
     //     * @return DdtRow[] Returns an array of DdtRow objects

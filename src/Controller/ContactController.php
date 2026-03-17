@@ -266,6 +266,74 @@ final class ContactController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
     }
 
+    #[Route('/contact/{id}/subcontractor/{subcontractorId}',
+        name: 'add_contact_subcontractor',
+        requirements: ['id' => '\d+', 'subcontractorId' => '\d+'],
+        methods: ['POST'])]
+    public function addSubcontractorToContact(int $id, int $subcontractorId): JsonResponse
+    {
+        $contactRepository = $this->doctrine->getRepository(Contact::class);
+        $contact = $contactRepository->find($id);
+        $subcontractor = $contactRepository->find($subcontractorId);
+
+        if (!$contact) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Contact not found', 404));
+        }
+
+        if (!$subcontractor) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Subcontractor not found', 404));
+        }
+
+        if (!$subcontractor->isSubcontractor()) {
+            return new JsonResponse($this->doResponse->doErrorResponse('The selected contact is not a subcontractor', 400));
+        }
+
+        foreach ($contact->getContactSubcontractors() as $existingContactSubcontractor) {
+            if ($existingContactSubcontractor->getSubcontractor()->getId() === $subcontractor->getId()) {
+                return new JsonResponse($this->doResponse->doErrorResponse('Subcontractor already associated', 400));
+            }
+        }
+
+        $contactSubcontractor = new ContactSubcontractor();
+        $contactSubcontractor->setContact($contact);
+        $contactSubcontractor->setSubcontractor($subcontractor);
+
+        $this->doctrine->persist($contactSubcontractor);
+        $this->doctrine->flush();
+
+        $result = $this->groupSerializer->serializeGroup([$contact], 'contact_detail');
+        return new JsonResponse($this->doResponse->doResponse($result[0]));
+    }
+
+    #[Route('/contact/{id}/subcontractor/{subcontractorId}',
+        name: 'remove_contact_subcontractor',
+        requirements: ['id' => '\d+', 'subcontractorId' => '\d+'],
+        methods: ['DELETE'])]
+    public function removeSubcontractorFromContact(int $id, int $subcontractorId): JsonResponse
+    {
+        $contactRepository = $this->doctrine->getRepository(Contact::class);
+        $contact = $contactRepository->find($id);
+
+        if (!$contact) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Contact not found', 404));
+        }
+
+        $contactSubcontractorRepository = $this->doctrine->getRepository(ContactSubcontractor::class);
+        $contactSubcontractor = $contactSubcontractorRepository->findOneBy([
+            'contact' => $contact,
+            'subcontractor' => $subcontractorId
+        ]);
+
+        if (!$contactSubcontractor) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Association not found', 404));
+        }
+
+        $this->doctrine->remove($contactSubcontractor);
+        $this->doctrine->flush();
+
+        return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
+    }
+
     private function handleRelations(Contact $contact, array &$data): Contact
     {
         if (isset($data['contact_type_id'])) {
