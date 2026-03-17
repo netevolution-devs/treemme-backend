@@ -3,6 +3,9 @@
 namespace App\Controller;
 
 use App\Entity\LeatherProvenance;
+use App\Entity\LeatherProvenanceArea;
+use App\Entity\Nation;
+use App\Entity\LeatherFlay;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -74,6 +77,7 @@ final class LeatherProvenanceController extends AbstractController
         $leatherProvenance = new LeatherProvenance();
 
         try {
+            $leatherProvenance = $this->handleRelations($leatherProvenance, $data);
             $leatherProvenance = $this->createMethodsByInput->createMethods($leatherProvenance, $data);
 
             $errors = $validator->validate($leatherProvenance);
@@ -111,6 +115,7 @@ final class LeatherProvenanceController extends AbstractController
         }
 
         try {
+            $leatherProvenance = $this->handleRelations($leatherProvenance, $data);
             $leatherProvenance = $this->createMethodsByInput->createMethods($leatherProvenance, $data);
 
             $errors = $validator->validate($leatherProvenance);
@@ -143,5 +148,34 @@ final class LeatherProvenanceController extends AbstractController
         $this->doctrine->flush();
 
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
+    }
+
+    private function handleRelations(LeatherProvenance $leatherProvenance, array &$data): LeatherProvenance
+    {
+        if (isset($data['area_id'])) {
+            $area = $this->doctrine->getRepository(LeatherProvenanceArea::class)->find($data['area_id']);
+            if ($area) {
+                $leatherProvenance->setArea($area);
+            }
+            unset($data['area_id']);
+        }
+
+        if (isset($data['nation_id'])) {
+            $nation = $this->doctrine->getRepository(Nation::class)->find($data['nation_id']);
+            if ($nation) {
+                $leatherProvenance->setNation($nation);
+            }
+            unset($data['nation_id']);
+        }
+
+        if (isset($data['flay_id'])) {
+            $flay = $this->doctrine->getRepository(LeatherFlay::class)->find($data['flay_id']);
+            if ($flay) {
+                $leatherProvenance->setFlay($flay);
+            }
+            unset($data['flay_id']);
+        }
+
+        return $leatherProvenance;
     }
 }

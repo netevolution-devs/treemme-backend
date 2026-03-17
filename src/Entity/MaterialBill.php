@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\MaterialBillRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\Serializer\Annotation\Groups;
@@ -33,6 +35,18 @@ class MaterialBill
 
     #[ORM\Column]
     private ?\DateTimeImmutable $updated_at = null;
+
+    /**
+     * @var Collection<int, MaterialBillStep>
+     */
+    #[ORM\OneToMany(mappedBy: 'material_bill', targetEntity: MaterialBillStep::class, orphanRemoval: true)]
+    #[Groups(['material_bill_detail'])]
+    private Collection $materialBillSteps;
+
+    public function __construct()
+    {
+        $this->materialBillSteps = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -95,6 +109,36 @@ class MaterialBill
     public function setUpdatedAt(\DateTimeImmutable $updated_at): static
     {
         $this->updated_at = $updated_at;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, MaterialBillStep>
+     */
+    public function getMaterialBillSteps(): Collection
+    {
+        return $this->materialBillSteps;
+    }
+
+    public function addMaterialBillStep(MaterialBillStep $materialBillStep): static
+    {
+        if (!$this->materialBillSteps->contains($materialBillStep)) {
+            $this->materialBillSteps->add($materialBillStep);
+            $materialBillStep->setMaterialBill($this);
+        }
+
+        return $this;
+    }
+
+    public function removeMaterialBillStep(MaterialBillStep $materialBillStep): static
+    {
+        if ($this->materialBillSteps->removeElement($materialBillStep)) {
+            // set the owning side to null (unless already changed)
+            if ($materialBillStep->getMaterialBill() === $this) {
+                $materialBillStep->setMaterialBill(null);
+            }
+        }
 
         return $this;
     }

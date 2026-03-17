@@ -2,8 +2,7 @@
 
 namespace App\Controller;
 
-use App\Entity\Contact;
-use App\Entity\Supplier;
+use App\Entity\SeaPort;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -15,7 +14,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-final class SupplierController extends AbstractController
+final class SeaPortController extends AbstractController
 {
     private $createMethodsByInput;
     private $doctrine;
@@ -38,24 +37,26 @@ final class SupplierController extends AbstractController
         $this->validatorOutputFormatter = $validatorOutputFormatter;
     }
 
-    #[Route('/supplier/{id}',
-        name: 'get_supplier',
+    #[Route('/sea-port/{id}',
+        name: 'get_sea_port',
         defaults: ['id' => null],
         requirements: ['id' => '\d*'],
         methods: ['GET', 'HEAD'])]
-    public function getSupplier(?int $id): JsonResponse
+    public function getSeaPort(?int $id): JsonResponse
     {
-        $repository = $this->doctrine->getRepository(Supplier::class);
+        $repository = $this->doctrine->getRepository(SeaPort::class);
 
         if ($id) {
-            $supplier = [$repository->find($id)];
-            if (!$supplier[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('Supplier not found', 404));
+            $seaPort = $repository->find($id);
+            if (!$seaPort) {
+                return new JsonResponse($this->doResponse->doErrorResponse('SeaPort not found', 404));
             }
+            $seaPorts = [$seaPort];
         } else {
-            $supplier = $repository->findBy([], ['id' => 'DESC']);
+            $seaPorts = $repository->findBy([], ['id' => 'DESC']);
         }
-        $results = $this->groupSerializer->serializeGroup($supplier, $id ? 'supplier_detail' : 'supplier_list');
+
+        $results = $this->groupSerializer->serializeGroup($seaPorts, $id ? 'sea_port_detail' : 'sea_port_list');
 
         if ($id) {
             return new JsonResponse($this->doResponse->doResponse($results[0]));
@@ -63,35 +64,30 @@ final class SupplierController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse($results));
     }
 
-    #[Route('/supplier',
-        name: 'post_supplier',
+    #[Route('/sea-port',
+        name: 'post_sea_port',
         methods: ['POST'])]
-    public function postSupplier(
+    public function postSeaPort(
         Request            $request,
         ValidatorInterface $validator,
     ): JsonResponse
     {
         $data = $request->request->all();
-        $supplier = new Supplier();
+        $seaPort = new SeaPort();
 
         try {
-            $supplier = $this->handleRelations($supplier, $data);
-            $supplier = $this->createMethodsByInput->createMethods($supplier, $data);
+            $seaPort = $this->createMethodsByInput->createMethods($seaPort, $data);
 
-            $now = new \DateTimeImmutable();
-            $supplier->setCreatedAt($now);
-            $supplier->setUpdatedAt($now);
-
-            $errors = $validator->validate($supplier);
+            $errors = $validator->validate($seaPort);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
                 return new JsonResponse($this->doResponse->doErrorResponse($errors));
             }
 
-            $this->doctrine->persist($supplier);
+            $this->doctrine->persist($seaPort);
             $this->doctrine->flush();
 
-            $result = $this->groupSerializer->serializeGroup($supplier, 'supplier_detail');
+            $result = $this->groupSerializer->serializeGroup($seaPort, 'sea_port_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
@@ -99,69 +95,54 @@ final class SupplierController extends AbstractController
         }
     }
 
-    #[Route('/supplier/{id}',
-        name: 'put_supplier',
+    #[Route('/sea-port/{id}',
+        name: 'put_sea_port',
         methods: ['PUT'])]
-    public function modifySupplier(
+    public function modifySeaPort(
         Request            $request,
         ValidatorInterface $validator,
         int                $id,
     ): JsonResponse
     {
         $data = $request->toArray();
-        $supplier = $this->doctrine->getRepository(Supplier::class)->find($id);
+        $seaPort = $this->doctrine->getRepository(SeaPort::class)->find($id);
 
-        if (!$supplier) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Supplier not found', 404));
+        if (!$seaPort) {
+            return new JsonResponse($this->doResponse->doErrorResponse('SeaPort not found', 404));
         }
 
         try {
-            $supplier = $this->handleRelations($supplier, $data);
-            $supplier = $this->createMethodsByInput->createMethods($supplier, $data);
-            $supplier->setUpdatedAt(new \DateTimeImmutable());
+            $seaPort = $this->createMethodsByInput->createMethods($seaPort, $data);
 
-            $errors = $validator->validate($supplier);
+            $errors = $validator->validate($seaPort);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
                 return new JsonResponse($this->doResponse->doErrorResponse($errors));
             }
 
-            $this->doctrine->persist($supplier);
+            $this->doctrine->persist($seaPort);
             $this->doctrine->flush();
 
-            $result = $this->groupSerializer->serializeGroup($supplier, 'supplier_detail');
+            $result = $this->groupSerializer->serializeGroup($seaPort, 'sea_port_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
             return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
         }
     }
 
-    #[Route('/supplier/{id}',
-        name: 'delete_supplier',
+    #[Route('/sea-port/{id}',
+        name: 'delete_sea_port',
         methods: ['DELETE'])]
-    public function deleteSupplier(int $id): JsonResponse
+    public function deleteSeaPort(int $id): JsonResponse
     {
-        $supplier = $this->doctrine->getRepository(Supplier::class)->find($id);
-        if (!$supplier) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Supplier not found', 404));
+        $seaPort = $this->doctrine->getRepository(SeaPort::class)->find($id);
+        if (!$seaPort) {
+            return new JsonResponse($this->doResponse->doErrorResponse('SeaPort not found', 404));
         }
 
-        $this->doctrine->remove($supplier);
+        $this->doctrine->remove($seaPort);
         $this->doctrine->flush();
 
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
-    }
-
-    private function handleRelations(Supplier $supplier, array &$data): Supplier
-    {
-        if (isset($data['contact_id'])) {
-            $contact = $this->doctrine->getRepository(Contact::class)->find($data['contact_id']);
-            if ($contact) {
-                $supplier->setContact($contact);
-            }
-            unset($data['contact_id']);
-        }
-
-        return $supplier;
     }
 }

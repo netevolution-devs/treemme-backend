@@ -22,12 +22,6 @@ class Payment
     private ?string $name = null;
 
     /**
-     * @var Collection<int, Client>
-     */
-    #[ORM\OneToMany(mappedBy: 'payment', targetEntity: Client::class)]
-    private Collection $clients;
-
-    /**
      * @var Collection<int, ClientOrder>
      */
     #[ORM\OneToMany(mappedBy: 'payment', targetEntity: ClientOrder::class)]
@@ -35,7 +29,6 @@ class Payment
 
     public function __construct()
     {
-        $this->clients = new ArrayCollection();
         $this->clientOrders = new ArrayCollection();
     }
 
@@ -52,36 +45,6 @@ class Payment
     public function setName(string $name): static
     {
         $this->name = $name;
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Client>
-     */
-    public function getClients(): Collection
-    {
-        return $this->clients;
-    }
-
-    public function addClient(Client $client): static
-    {
-        if (!$this->clients->contains($client)) {
-            $this->clients->add($client);
-            $client->setPayment($this);
-        }
-
-        return $this;
-    }
-
-    public function removeClient(Client $client): static
-    {
-        if ($this->clients->removeElement($client)) {
-            // set the owning side to null (unless already changed)
-            if ($client->getPayment() === $this) {
-                $client->setPayment(null);
-            }
-        }
 
         return $this;
     }

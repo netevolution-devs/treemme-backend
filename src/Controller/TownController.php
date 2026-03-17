@@ -74,17 +74,7 @@ final class TownController extends AbstractController
         $town = new Town();
 
         try {
-            if (!isset($data['province_id'])) {
-                return new JsonResponse($this->doResponse->doErrorResponse('province_id is required'));
-            }
-
-            $province = $this->doctrine->getRepository(Province::class)->find($data['province_id']);
-            if (!$province) {
-                return new JsonResponse($this->doResponse->doErrorResponse('Province not found', 404));
-            }
-            $town->setProvince($province);
-            unset($data['province_id']);
-
+            $town = $this->handleRelations($town, $data);
             $town = $this->createMethodsByInput->createMethods($town, $data);
 
             $errors = $validator->validate($town);
@@ -117,15 +107,7 @@ final class TownController extends AbstractController
         }
 
         try {
-            if (isset($data['province_id'])) {
-                $province = $this->doctrine->getRepository(Province::class)->find($data['province_id']);
-                if (!$province) {
-                    return new JsonResponse($this->doResponse->doErrorResponse('Province not found', 404));
-                }
-                $town->setProvince($province);
-                unset($data['province_id']);
-            }
-
+            $town = $this->handleRelations($town, $data);
             $town = $this->createMethodsByInput->createMethods($town, $data);
 
             $errors = $validator->validate($town);
@@ -156,5 +138,18 @@ final class TownController extends AbstractController
         $this->doctrine->flush();
 
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
+    }
+
+    private function handleRelations(Town $town, array &$data): Town
+    {
+        if (isset($data['province_id'])) {
+            $province = $this->doctrine->getRepository(Province::class)->find($data['province_id']);
+            if ($province) {
+                $town->setProvince($province);
+            }
+            unset($data['province_id']);
+        }
+
+        return $town;
     }
 }

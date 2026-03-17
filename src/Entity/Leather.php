@@ -14,15 +14,15 @@ class Leather
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['leather_list', 'leather_detail', 'batch_detail'])]
+    #[Groups(['leather_list', 'leather_detail', 'batch_list', 'batch_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['leather_list', 'leather_detail', 'batch_detail'])]
+    #[Groups(['leather_list', 'leather_detail', 'batch_list', 'batch_detail'])]
     private ?string $code = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['leather_list', 'leather_detail', 'batch_detail'])]
+    #[Groups(['leather_list', 'leather_detail', 'batch_list', 'batch_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(nullable: true)]
@@ -37,7 +37,7 @@ class Leather
     #[Groups(['leather_list', 'leather_detail'])]
     private ?float $sqft_leather_media = null;
 
-    #[ORM\Column]
+    #[ORM\Column(nullable: true)]
     #[Groups(['leather_list', 'leather_detail'])]
     private ?float $sqft_leather_expected = null;
 
@@ -91,7 +91,7 @@ class Leather
     #[ORM\ManyToOne(inversedBy: 'leather')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['leather_list', 'leather_detail'])]
-    private ?Supplier $supplier = null;
+    private ?Contact $supplier = null;
 
     #[ORM\ManyToOne(inversedBy: 'leather')]
     #[ORM\JoinColumn(nullable: false)]
@@ -100,7 +100,7 @@ class Leather
 
     #[ORM\ManyToOne(inversedBy: 'leather')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['leather_list', 'leather_detail'])]
+    #[Groups(['leather_list', 'leather_detail', 'batch_list', 'batch_detail'])]
     private ?LeatherProvenance $provenance = null;
 
     #[ORM\ManyToOne(inversedBy: 'leather')]
@@ -333,12 +333,12 @@ class Leather
         return $this;
     }
 
-    public function getSupplier(): ?Supplier
+    public function getSupplier(): ?Contact
     {
         return $this->supplier;
     }
 
-    public function setSupplier(?Supplier $supplier): static
+    public function setSupplier(?Contact $supplier): static
     {
         $this->supplier = $supplier;
 

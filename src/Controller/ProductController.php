@@ -3,10 +3,11 @@
 namespace App\Controller;
 
 use App\Entity\Color;
+use App\Entity\Contact;
 use App\Entity\MeasurementUnit;
 use App\Entity\Product;
+use App\Entity\ProductCategory;
 use App\Entity\ProductType;
-use App\Entity\Supplier;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -81,9 +82,15 @@ final class ProductController extends AbstractController
             $product = $this->handleRelations($product, $data);
             $product = $this->createMethodsByInput->createMethods($product, $data);
 
-            $now = new \DateTimeImmutable();
-            $product->setCreatedAt($now);
-            $product->setUpdatedAt($now);
+            do {
+                $code = sprintf(
+                    'PRD-%s-%s',
+                    (new \DateTimeImmutable())->format('Ymd'),
+                    strtoupper(bin2hex(random_bytes(3)))
+                );
+            } while ($this->doctrine->getRepository(Product::class)->findOneBy(['code' => $code]) !== null);
+
+            $product->setCode($code);
 
             $errors = $validator->validate($product);
             if (count($errors) > 0) {
@@ -166,7 +173,7 @@ final class ProductController extends AbstractController
         }
 
         if (isset($data['supplier_id'])) {
-            $supplier = $this->doctrine->getRepository(Supplier::class)->find($data['supplier_id']);
+            $supplier = $this->doctrine->getRepository(Contact::class)->find($data['supplier_id']);
             if ($supplier) {
                 $product->setSupplier($supplier);
             }
@@ -187,6 +194,37 @@ final class ProductController extends AbstractController
                 $product->setColor($color);
             }
             unset($data['color_id']);
+        }
+
+        if (isset($data['weight_measurement_unit_id'])) {
+            $unit = $this->doctrine->getRepository(MeasurementUnit::class)->find($data['weight_measurement_unit_id']);
+            if ($unit) {
+                $product->setWeightMeasurementUnit($unit);
+            }
+            unset($data['weight_measurement_unit_id']);
+        }
+
+        if (isset($data['thickness_measurement_unit_id'])) {
+            $unit = $this->doctrine->getRepository(MeasurementUnit::class)->find($data['thickness_measurement_unit_id']);
+            if ($unit) {
+                $product->setThicknessMeasurementUnit($unit);
+            }
+            unset($data['thickness_measurement_unit_id']);
+        }
+
+        if (isset($data['contact_id'])) {
+            $contact = $this->doctrine->getRepository(Contact::class)->find($data['contact_id']);
+            if ($contact) {
+                $product->setContact($contact);
+            }
+            unset($data['contact_id']);
+        }
+        if(isset($data['product_category_id'])) {
+            $category = $this->doctrine->getRepository(ProductCategory::class)->find($data['product_category_id']);
+            if ($category) {
+                $product->setProductCategory($category);
+            }
+            unset($data['product_category_id']);
         }
 
         return $product;

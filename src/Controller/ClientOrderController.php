@@ -3,6 +3,11 @@
 namespace App\Controller;
 
 use App\Entity\ClientOrder;
+use App\Entity\Contact;
+use App\Entity\ContactAddress;
+use App\Entity\Payment;
+use App\Entity\ShipmentCondition;
+use App\Entity\User;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -74,7 +79,12 @@ final class ClientOrderController extends AbstractController
         $clientOrder = new ClientOrder();
 
         try {
+            $clientOrder = $this->handleRelations($clientOrder, $data);
             $clientOrder = $this->createMethodsByInput->createMethods($clientOrder, $data);
+
+            if (!$clientOrder->getOrderNumber()) {
+                $clientOrder->setOrderNumber($this->doctrine->getRepository(ClientOrder::class)->generateNextOrderNumber());
+            }
 
             $errors = $validator->validate($clientOrder);
             if (count($errors) > 0) {
@@ -111,6 +121,7 @@ final class ClientOrderController extends AbstractController
         }
 
         try {
+            $clientOrder = $this->handleRelations($clientOrder, $data);
             $clientOrder = $this->createMethodsByInput->createMethods($clientOrder, $data);
 
             $errors = $validator->validate($clientOrder);
@@ -143,5 +154,57 @@ final class ClientOrderController extends AbstractController
         $this->doctrine->flush();
 
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
+    }
+
+    private function handleRelations(ClientOrder $clientOrder, array &$data): ClientOrder
+    {
+        if (isset($data['client_id'])) {
+            $client = $this->doctrine->getRepository(Contact::class)->find($data['client_id']);
+            if ($client) {
+                $clientOrder->setClient($client);
+            }
+            unset($data['client_id']);
+        }
+
+        if (isset($data['agent_id'])) {
+            $agent = $this->doctrine->getRepository(Contact::class)->find($data['agent_id']);
+            if ($agent) {
+                $clientOrder->setAgent($agent);
+            }
+            unset($data['agent_id']);
+        }
+
+        if (isset($data['payment_id'])) {
+            $payment = $this->doctrine->getRepository(Payment::class)->find($data['payment_id']);
+            if ($payment) {
+                $clientOrder->setPayment($payment);
+            }
+            unset($data['payment_id']);
+        }
+
+        if (isset($data['check_user_id'])) {
+            $user = $this->doctrine->getRepository(User::class)->find($data['check_user_id']);
+            if ($user) {
+                $clientOrder->setCheckUser($user);
+            }
+            unset($data['check_user_id']);
+        }
+
+        if(isset($data['shipment_condition_id'])) {
+            $shipmentCondition = $this->doctrine->getRepository(ShipmentCondition::class)->find($data['shipment_condition_id']);
+            if ($shipmentCondition) {
+                $clientOrder->setShipmentCondition($shipmentCondition);
+            }
+            unset($data['shipment_condition_id']);
+        }
+        if(isset($data['address_id'])) {
+            $address = $this->doctrine->getRepository(ContactAddress::class)->find($data['address_id']);
+            if ($address) {
+                $clientOrder->setAddress($address);
+            }
+            unset($data['address_id']);
+        }
+
+        return $clientOrder;
     }
 }

@@ -8,6 +8,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\Serializer\Annotation\Groups;
+use JMS\Serializer\Annotation\VirtualProperty;
 
 #[ORM\Entity(repositoryClass: BatchRepository::class)]
 class Batch
@@ -15,7 +16,8 @@ class Batch
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['batch_list', 'batch_detail', 'batch_type_detail', 'measurement_unit_detail', 'user_detail'])]
+    #[Groups(['batch_list', 'batch_detail', 'batch_type_detail', 'batch_composition_list', 'measurement_unit_detail',
+        'user_detail', 'production_list', 'production_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
     private ?int $id = null;
 
     #[ORM\Column]
@@ -23,15 +25,15 @@ class Batch
     private ?bool $completed = null;
 
     #[ORM\Column]
-    #[Groups(['batch_list', 'batch_detail'])]
+    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail'])]
     private ?bool $checked = null;
 
     #[ORM\ManyToOne(inversedBy: 'batches')]
-    #[Groups(['batch_list', 'batch_detail'])]
+    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail'])]
     private ?BatchType $batch_type = null;
 
     #[ORM\Column(length: 50)]
-    #[Groups(['batch_list', 'batch_detail'])]
+    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'batch_composition_list'])]
     private ?string $batch_code = null;
 
     #[ORM\Column(nullable: true)]
@@ -39,7 +41,7 @@ class Batch
     private ?\DateTime $batch_date = null;
 
     #[ORM\Column]
-    #[Groups(['batch_list', 'batch_detail'])]
+    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail'])]
     private ?int $pieces = null;
 
     #[ORM\ManyToOne(inversedBy: 'batches')]
@@ -47,7 +49,7 @@ class Batch
     private ?MeasurementUnit $measurement_unit = null;
 
     #[ORM\Column]
-    #[Groups(['batch_list', 'batch_detail'])]
+    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail'])]
     private ?float $quantity = null;
 
     #[ORM\Column]
@@ -56,7 +58,7 @@ class Batch
 
     #[ORM\Column]
     #[Groups(['batch_list', 'batch_detail'])]
-    private ?float $storage = null;
+    private ?float $stock_quantity = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     #[Groups(['batch_detail'])]
@@ -76,11 +78,11 @@ class Batch
 
     #[ORM\Column]
     #[Groups(['batch_list', 'batch_detail'])]
-    private ?float $sq_ft_avarage_expected = null;
+    private ?float $sq_ft_average_expected = null;
 
     #[ORM\Column]
     #[Groups(['batch_list', 'batch_detail'])]
-    private ?float $sq_ft_avarage_found = null;
+    private ?float $sq_ft_average_found = null;
 
     #[ORM\Column(nullable: true)]
     #[Groups(['batch_detail'])]
@@ -110,6 +112,7 @@ class Batch
      * @var Collection<int, BatchComposition>
      */
     #[ORM\OneToMany(mappedBy: 'batch', targetEntity: BatchComposition::class, orphanRemoval: true)]
+    #[Groups(['batch_detail'])]
     private Collection $batchCompositions;
 
     /**
@@ -120,14 +123,46 @@ class Batch
     private Collection $sonBatches;
 
     #[ORM\ManyToOne(inversedBy: 'batches')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true)]
+    #[Groups(['batch_list', 'batch_detail'])]
     private ?Leather $leather = null;
 
     /**
      * @var Collection<int, WarehouseMovement>
      */
     #[ORM\OneToMany(mappedBy: 'batch', targetEntity: WarehouseMovement::class, orphanRemoval: true)]
+    #[Groups(['batch_detail'])]
     private Collection $warehouseMovements;
+
+    /**
+     * @var Collection<int, BatchSelection>
+     */
+    #[ORM\OneToMany(mappedBy: 'batch', targetEntity: BatchSelection::class, orphanRemoval: true)]
+    #[Groups(['batch_list', 'batch_detail'])]
+    private Collection $batchSelections;
+
+    /**
+     * @var Collection<int, BatchOrder>
+     */
+    #[ORM\OneToMany(mappedBy: 'batch', targetEntity: BatchOrder::class)]
+    private Collection $batchOrders;
+
+    /**
+     * @var Collection<int, Production>
+     */
+    #[ORM\OneToMany(mappedBy: 'batch', targetEntity: Production::class, orphanRemoval: true)]
+    #[Groups(['batch_detail'])]
+    private Collection $productions;
+
+    #[ORM\ManyToOne(inversedBy: 'batches')]
+    #[Groups(['batch_list', 'batch_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    private ?Article $article = null;
+
+    /**
+     * @var Collection<int, DdtRow>
+     */
+    #[ORM\OneToMany(mappedBy: 'batch', targetEntity: DdtRow::class)]
+    private Collection $ddtRows;
 
     public function __construct()
     {
@@ -135,6 +170,22 @@ class Batch
         $this->batchCompositions = new ArrayCollection();
         $this->sonBatches = new ArrayCollection();
         $this->warehouseMovements = new ArrayCollection();
+        $this->batchSelections = new ArrayCollection();
+        $this->batchOrders = new ArrayCollection();
+        $this->productions = new ArrayCollection();
+        $this->ddtRows = new ArrayCollection();
+    }
+
+    #[VirtualProperty]
+    #[Groups(['batch_detail'])]
+    public function getBatchSelectionsCount(): int
+    {
+        $total = 0;
+        foreach ($this->batchSelections as $batchSelection) {
+            $total += $batchSelection->getPieces();
+        }
+
+        return $this->getPieces() - $total;
     }
 
 
@@ -251,14 +302,14 @@ class Batch
         return $this;
     }
 
-    public function getStorage(): ?float
+    public function getStockQuantity(): ?float
     {
-        return $this->storage;
+        return $this->stock_quantity;
     }
 
-    public function setStorage(float $storage): static
+    public function setStockQuantity(float $stock_quantity): static
     {
-        $this->storage = $storage;
+        $this->stock_quantity = $stock_quantity;
 
         return $this;
     }
@@ -311,26 +362,26 @@ class Batch
         return $this;
     }
 
-    public function getSqFtAvarageExpected(): ?float
+    public function getSqFtAverageExpected(): ?float
     {
-        return $this->sq_ft_avarage_expected;
+        return $this->sq_ft_average_expected;
     }
 
-    public function setSqFtAvarageExpected(float $sq_ft_avarage_expected): static
+    public function setSqFtAverageExpected(float $sq_ft_average_expected): static
     {
-        $this->sq_ft_avarage_expected = $sq_ft_avarage_expected;
+        $this->sq_ft_average_expected = $sq_ft_average_expected;
 
         return $this;
     }
 
-    public function getSqFtAvarageFound(): ?float
+    public function getSqFtAverageFound(): ?float
     {
-        return $this->sq_ft_avarage_found;
+        return $this->sq_ft_average_found;
     }
 
-    public function setSqFtAvarageFound(float $sq_ft_avarage_found): static
+    public function setSqFtAverageFound(float $sq_ft_average_found): static
     {
-        $this->sq_ft_avarage_found = $sq_ft_avarage_found;
+        $this->sq_ft_average_found = $sq_ft_average_found;
 
         return $this;
     }
@@ -521,6 +572,138 @@ class Batch
             // set the owning side to null (unless already changed)
             if ($warehouseMovement->getBatch() === $this) {
                 $warehouseMovement->setBatch(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, BatchSelection>
+     */
+    public function getBatchSelections(): Collection
+    {
+        return $this->batchSelections;
+    }
+
+    public function addBatchSelection(BatchSelection $batchSelection): static
+    {
+        if (!$this->batchSelections->contains($batchSelection)) {
+            $this->batchSelections->add($batchSelection);
+            $batchSelection->setBatch($this);
+        }
+
+        return $this;
+    }
+
+    public function removeBatchSelection(BatchSelection $batchSelection): static
+    {
+        if ($this->batchSelections->removeElement($batchSelection)) {
+            // set the owning side to null (unless already changed)
+            if ($batchSelection->getBatch() === $this) {
+                $batchSelection->setBatch(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, BatchOrder>
+     */
+    public function getBatchOrders(): Collection
+    {
+        return $this->batchOrders;
+    }
+
+    public function addBatchOrder(BatchOrder $batchOrder): static
+    {
+        if (!$this->batchOrders->contains($batchOrder)) {
+            $this->batchOrders->add($batchOrder);
+            $batchOrder->setBatch($this);
+        }
+
+        return $this;
+    }
+
+    public function removeBatchOrder(BatchOrder $batchOrder): static
+    {
+        if ($this->batchOrders->removeElement($batchOrder)) {
+            // set the owning side to null (unless already changed)
+            if ($batchOrder->getBatch() === $this) {
+                $batchOrder->setBatch(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Production>
+     */
+    public function getProductions(): Collection
+    {
+        return $this->productions;
+    }
+
+    public function addProduction(Production $production): static
+    {
+        if (!$this->productions->contains($production)) {
+            $this->productions->add($production);
+            $production->setBatch($this);
+        }
+
+        return $this;
+    }
+
+    public function removeProduction(Production $production): static
+    {
+        if ($this->productions->removeElement($production)) {
+            // set the owning side to null (unless already changed)
+            if ($production->getBatch() === $this) {
+                $production->setBatch(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function getArticle(): ?Article
+    {
+        return $this->article;
+    }
+
+    public function setArticle(?Article $article): static
+    {
+        $this->article = $article;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, DdtRow>
+     */
+    public function getDdtRows(): Collection
+    {
+        return $this->ddtRows;
+    }
+
+    public function addDdtRow(DdtRow $ddtRow): static
+    {
+        if (!$this->ddtRows->contains($ddtRow)) {
+            $this->ddtRows->add($ddtRow);
+            $ddtRow->setBatch($this);
+        }
+
+        return $this;
+    }
+
+    public function removeDdtRow(DdtRow $ddtRow): static
+    {
+        if ($this->ddtRows->removeElement($ddtRow)) {
+            // set the owning side to null (unless already changed)
+            if ($ddtRow->getBatch() === $this) {
+                $ddtRow->setBatch(null);
             }
         }
 

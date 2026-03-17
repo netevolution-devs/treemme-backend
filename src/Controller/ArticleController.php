@@ -1,0 +1,222 @@
+<?php
+
+namespace App\Controller;
+
+use App\Entity\Article;
+use App\Entity\ArticlePrint;
+use App\Entity\ArticleType;
+use App\Entity\ColorType;
+use App\Entity\Contact;
+use App\Entity\LeatherThickness;
+use App\Entity\Product;
+use App\Repository\ArticleRepository;
+use App\Service\CreateMethodsByInput;
+use App\Service\DoResponseService;
+use App\Service\GroupSerializerService;
+use App\Service\ValidatorOutputFormatter;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
+
+class ArticleController extends AbstractController
+{
+    public function __construct(
+        private readonly EntityManagerInterface   $entityManager,
+        private readonly ArticleRepository        $articleRepository,
+        private readonly GroupSerializerService   $groupSerializer,
+        private readonly DoResponseService        $doResponse,
+        private readonly CreateMethodsByInput     $createMethodsByInput,
+        private readonly ValidatorOutputFormatter $validatorOutputFormatter
+    )
+    {
+    }
+
+    #[Route('/article/{id}', name: 'app_article_index', methods: ['GET'], defaults: ['id' => null], requirements: ['id' => '\d+'])]
+    public function index(Request $request, ?int $id = null): JsonResponse
+    {
+        if ($id) {
+            $article = $this->articleRepository->find($id);
+
+            if (!$article) {
+                return new JsonResponse($this->doResponse->doErrorResponse('Articolo non trovato', status_code: 404));
+            }
+
+            $results = $this->groupSerializer->serializeGroup($article, 'article_detail');
+
+            return new JsonResponse($this->doResponse->doResponse($results));
+        }
+
+        $clientId = $request->query->get('client');
+
+        if ($clientId) {
+            $client = $this->entityManager->getRepository(Contact::class)->find($clientId);
+
+            if (!$client) {
+                return new JsonResponse($this->doResponse->doErrorResponse('Cliente non trovato'), 404);
+            }
+
+            $articles = $this->articleRepository->findBy(['client' => $client]);
+        } else {
+            $articles = $this->articleRepository->findAll();
+        }
+
+        $results = $this->groupSerializer->serializeGroup($articles, 'article_list');
+
+        return new JsonResponse($this->doResponse->doResponse($results));
+    }
+
+    #[Route('/article', name: 'app_article_create', methods: ['POST'])]
+    public function create(Request $request, ValidatorInterface $validator): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true) ?? $request->request->all();
+
+        $article = new Article();
+
+        try {
+            $this->mapDataToEntity($article, $data);
+
+            if (!$article->getCode()) {
+                $prefix = 'AR';
+                $lastCode = $this->articleRepository->findLatestArticleCode($prefix);
+                
+                $nextNumber = 1;
+                if ($lastCode && preg_match('/' . preg_quote($prefix, '/') . '(\d+)$/', $lastCode, $matches)) {
+                    $nextNumber = (int)$matches[1] + 1;
+                }
+                
+                $article->setCode($prefix . str_pad((string)$nextNumber, 6, '0', STR_PAD_LEFT));
+            }
+        } catch (\Exception $e) {
+            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+        }
+
+        $errors = $validator->validate($article);
+        if (count($errors) > 0) {
+            $formattedErrors = $this->validatorOutputFormatter->formatOutput($errors);
+            return new JsonResponse($this->doResponse->doErrorResponse($formattedErrors));
+        }
+
+        $this->entityManager->persist($article);
+        $this->entityManager->flush();
+
+        $results = $this->groupSerializer->serializeGroup($article, 'article_detail');
+        return new JsonResponse($this->doResponse->doResponse($results));
+    }
+
+    #[Route('/article/{id}', name: 'app_article_update', methods: ['PUT', 'PATCH'])]
+    public function update(Request $request, int $id, ValidatorInterface $validator): JsonResponse
+    {
+        $article = $this->articleRepository->find($id);
+
+        if (!$article) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Articolo non trovato', status_code: 404));
+        }
+
+        $data = json_decode($request->getContent(), true) ?? $request->request->all();
+
+        try {
+            $this->mapDataToEntity($article, $data);
+        } catch (\Exception $e) {
+            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+        }
+
+        $errors = $validator->validate($article);
+        if (count($errors) > 0) {
+            $formattedErrors = $this->validatorOutputFormatter->formatOutput($errors);
+            return new JsonResponse($this->doResponse->doErrorResponse($formattedErrors));
+        }
+
+        $this->entityManager->flush();
+
+        $results = $this->groupSerializer->serializeGroup($article, 'article_detail');
+        return new JsonResponse($this->doResponse->doResponse($results));
+    }
+
+    #[Route('/article/{id}', name: 'app_article_delete', methods: ['DELETE'])]
+    public function delete(int $id): JsonResponse
+    {
+        $article = $this->articleRepository->find($id);
+
+        if (!$article) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Articolo non trovato', status_code: 404));
+        }
+
+        $this->entityManager->remove($article);
+        $this->entityManager->flush();
+
+        return new JsonResponse($this->doResponse->doResponse(null, status: 'Articolo eliminato correttamente'));
+    }
+
+    /**
+     * @throws \Exception
+     */
+    private function mapDataToEntity(Article $article, array $data): void
+    {
+        // Relazioni
+        if (isset($data['client_id'])) {
+            $client = $this->entityManager->getRepository(Contact::class)->find($data['client_id']);
+            if (!$client) throw new \Exception("Cliente con ID {$data['client_id']} non trovato");
+            $article->setClient($client);
+            unset($data['client_id']);
+        }
+
+        if (isset($data['article_type_id'])) {
+            $type = $this->entityManager->getRepository(ArticleType::class)->find($data['article_type_id']);
+            if (!$type) throw new \Exception("Tipo articolo con ID {$data['article_type_id']} non trovato");
+            $article->setArticleType($type);
+            unset($data['article_type_id']);
+        }
+
+        if (isset($data['thickness_id'])) {
+            $thickness = $this->entityManager->getRepository(LeatherThickness::class)->find($data['thickness_id']);
+            if (!$thickness) throw new \Exception("Spessore con ID {$data['thickness_id']} non trovato");
+            $article->setThickness($thickness);
+            unset($data['thickness_id']);
+        }
+
+        if (isset($data['print_id'])) {
+            $print = $this->entityManager->getRepository(ArticlePrint::class)->find($data['print_id']);
+            if (!$print) throw new \Exception("Stampa con ID {$data['print_id']} non trovato");
+            $article->setPrint($print);
+            unset($data['print_id']);
+        }
+
+        if (isset($data['color_type_id'])) {
+            $colorType = $this->entityManager->getRepository(ColorType::class)->find($data['color_type_id']);
+            if (!$colorType) throw new \Exception("Tipo colore con ID {$data['color_type_id']} non trovato");
+            $article->setColorType($colorType);
+            unset($data['color_type_id']);
+        }
+
+        if (isset($data['product_id'])) {
+            $product = $this->entityManager->getRepository(Product::class)->find($data['product_id']);
+            if (!$product) throw new \Exception("Prodotto con ID {$data['product_id']} non trovato");
+            $article->setProduct($product);
+            unset($data['product_id']);
+        }
+
+        // Mappatura campi semplici
+        $this->createMethodsByInput->createMethods($article, $data);
+
+        $nameParts = [
+            $article->getArticleType()?->getArticleClass()?->getName(),
+            $article->getArticleType()?->getName(),
+            $article->getArticleVariation(),
+            $article->getThickness()?->getName(),
+            $article->getPrint()?->getName(),
+            $article->getColorType()?->getName(),
+            $article->getShade(),
+            $article->getColor(),
+            $article->getColorVariation(),
+            $article->getProduct()?->getName(),
+        ];
+
+        $article->setName(implode(' ', array_filter(
+            $nameParts,
+            static fn (?string $value): bool => $value !== null && trim($value) !== ''
+        )));
+    }
+}

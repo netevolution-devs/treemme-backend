@@ -20,14 +20,16 @@ class CreateMethodsByInput
                 throw new \RuntimeException($field . ' non trovato');
             }
 
-            // Normalizzazione: converti valori "vuoti" in NULL
-            // Casi gestiti: "", NULL, "null", 0, 0.0, "0", "0.0", "0,0" ...
             if ($value === null) {
                 $value = null;
             } else if (is_string($value)) {
                 $trimmed = trim($value);
                 if ($trimmed === '' || strtolower($trimmed) === 'null') {
                     $value = null;
+                } else if (strtolower($trimmed) === 'true') {
+                    $value = true;
+                } else if (strtolower($trimmed) === 'false') {
+                    $value = false;
                 } else {
                     $numericCandidate = str_replace(',', '.', $trimmed);
                     if (is_numeric($numericCandidate) && (float)$numericCandidate == 0.0) {
@@ -74,6 +76,8 @@ class CreateMethodsByInput
                     throw new \RuntimeException('Errore in inserimento data: ' . $e->getMessage());
                 }
 
+            } else if (is_bool($value)) {
+                // Se è già booleano, non facciamo nulla e saltiamo la parte successiva.
             } else {
                 // Conversione numerica sicura evitando deprecazioni con NULL
                 if ($value !== null) {

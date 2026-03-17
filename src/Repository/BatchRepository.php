@@ -31,13 +31,23 @@ class BatchRepository extends ServiceEntityRepository
     //        ;
     //    }
 
-    //    public function findOneBySomeField($value): ?Batch
-    //    {
-    //        return $this->createQueryBuilder('b')
-    //            ->andWhere('b.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+    public function findAvailableStock(): array
+    {
+        return $this->createQueryBuilder('b')
+            ->andWhere('b.stock_items > 0')
+            ->orderBy('b.id', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function findLatestBatchByPrefix(string $prefix): ?Batch
+    {
+        return $this->createQueryBuilder('b')
+            ->andWhere('b.batch_code LIKE :prefix')
+            ->setParameter('prefix', $prefix . '%')
+            ->orderBy('b.batch_code', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

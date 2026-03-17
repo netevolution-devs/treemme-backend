@@ -14,11 +14,11 @@ class ColorType
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['color_type_list', 'color_type_detail', 'color_list', 'color_detail'])]
+    #[Groups(['color_type_list', 'color_type_detail', 'color_list', 'color_detail', 'article_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['color_type_list', 'color_type_detail', 'color_list', 'color_detail'])]
+    #[Groups(['color_type_list', 'color_type_detail', 'color_list', 'color_detail', 'article_detail'])]
     private ?string $name = null;
 
     /**
@@ -34,9 +34,16 @@ class ColorType
     #[ORM\Column]
     private ?\DateTimeImmutable $updated_at = null;
 
+    /**
+     * @var Collection<int, Article>
+     */
+    #[ORM\OneToMany(mappedBy: 'color_type', targetEntity: Article::class)]
+    private Collection $articles;
+
     public function __construct()
     {
         $this->colors = new ArrayCollection();
+        $this->articles = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -106,6 +113,36 @@ class ColorType
     public function setUpdatedAt(\DateTimeImmutable $updated_at): static
     {
         $this->updated_at = $updated_at;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Article>
+     */
+    public function getArticles(): Collection
+    {
+        return $this->articles;
+    }
+
+    public function addArticle(Article $article): static
+    {
+        if (!$this->articles->contains($article)) {
+            $this->articles->add($article);
+            $article->setColorType($this);
+        }
+
+        return $this;
+    }
+
+    public function removeArticle(Article $article): static
+    {
+        if ($this->articles->removeElement($article)) {
+            // set the owning side to null (unless already changed)
+            if ($article->getColorType() === $this) {
+                $article->setColorType(null);
+            }
+        }
 
         return $this;
     }

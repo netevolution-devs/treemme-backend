@@ -2,7 +2,7 @@
 
 namespace App\Controller;
 
-use App\Entity\Client;
+use App\Entity\ShipmentCondition;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -11,17 +11,12 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-final class ClientController extends AbstractController
+final class ShipmentConditionController extends AbstractController
 {
-    private $createMethodsByInput;
-    private $doctrine;
-    private $doResponse;
-    private $groupSerializer;
-    private $validatorOutputFormatter;
-
     public function __construct(
         CreateMethodsByInput     $createMethodsByInput,
         EntityManagerInterface   $entityManager,
@@ -36,25 +31,26 @@ final class ClientController extends AbstractController
         $this->groupSerializer = $groupSerializer;
         $this->validatorOutputFormatter = $validatorOutputFormatter;
     }
-
-    #[Route('/client/{id}',
-        name: 'get_client',
+    
+    #[Route('/shipment-condition/{id}',
+        name: 'get_shipment-condition',
         defaults: ['id' => null],
-        requirements: ['id' => '\d*'],
+        requirements: ['id' => '\\d*'],
         methods: ['GET', 'HEAD'])]
-    public function getClient(?int $id): JsonResponse
+    public function getShipmentCondition(?int $id): JsonResponse
     {
-        $clientRepository = $this->doctrine->getRepository(Client::class);
+        $repo = $this->doctrine->getRepository(ShipmentCondition::class);
 
         if ($id) {
-            $client = [$clientRepository->find($id)];
-            if (!$client[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('Client not found', 404));
+            $items = [$repo->find($id)];
+            if (!$items[0]) {
+                return new JsonResponse($this->doResponse->doErrorResponse('ShipmentCondition not found', 404));
             }
         } else {
-            $client = $clientRepository->findBy([], ['id' => 'DESC']);
+            $items = $repo->findBy([], ['id' => 'DESC']);
         }
-        $results = $this->groupSerializer->serializeGroup($client, $id ? 'client_detail' : 'client_list');
+
+        $results = $this->groupSerializer->serializeGroup($items, $id ? 'shipmentCondition_detail' : 'shipmentCondition_list');
 
         if ($id) {
             return new JsonResponse($this->doResponse->doResponse($results[0]));
@@ -62,84 +58,75 @@ final class ClientController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse($results));
     }
 
-    #[Route('/client',
-        name: 'post_client',
-        methods: ['POST'])]
-    public function postClient(
+    #[Route('/shipment-condition', name: 'post_shipment-condition', methods: ['POST'])]
+    public function postShipmentCondition(
         Request            $request,
         ValidatorInterface $validator,
     ): JsonResponse
     {
         $data = $request->request->all();
-        $client = new Client();
+        $shipmentCondition = new ShipmentCondition();
 
         try {
-            $client = $this->createMethodsByInput->createMethods($client, $data);
+            $shipmentCondition = $this->createMethodsByInput->createMethods($shipmentCondition, $data);
 
-            $errors = $validator->validate($client);
+            $errors = $validator->validate($shipmentCondition);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
                 return new JsonResponse($this->doResponse->doErrorResponse($errors));
             }
 
-            $em = $this->doctrine;
-            $em->persist($client);
-            $em->flush();
+            $this->doctrine->persist($shipmentCondition);
+            $this->doctrine->flush();
 
-            $result = $this->groupSerializer->serializeGroup($client, 'client_detail');
+            $result = $this->groupSerializer->serializeGroup($shipmentCondition, 'shipmentCondition_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
-
         } catch (\Exception $e) {
             return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
         }
     }
 
-    #[Route('/client/{id}',
-        name: 'put_client',
-        methods: ['PUT'])]
-    public function modifyClient(
+    #[Route('/shipment-condition/{id}', name: 'put_shipment-condition', methods: ['PUT'])]
+    public function putShipmentCondition(
         Request            $request,
         ValidatorInterface $validator,
         int                $id,
     ): JsonResponse
     {
         $data = $request->toArray();
-        $client = $this->doctrine->getRepository(Client::class)->find($id);
-
-        if (!$client) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Client not found', 404));
+        $shipmentCondition = $this->doctrine->getRepository(ShipmentCondition::class)->find($id);
+        if (!$shipmentCondition) {
+            return new JsonResponse($this->doResponse->doErrorResponse('ShipmentCondition not found', 404));
         }
 
         try {
-            $client = $this->createMethodsByInput->createMethods($client, $data);
+            $shipmentCondition = $this->createMethodsByInput->createMethods($shipmentCondition, $data);
 
-            $errors = $validator->validate($client);
+            $errors = $validator->validate($shipmentCondition);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
                 return new JsonResponse($this->doResponse->doErrorResponse($errors));
             }
 
-            $this->doctrine->persist($client);
+            $this->doctrine->persist($shipmentCondition);
             $this->doctrine->flush();
 
-            $result = $this->groupSerializer->serializeGroup($client, 'client_detail');
+            $result = $this->groupSerializer->serializeGroup($shipmentCondition, 'shipmentCondition_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
             return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
         }
     }
 
-    #[Route('/client/{id}',
-        name: 'delete_client',
-        methods: ['DELETE'])]
-    public function deleteClient(int $id): JsonResponse
+    #[Route('/shipment-condition/{id}', name: 'delete_shipment-condition', methods: ['DELETE'])]
+    public function deleteShipmentCondition(int $id): JsonResponse
     {
-        $client = $this->doctrine->getRepository(Client::class)->find($id);
-        if (!$client) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Client not found', 404));
+        $shipmentCondition = $this->doctrine->getRepository(ShipmentCondition::class)->find($id);
+        if (!$shipmentCondition) {
+            return new JsonResponse($this->doResponse->doErrorResponse('ShipmentCondition not found', 404));
         }
 
-        $this->doctrine->remove($client);
+        $this->doctrine->remove($shipmentCondition);
         $this->doctrine->flush();
 
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));

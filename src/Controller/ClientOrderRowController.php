@@ -2,7 +2,12 @@
 
 namespace App\Controller;
 
+use App\Entity\Article;
 use App\Entity\ClientOrderRow;
+use App\Entity\ClientOrder;
+use App\Entity\Currency;
+use App\Entity\Product;
+use App\Entity\MeasurementUnit;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -74,6 +79,7 @@ final class ClientOrderRowController extends AbstractController
         $clientOrderRow = new ClientOrderRow();
 
         try {
+            $clientOrderRow = $this->handleRelations($clientOrderRow, $data);
             $clientOrderRow = $this->createMethodsByInput->createMethods($clientOrderRow, $data);
 
             $errors = $validator->validate($clientOrderRow);
@@ -111,6 +117,7 @@ final class ClientOrderRowController extends AbstractController
         }
 
         try {
+            $clientOrderRow = $this->handleRelations($clientOrderRow, $data);
             $clientOrderRow = $this->createMethodsByInput->createMethods($clientOrderRow, $data);
 
             $errors = $validator->validate($clientOrderRow);
@@ -143,5 +150,42 @@ final class ClientOrderRowController extends AbstractController
         $this->doctrine->flush();
 
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
+    }
+
+    private function handleRelations(ClientOrderRow $clientOrderRow, array &$data): ClientOrderRow
+    {
+        if (isset($data['client_order_id'])) {
+            $clientOrder = $this->doctrine->getRepository(ClientOrder::class)->find($data['client_order_id']);
+            if ($clientOrder) {
+                $clientOrderRow->setClientOrder($clientOrder);
+            }
+            unset($data['client_order_id']);
+        }
+
+        if (isset($data['article_id'])) {
+            $article = $this->doctrine->getRepository(Article::class)->find($data['article_id']);
+            if ($article) {
+                $clientOrderRow->setArticle($article);
+            }
+            unset($data['article_id']);
+        }
+
+        if (isset($data['measurement_unit_id'])) {
+            $unit = $this->doctrine->getRepository(MeasurementUnit::class)->find($data['measurement_unit_id']);
+            if ($unit) {
+                $clientOrderRow->setMeasurementUnit($unit);
+            }
+            unset($data['measurement_unit_id']);
+        }
+
+        if (isset($data['currency_id'])) {
+            $unit = $this->doctrine->getRepository(Currency::class)->find($data['currency_id']);
+            if ($unit) {
+                $clientOrderRow->setCurrency($unit);
+            }
+            unset($data['currency_id']);
+        }
+
+        return $clientOrderRow;
     }
 }

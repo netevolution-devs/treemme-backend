@@ -33,7 +33,7 @@ class ClientOrder
     #[ORM\ManyToOne(inversedBy: 'clientOrders')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['client_order_list', 'client_order_detail'])]
-    private ?Client $client = null;
+    private ?Contact $client = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
@@ -107,8 +107,20 @@ class ClientOrder
      * @var Collection<int, ClientOrderRow>
      */
     #[ORM\OneToMany(mappedBy: 'client_order', targetEntity: ClientOrderRow::class, orphanRemoval: true)]
-    #[Groups(['client_order_detail'])]
+    #[Groups(['client_order_list', 'client_order_detail'])]
     private Collection $clientOrderRows;
+
+    #[ORM\ManyToOne(inversedBy: 'clientOrders')]
+    #[Groups(['client_order_detail'])]
+    private ?Contact $agent = null;
+
+    #[ORM\ManyToOne(inversedBy: 'clientOrders')]
+    #[Groups(['client_order_detail'])]
+    private ?ShipmentCondition $shipment_condition = null;
+
+    #[ORM\ManyToOne(inversedBy: 'clientOrders')]
+    #[Groups(['client_order_detail'])]
+    private ?ContactAddress $address = null;
 
     public function __construct()
     {
@@ -156,12 +168,12 @@ class ClientOrder
         return $this;
     }
 
-    public function getClient(): ?Client
+    public function getClient(): ?Contact
     {
         return $this->client;
     }
 
-    public function setClient(?Client $client): static
+    public function setClient(?Contact $client): static
     {
         $this->client = $client;
 
@@ -398,6 +410,42 @@ class ClientOrder
                 $clientOrderRow->setClientOrder(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getAgent(): ?Contact
+    {
+        return $this->agent;
+    }
+
+    public function setAgent(?Contact $agent): static
+    {
+        $this->agent = $agent;
+
+        return $this;
+    }
+
+    public function getShipmentCondition(): ?ShipmentCondition
+    {
+        return $this->shipment_condition;
+    }
+
+    public function setShipmentCondition(?ShipmentCondition $shipment_condition): static
+    {
+        $this->shipment_condition = $shipment_condition;
+
+        return $this;
+    }
+
+    public function getAddress(): ?ContactAddress
+    {
+        return $this->address;
+    }
+
+    public function setAddress(?ContactAddress $address): static
+    {
+        $this->address = $address;
 
         return $this;
     }

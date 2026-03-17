@@ -31,13 +31,25 @@ class LeatherRepository extends ServiceEntityRepository
     //        ;
     //    }
 
-    //    public function findOneBySomeField($value): ?Leather
-    //    {
-    //        return $this->createQueryBuilder('l')
-    //            ->andWhere('l.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+    public function findWithFilters(array $filters): array
+    {
+        $qb = $this->createQueryBuilder('l');
+
+        foreach ($filters as $field => $value) {
+            if ($value !== null && $value !== '') {
+                if ($field === 'provenance_area') {
+                    $qb->join('l.provenance', 'p')
+                        ->andWhere('p.area = :provenance_area')
+                        ->setParameter('provenance_area', $value);
+                } else {
+                    $qb->andWhere(sprintf('l.%s = :%s', $field, $field))
+                        ->setParameter($field, $value);
+                }
+            }
+        }
+
+        return $qb->orderBy('l.id', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
 }

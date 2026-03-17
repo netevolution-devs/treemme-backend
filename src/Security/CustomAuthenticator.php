@@ -73,7 +73,6 @@ class CustomAuthenticator extends AbstractAuthenticator
     {
         $currentPath = $request->getPathInfo();
         $isAppLogin = $currentPath === '/login';
-        $isBackofficeLogin = $currentPath === '/backoffice/login';
 
         $data = json_decode($request->getContent(), true);
 

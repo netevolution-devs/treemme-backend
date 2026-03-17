@@ -23,7 +23,7 @@ class Product
     private ?string $product_code = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['product_list', 'product_detail', 'supplier_detail', 'product_type_detail', 'measurement_unit_detail', 'color_detail', 'material_bill_list', 'material_bill_detail'])]
+    #[Groups(['product_list', 'product_detail', 'supplier_detail', 'product_type_detail', 'measurement_unit_detail', 'color_detail', 'material_bill_list', 'material_bill_detail', 'article_list', 'article_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 255)]
@@ -52,7 +52,7 @@ class Product
 
     #[ORM\Column(nullable: true)]
     #[Groups(['product_list', 'product_detail'])]
-    private ?float $stock = null;
+    private ?float $stock_quantity = null;
 
     #[ORM\Column(nullable: true)]
     #[Groups(['product_list', 'product_detail'])]
@@ -84,7 +84,7 @@ class Product
 
     #[ORM\ManyToOne(inversedBy: 'products')]
     #[Groups(['product_list', 'product_detail'])]
-    private ?Supplier $supplier = null;
+    private ?Contact $supplier = null;
 
     #[ORM\ManyToOne(inversedBy: 'products')]
     #[ORM\JoinColumn(nullable: false)]
@@ -108,22 +108,37 @@ class Product
     #[ORM\Column]
     private ?\DateTimeImmutable $updated_at = null;
 
-    /**
-     * @var Collection<int, ClientOrderRow>
-     */
-    #[ORM\OneToMany(mappedBy: 'product', targetEntity: ClientOrderRow::class)]
-    private Collection $clientOrderRows;
-
     #[ORM\ManyToOne(inversedBy: 'weightProducts')]
+    #[Groups(['product_list', 'product_detail'])]
     private ?MeasurementUnit $weight_measurement_unit = null;
 
     #[ORM\ManyToOne(inversedBy: 'thicknessProducts')]
+    #[Groups(['product_list', 'product_detail'])]
     private ?MeasurementUnit $thickness_measurement_unit = null;
+
+    #[ORM\ManyToOne(inversedBy: 'contactProducts')]
+    private ?Contact $contact = null;
+
+    /**
+     * @var Collection<int, Recipe>
+     */
+    #[ORM\OneToMany(mappedBy: 'product', targetEntity: Recipe::class)]
+    private Collection $recipes;
+
+    #[ORM\ManyToOne(inversedBy: 'products')]
+    private ?ProductCategory $product_category = null;
+
+    /**
+     * @var Collection<int, Article>
+     */
+    #[ORM\OneToMany(mappedBy: 'product', targetEntity: Article::class)]
+    private Collection $articles;
 
     public function __construct()
     {
         $this->materialBills = new ArrayCollection();
-        $this->clientOrderRows = new ArrayCollection();
+        $this->recipes = new ArrayCollection();
+        $this->articles = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -227,14 +242,14 @@ class Product
         return $this;
     }
 
-    public function getStock(): ?float
+    public function getStockQuantity(): ?float
     {
-        return $this->stock;
+        return $this->stock_quantity;
     }
 
-    public function setStock(?float $stock): static
+    public function setStockQuantity(?float $stockQuantity): static
     {
-        $this->stock = $stock;
+        $this->stock_quantity = $stockQuantity;
 
         return $this;
     }
@@ -323,12 +338,12 @@ class Product
         return $this;
     }
 
-    public function getSupplier(): ?Supplier
+    public function getSupplier(): ?Contact
     {
         return $this->supplier;
     }
 
-    public function setSupplier(?Supplier $supplier): static
+    public function setSupplier(?Contact $supplier): static
     {
         $this->supplier = $supplier;
 
@@ -413,36 +428,6 @@ class Product
         return $this;
     }
 
-    /**
-     * @return Collection<int, ClientOrderRow>
-     */
-    public function getClientOrderRows(): Collection
-    {
-        return $this->clientOrderRows;
-    }
-
-    public function addClientOrderRow(ClientOrderRow $clientOrderRow): static
-    {
-        if (!$this->clientOrderRows->contains($clientOrderRow)) {
-            $this->clientOrderRows->add($clientOrderRow);
-            $clientOrderRow->setProduct($this);
-        }
-
-        return $this;
-    }
-
-    public function removeClientOrderRow(ClientOrderRow $clientOrderRow): static
-    {
-        if ($this->clientOrderRows->removeElement($clientOrderRow)) {
-            // set the owning side to null (unless already changed)
-            if ($clientOrderRow->getProduct() === $this) {
-                $clientOrderRow->setProduct(null);
-            }
-        }
-
-        return $this;
-    }
-
     public function getWeightMeasurementUnit(): ?MeasurementUnit
     {
         return $this->weight_measurement_unit;
@@ -463,6 +448,90 @@ class Product
     public function setThicknessMeasurementUnit(?MeasurementUnit $thickness_measurement_unit): static
     {
         $this->thickness_measurement_unit = $thickness_measurement_unit;
+
+        return $this;
+    }
+
+    public function getContact(): ?Contact
+    {
+        return $this->contact;
+    }
+
+    public function setContact(?Contact $contact): static
+    {
+        $this->contact = $contact;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Recipe>
+     */
+    public function getRecipes(): Collection
+    {
+        return $this->recipes;
+    }
+
+    public function addRecipe(Recipe $recipe): static
+    {
+        if (!$this->recipes->contains($recipe)) {
+            $this->recipes->add($recipe);
+            $recipe->setProduct($this);
+        }
+
+        return $this;
+    }
+
+    public function removeRecipe(Recipe $recipe): static
+    {
+        if ($this->recipes->removeElement($recipe)) {
+            // set the owning side to null (unless already changed)
+            if ($recipe->getProduct() === $this) {
+                $recipe->setProduct(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function getProductCategory(): ?ProductCategory
+    {
+        return $this->product_category;
+    }
+
+    public function setProductCategory(?ProductCategory $product_category): static
+    {
+        $this->product_category = $product_category;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Article>
+     */
+    public function getArticles(): Collection
+    {
+        return $this->articles;
+    }
+
+    public function addArticle(Article $article): static
+    {
+        if (!$this->articles->contains($article)) {
+            $this->articles->add($article);
+            $article->setProduct($this);
+        }
+
+        return $this;
+    }
+
+    public function removeArticle(Article $article): static
+    {
+        if ($this->articles->removeElement($article)) {
+            // set the owning side to null (unless already changed)
+            if ($article->getProduct() === $this) {
+                $article->setProduct(null);
+            }
+        }
 
         return $this;
     }

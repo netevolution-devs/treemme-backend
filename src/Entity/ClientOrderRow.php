@@ -3,9 +3,12 @@
 namespace App\Entity;
 
 use App\Repository\ClientOrderRowRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\Serializer\Annotation\Groups;
+use JMS\Serializer\Annotation\VirtualProperty;
 
 #[ORM\Entity(repositoryClass: ClientOrderRowRepository::class)]
 class ClientOrderRow
@@ -33,10 +36,6 @@ class ClientOrderRow
     #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?int $weight = null;
 
-    #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
-    #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
-    private ?Product $product = null;
 
     #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
     #[ORM\JoinColumn(nullable: false)]
@@ -85,7 +84,7 @@ class ClientOrderRow
 
     #[ORM\Column(nullable: true)]
     #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
-    private ?\DateTime $delivey_date_request = null;
+    private ?\DateTime $delivery_date_request = null;
 
     #[ORM\Column(nullable: true)]
     #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
@@ -102,6 +101,26 @@ class ClientOrderRow
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?string $administration_row_note = null;
+
+    /**
+     * @var Collection<int, BatchOrder>
+     */
+    #[ORM\OneToMany(mappedBy: 'order_row', targetEntity: BatchOrder::class)]
+    private Collection $batchOrders;
+
+    #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
+    #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
+    private ?Article $article = null;
+
+    #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
+    private ?Currency $currency = null;
+
+    public function __construct()
+    {
+        $this->batchOrders = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -152,18 +171,6 @@ class ClientOrderRow
     public function setWeight(?int $weight): static
     {
         $this->weight = $weight;
-
-        return $this;
-    }
-
-    public function getProduct(): ?Product
-    {
-        return $this->product;
-    }
-
-    public function setProduct(?Product $product): static
-    {
-        $this->product = $product;
 
         return $this;
     }
@@ -300,14 +307,14 @@ class ClientOrderRow
         return $this;
     }
 
-    public function getDeliveyDateRequest(): ?\DateTime
+    public function getDeliveryDateRequest(): ?\DateTime
     {
-        return $this->delivey_date_request;
+        return $this->delivery_date_request;
     }
 
-    public function setDeliveyDateRequest(?\DateTime $delivey_date_request): static
+    public function setDeliveryDateRequest(?\DateTime $delivery_date_request): static
     {
-        $this->delivey_date_request = $delivey_date_request;
+        $this->delivery_date_request = $delivery_date_request;
 
         return $this;
     }
@@ -358,5 +365,74 @@ class ClientOrderRow
         $this->administration_row_note = $administration_row_note;
 
         return $this;
+    }
+
+    /**
+     * @return Collection<int, BatchOrder>
+     */
+    public function getBatchOrders(): Collection
+    {
+        return $this->batchOrders;
+    }
+
+    public function addBatchOrder(BatchOrder $batchOrder): static
+    {
+        if (!$this->batchOrders->contains($batchOrder)) {
+            $this->batchOrders->add($batchOrder);
+            $batchOrder->setOrderRow($this);
+        }
+
+        return $this;
+    }
+
+    public function removeBatchOrder(BatchOrder $batchOrder): static
+    {
+        if ($this->batchOrders->removeElement($batchOrder)) {
+            // set the owning side to null (unless already changed)
+            if ($batchOrder->getOrderRow() === $this) {
+                $batchOrder->setOrderRow(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function getArticle(): ?Article
+    {
+        return $this->article;
+    }
+
+    public function setArticle(?Article $article): static
+    {
+        $this->article = $article;
+
+        return $this;
+    }
+
+    public function getCurrency(): ?Currency
+    {
+        return $this->currency;
+    }
+
+    public function setCurrency(?Currency $currency): static
+    {
+        $this->currency = $currency;
+
+        return $this;
+    }
+
+    #[VirtualProperty]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
+    public function getAvailableQuantity(): float
+    {
+        $producedQuantity = 0;
+        foreach ($this->batchOrders as $batchOrder) {
+            $batch = $batchOrder->getBatch();
+            if ($batch) {
+                $producedQuantity += $batch->getQuantity();
+            }
+        }
+
+        return (float)($this->quantity - $producedQuantity);
     }
 }

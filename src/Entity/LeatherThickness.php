@@ -14,15 +14,15 @@ class LeatherThickness
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['leather_thickness_list', 'leather_thickness_detail', 'leather_detail', 'leather_type_detail'])]
+    #[Groups(['leather_thickness_list', 'leather_thickness_detail', 'leather_list', 'leather_detail', 'leather_type_detail', 'article_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['leather_thickness_list', 'leather_thickness_detail', 'leather_detail', 'leather_type_detail'])]
+    #[Groups(['leather_thickness_list', 'leather_thickness_detail', 'leather_list', 'leather_detail', 'leather_type_detail', 'article_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['leather_thickness_list', 'leather_thickness_detail', 'leather_detail', 'leather_type_detail'])]
+    #[Groups(['leather_thickness_list', 'leather_thickness_detail', 'leather_detail', 'leather_type_detail', 'article_detail'])]
     private ?float $thickness_mm = null;
 
     /**
@@ -37,10 +37,24 @@ class LeatherThickness
     #[ORM\OneToMany(mappedBy: 'thickness', targetEntity: Leather::class)]
     private Collection $leather;
 
+    /**
+     * @var Collection<int, BatchSelection>
+     */
+    #[ORM\OneToMany(mappedBy: 'thickness', targetEntity: BatchSelection::class, orphanRemoval: true)]
+    private Collection $batchSelections;
+
+    /**
+     * @var Collection<int, Article>
+     */
+    #[ORM\OneToMany(mappedBy: 'thickness', targetEntity: Article::class)]
+    private Collection $articles;
+
     public function __construct()
     {
         $this->leatherTypes = new ArrayCollection();
         $this->leather = new ArrayCollection();
+        $this->batchSelections = new ArrayCollection();
+        $this->articles = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -126,6 +140,66 @@ class LeatherThickness
             // set the owning side to null (unless already changed)
             if ($leather->getThickness() === $this) {
                 $leather->setThickness(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, BatchSelection>
+     */
+    public function getBatchSelections(): Collection
+    {
+        return $this->batchSelections;
+    }
+
+    public function addBatchSelection(BatchSelection $batchSelection): static
+    {
+        if (!$this->batchSelections->contains($batchSelection)) {
+            $this->batchSelections->add($batchSelection);
+            $batchSelection->setThickness($this);
+        }
+
+        return $this;
+    }
+
+    public function removeBatchSelection(BatchSelection $batchSelection): static
+    {
+        if ($this->batchSelections->removeElement($batchSelection)) {
+            // set the owning side to null (unless already changed)
+            if ($batchSelection->getThickness() === $this) {
+                $batchSelection->setThickness(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Article>
+     */
+    public function getArticles(): Collection
+    {
+        return $this->articles;
+    }
+
+    public function addArticle(Article $article): static
+    {
+        if (!$this->articles->contains($article)) {
+            $this->articles->add($article);
+            $article->setThickness($this);
+        }
+
+        return $this;
+    }
+
+    public function removeArticle(Article $article): static
+    {
+        if ($this->articles->removeElement($article)) {
+            // set the owning side to null (unless already changed)
+            if ($article->getThickness() === $this) {
+                $article->setThickness(null);
             }
         }
 
