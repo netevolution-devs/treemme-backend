@@ -121,6 +121,7 @@ class Contact
      * @var Collection<int, ContactAgent>
      */
     #[ORM\OneToMany(mappedBy: 'contact', targetEntity: ContactAgent::class, orphanRemoval: true)]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier'])]
     private Collection $contactAgents;
 
     #[ORM\OneToMany(mappedBy: 'agent', targetEntity: ContactAgent::class, orphanRemoval: true)]
@@ -771,26 +772,6 @@ class Contact
     public function getDdts(): Collection
     {
         return $this->ddts;
-    }
-
-    #[Groups(['contact_list', 'contact_detail', 'contact_client', 'contact_supplier'])]
-    public function getAgents(): array
-    {
-        $agents = [];
-        foreach ($this->contactAgents as $contactAgent) {
-            $agents[] = $contactAgent->getAgent();
-        }
-        return $agents;
-    }
-
-    #[Groups(['contact_list', 'contact_detail', 'contact_client', 'contact_supplier'])]
-    public function getSubcontractors(): array
-    {
-        $subcontractors = [];
-        foreach ($this->contactSubcontractors as $contactSubcontractor) {
-            $subcontractors[] = $contactSubcontractor->getSubcontractor();
-        }
-        return $subcontractors;
     }
 
     public function addDdt(Ddt $ddt): static
