@@ -85,7 +85,7 @@ final class DdtRowController extends AbstractController
                 if($ddt->getReason()->getName() == 'C/O Lavorazione') {
                     $warehouseMovement = $this->doctrine->getRepository(WarehouseMovement::class)->findOneBy(['batch' => $batch], ['id' => 'DESC']);
 
-                    if($warehouseMovement->getWarehouseMovementReason() == 'Carico' && $warehouseMovement->getMovementType()->getName() == 'C/O Lavorazione') {
+                    if($warehouseMovement->getReason()->getReasonType()->getName() == 'Carico' && $warehouseMovement->getReason()->getName() == 'C/O Lavorazione') {
                         $ddtRowsSelected[] = $ddtRow;
                     }
                 }
