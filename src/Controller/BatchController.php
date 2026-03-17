@@ -222,6 +222,10 @@ final class BatchController extends AbstractController
                         $production->setScheduledDate($scheduledDate);
                         $this->doctrine->persist($production);
                     }
+
+                    if($orderRow->getProductionRowNote() || $orderRow->getClientOrder()->getOrderNoteProduction()){
+                        $production->setProductionNote($orderRow->getProductionRowNote() ?? $orderRow->getClientOrder()->getOrderNoteProduction());
+                    }
                 }
             }
 
