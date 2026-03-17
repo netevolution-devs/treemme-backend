@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Repository\ContactSubcontractorRepository;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ContactSubcontractorRepository::class)]
 class ContactSubcontractor
@@ -11,6 +12,7 @@ class ContactSubcontractor
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'contactSubcontractors')]
@@ -19,6 +21,7 @@ class ContactSubcontractor
 
     #[ORM\ManyToOne(inversedBy: 'subcontractorContacts')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier'])]
     private ?Contact $subcontractor = null;
 
     public function getId(): ?int

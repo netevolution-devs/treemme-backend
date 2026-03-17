@@ -161,6 +161,7 @@ class Contact
      * @var Collection<int, ContactSubcontractor>
      */
     #[ORM\OneToMany(mappedBy: 'contact', targetEntity: ContactSubcontractor::class, orphanRemoval: true)]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier'])]
     private Collection $contactSubcontractors;
 
     /**

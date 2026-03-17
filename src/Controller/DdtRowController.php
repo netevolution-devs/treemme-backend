@@ -73,9 +73,27 @@ final class DdtRowController extends AbstractController
     public function getDdtRowSubcontractingNotReturned(): JsonResponse
     {
         $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
-        $ddtRows = $ddtRowRepository->findSubcontractingNotReturned();
 
-        $results = $this->groupSerializer->serializeGroup($ddtRows, 'ddt_row_list');
+        $ddtRows = $ddtRowRepository->findBy([], ['id' => 'DESC']);
+
+        $ddtRowsSelected = [];
+        foreach ($ddtRows as $ddtRow) {
+            $ddt = $ddtRow->getDdt();
+            $batch = $ddtRow->getBatch();
+
+            if ($ddt && $batch) {
+                if($ddt->getReason()->getName() == 'C/O Lavorazione') {
+                    $warehouseMovement = $this->doctrine->getRepository(WarehouseMovement::class)->findOneBy(['batch' => $batch], ['id' => 'DESC']);
+
+                    if($warehouseMovement->getReason()->getReasonType()->getName() == 'Carico' && $warehouseMovement->getReason()->getName() == 'C/O Lavorazione') {
+                        $ddtRowsSelected[] = $ddtRow;
+                    }
+                }
+            }
+
+        }
+
+        $results = $this->groupSerializer->serializeGroup($ddtRowsSelected, 'ddt_row_list');
         return new JsonResponse($this->doResponse->doResponse($results));
     }
 
