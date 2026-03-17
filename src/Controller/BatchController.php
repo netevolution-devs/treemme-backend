@@ -621,7 +621,11 @@ final class BatchController extends AbstractController
             if ($batch->getSqFtAverageExpected() === null || $batch->getSqFtAverageExpected() == 0.0) {
                 $batch->setSqFtAverageExpected($batch->getSqFtAverageFound() ?? (float)0);
             }
-            
+
+            if($batch->getSqFtAverageFound() === null || $batch->getSqFtAverageFound() == 0.0){
+                $batch->setSqFtAverageFound((float)0);
+            }
+
             if ($batch->isCompleted() === null) {
                 $batch->setCompleted(false);
             }
