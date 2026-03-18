@@ -47,7 +47,7 @@ class ProductionController extends AbstractController
             $production = $this->doctrine->getRepository(Production::class)->find($id);
 
             if (!$production) {
-                return new JsonResponse($this->doResponse->doErrorResponse('Produzione non trovata', status_code: 404));
+                return new JsonResponse($this->doResponse->doErrorResponse('Produzione non trovata'), 404);
             }
 
             $results = $this->groupSerializer->serializeGroup($production, 'production_detail');
@@ -55,12 +55,18 @@ class ProductionController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($results));
         }
 
-        $scheduled_date = $request->query->get('scheduled_date');
+        $productions = [];
+        $scheduledDate = $request->query->get('scheduled_date');
 
-        if ($scheduled_date) {
-            $productions = $this->doctrine->getRepository(Production::class)->findBy(['scheduled_date' => $scheduled_date]);
-        }
-        if (!$productions) {
+        if ($scheduledDate) {
+            try {
+                $date = new \DateTimeImmutable($scheduledDate);
+            } catch (\Exception $e) {
+                return new JsonResponse($this->doResponse->doErrorResponse('Formato data non valido per scheduled_date'), 404);
+            }
+
+            $productions = $this->doctrine->getRepository(Production::class)->findBy(['scheduled_date' => $date]);
+        } else {
             $productions = $this->doctrine->getRepository(Production::class)->findAll();
         }
 
