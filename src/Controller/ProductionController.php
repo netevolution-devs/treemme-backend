@@ -55,7 +55,15 @@ class ProductionController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($results));
         }
 
-        $productions = $this->doctrine->getRepository(Production::class)->findAll();
+        $scheduled_date = $request->query->get('scheduled_date');
+
+        if ($scheduled_date) {
+            $productions = $this->doctrine->getRepository(Production::class)->findBy(['scheduled_date' => $scheduled_date]);
+        }
+        if (!$productions) {
+            $productions = $this->doctrine->getRepository(Production::class)->findAll();
+        }
+
         $results = $this->groupSerializer->serializeGroup($productions, 'production_list');
 
         return new JsonResponse($this->doResponse->doResponse($results));
