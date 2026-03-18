@@ -24,6 +24,9 @@ doctrine:
                 naming_strategy: doctrine.orm.naming_strategy.underscore_number_aware
                 auto_mapping: true
                 connection: default
+                dql:
+                    string_functions:
+                        REPLACE: App\Doctrine\ReplaceFunction
                 mappings:
                     App:
                         is_bundle: false
