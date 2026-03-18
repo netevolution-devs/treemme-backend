@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\LeatherThickness;
 use App\Entity\LeatherType;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
@@ -74,6 +75,7 @@ final class LeatherTypeController extends AbstractController
         $leatherType = new LeatherType();
 
         try {
+            $leatherType = $this->handleRelations($leatherType, $data);
             $leatherType = $this->createMethodsByInput->createMethods($leatherType, $data);
 
             $errors = $validator->validate($leatherType);
@@ -111,6 +113,7 @@ final class LeatherTypeController extends AbstractController
         }
 
         try {
+            $leatherType = $this->handleRelations($leatherType, $data);
             $leatherType = $this->createMethodsByInput->createMethods($leatherType, $data);
 
             $errors = $validator->validate($leatherType);
@@ -143,5 +146,18 @@ final class LeatherTypeController extends AbstractController
         $this->doctrine->flush();
 
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
+    }
+
+    private function handleRelations(LeatherType $leatherType, array &$data): LeatherType
+    {
+        if (isset($data['thickness_id'])) {
+            $thickness = $this->doctrine->getRepository(LeatherThickness::class)->find($data['thickness_id']);
+            if ($thickness) {
+                $leatherType->setThickness($thickness);
+            }
+            unset($data['thickness_id']);
+        }
+
+        return $leatherType;
     }
 }
