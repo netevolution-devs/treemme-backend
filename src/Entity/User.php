@@ -35,7 +35,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?\DateTimeImmutable $totpEnabledAt = null;
 
     #[ORM\Column]
-    #[Groups(['user_list','user_detail'])]
     private array $roles = [];
 
     /**
