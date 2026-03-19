@@ -31,13 +31,30 @@ class DdtRepository extends ServiceEntityRepository
 //        ;
 //    }
 
-//    public function findOneBySomeField($value): ?Ddt
-//    {
-//        return $this->createQueryBuilder('d')
-//            ->andWhere('d.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->getQuery()
-//            ->getOneOrNullResult()
-//        ;
-//    }
+    public function findByFilters(?int $subcontractorId = null, ?\DateTime $startDate = null, ?\DateTime $endDate = null): array
+    {
+        $qb = $this->createQueryBuilder('d');
+
+        if ($subcontractorId) {
+            $qb->andWhere('d.subcontractor = :subcontractorId')
+                ->setParameter('subcontractorId', $subcontractorId);
+        }
+
+        if ($startDate) {
+            $qb->andWhere('d.ddt_date >= :startDate')
+                ->setParameter('startDate', $startDate);
+        }
+
+        if ($endDate) {
+            // Se endDate non ha l'orario, consideriamo fino a fine giornata per includere i DDT del giorno indicato
+            $endDate->setTime(23, 59, 59);
+            $qb->andWhere('d.ddt_date <= :endDate')
+                ->setParameter('endDate', $endDate);
+        }
+
+        return $qb->orderBy('d.ddt_date', 'DESC')
+            ->addOrderBy('d.id', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
 }

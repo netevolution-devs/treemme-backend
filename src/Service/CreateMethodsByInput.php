@@ -30,11 +30,6 @@ class CreateMethodsByInput
                     $value = true;
                 } else if (strtolower($trimmed) === 'false') {
                     $value = false;
-                } else {
-                    $numericCandidate = str_replace(',', '.', $trimmed);
-                    if (is_numeric($numericCandidate) && (float)$numericCandidate == 0.0) {
-                        $value = null;
-                    }
                 }
             } else if (is_int($value) || is_float($value)) {
                 if ((float)$value == 0.0) {
@@ -81,8 +76,14 @@ class CreateMethodsByInput
             } else {
                 // Conversione numerica sicura evitando deprecazioni con NULL
                 if ($value !== null) {
-                    $value_to_number = is_string($value) ? str_replace(',', '.', $value) : $value;
-                    $value = is_numeric($value_to_number) ? (float)$value_to_number : $value;
+                    $reflectionMethod = new \ReflectionMethod($entity, $method);
+                    $params = $reflectionMethod->getParameters();
+                    $expectedType = $params[0]?->getType()?->getName();
+
+                    if ($expectedType === 'float' || $expectedType === 'int') {
+                        $value_to_number = is_string($value) ? str_replace(',', '.', $value) : $value;
+                        $value = is_numeric($value_to_number) ? ($expectedType === 'float' ? (float)$value_to_number : (int)$value_to_number) : $value;
+                    }
                 }
             }
 

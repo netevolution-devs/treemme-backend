@@ -43,7 +43,7 @@ final class DdtController extends AbstractController
         defaults: ['id' => null],
         requirements: ['id' => '\d+'],
         methods: ['GET', 'HEAD'])]
-    public function getDdt(?int $id): JsonResponse
+    public function getDdt(?int $id, Request $request): JsonResponse
     {
         $ddtRepository = $this->doctrine->getRepository(Ddt::class);
 
@@ -56,7 +56,22 @@ final class DdtController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($results[0]));
         }
 
-        $ddts = $ddtRepository->findBy([], ['id' => 'DESC']);
+        $subcontractorId = $request->query->get('subcontractor_id') ? (int)$request->query->get('subcontractor_id') : null;
+        $startDateStr = $request->query->get('start_date');
+        $endDateStr = $request->query->get('end_date');
+
+        $startDate = $startDateStr ? \DateTime::createFromFormat('Y-m-d', $startDateStr) : null;
+        if ($startDate) $startDate->setTime(0, 0, 0);
+
+        $endDate = $endDateStr ? \DateTime::createFromFormat('Y-m-d', $endDateStr) : null;
+        if ($endDate) $endDate->setTime(0, 0, 0);
+
+        if ($subcontractorId || $startDate || $endDate) {
+            $ddts = $ddtRepository->findByFilters($subcontractorId, $startDate, $endDate);
+        } else {
+            $ddts = $ddtRepository->findBy([], ['id' => 'DESC']);
+        }
+
         $results = $this->groupSerializer->serializeGroup($ddts, 'ddt_list');
         return new JsonResponse($this->doResponse->doResponse($results));
     }
