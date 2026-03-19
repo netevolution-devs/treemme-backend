@@ -79,10 +79,11 @@ class Contact
     private ?string $client_note = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list'])]
     private ?string $client_shipment_note = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['contact_detail','contact_client'])]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list'])]
     private ?int $tolerance_start_days = null;
 
     #[ORM\Column(nullable: true)]

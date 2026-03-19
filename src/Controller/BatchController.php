@@ -57,17 +57,31 @@ final class BatchController extends AbstractController
         defaults: ['id' => null],
         requirements: ['id' => '\d*'],
         methods: ['GET', 'HEAD'])]
-    public function getBatch(?int $id): JsonResponse
+    public function getBatch(?int $id, Request $request): JsonResponse
     {
         $batchRepository = $this->doctrine->getRepository(Batch::class);
-
         if ($id) {
             $batch = [$batchRepository->find($id)];
             if (!$batch[0]) {
                 return new JsonResponse($this->doResponse->doErrorResponse('Batch not found', 404));
             }
         } else {
-            $batch = $batchRepository->findBy([], ['id' => 'DESC']);
+            $code = $request->query->get('code');
+
+            if ($code) {
+                $normalizedCode = str_replace('0', '', $code);
+                $batch = $batchRepository->createQueryBuilder('b')
+                    ->where("REPLACE(b.batch_code, '0', '') LIKE :code")
+                    ->setParameter('code', '%' . $normalizedCode . '%')
+                    ->orderBy('b.id', 'DESC')
+                    ->getQuery()
+                    ->getResult();
+                if (empty($batch)) {
+                    return new JsonResponse($this->doResponse->doErrorResponse('Nessun batch trovato contenente il codice ' . $code . ' (ignorando zeri)', 404));
+                }
+            } else {
+                $batch = $batchRepository->findBy([], ['id' => 'DESC']);
+            }
         }
         $results = $this->groupSerializer->serializeGroup($batch, $id ? 'batch_detail' : 'batch_list');
 
@@ -221,6 +235,10 @@ final class BatchController extends AbstractController
                     if ($scheduledDate) {
                         $production->setScheduledDate($scheduledDate);
                         $this->doctrine->persist($production);
+                    }
+
+                    if($orderRow->getProductionRowNote() || $orderRow->getClientOrder()->getOrderNoteProduction()){
+                        $production->setProductionNote($orderRow->getProductionRowNote() ?? $orderRow->getClientOrder()->getOrderNoteProduction());
                     }
                 }
             }

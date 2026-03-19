@@ -73,24 +73,35 @@ final class DdtRowController extends AbstractController
     public function getDdtRowSubcontractingNotReturned(): JsonResponse
     {
         $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
-
-        $ddtRows = $ddtRowRepository->findBy([], ['id' => 'DESC']);
+        $ddtRows = $ddtRowRepository->findAll();
 
         $ddtRowsSelected = [];
         foreach ($ddtRows as $ddtRow) {
             $ddt = $ddtRow->getDdt();
-            $batch = $ddtRow->getBatch();
-
-            if ($ddt && $batch) {
-                if($ddt->getReason()->getName() == 'C/O Lavorazione') {
-                    $warehouseMovement = $this->doctrine->getRepository(WarehouseMovement::class)->findOneBy(['batch' => $batch], ['id' => 'DESC']);
-
-                    if($warehouseMovement->getReason()->getReasonType()->getName() == 'Carico' && $warehouseMovement->getReason()->getName() == 'C/O Lavorazione') {
-                        $ddtRowsSelected[] = $ddtRow;
-                    }
-                }
+            if (!$ddt || $ddt->getReason()?->getName() !== 'C/O Lavorazione') {
+                continue;
             }
 
+            $batch = $ddtRow->getBatch();
+            if (!$batch) {
+                continue;
+            }
+
+            $movements = $batch->getWarehouseMovements();
+            if ($movements->isEmpty()) {
+                continue;
+            }
+
+            // Ordina i movimenti per ID decrescente per trovare l'ultimo
+            $movementsArray = $movements->toArray();
+            usort($movementsArray, fn($a, $b) => $b->getId() <=> $a->getId());
+            $lastMovement = $movementsArray[0];
+
+            $reason = $lastMovement->getReason();
+            if ($reason?->getName() === 'C/O Lavorazione' &&
+                $reason->getReasonType()?->getName() === 'Scarico') {
+                $ddtRowsSelected[] = $ddtRow;
+            }
         }
 
         $results = $this->groupSerializer->serializeGroup($ddtRowsSelected, 'ddt_row_list');

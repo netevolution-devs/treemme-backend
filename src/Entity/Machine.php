@@ -14,15 +14,15 @@ class Machine
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['machine_list', 'machine_detail', 'batch_type_detail', 'production_detail', 'batch_detail'])]
+    #[Groups(['machine_list', 'machine_detail', 'batch_type_detail', 'production_list', 'production_detail', 'batch_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 25)]
-    #[Groups(['machine_list', 'machine_detail', 'batch_type_detail', 'production_detail', 'batch_detail'])]
+    #[Groups(['machine_list', 'machine_detail', 'batch_type_detail', 'production_list', 'production_detail', 'batch_detail'])]
     private ?string $prefix = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['machine_list', 'machine_detail', 'batch_type_detail', 'production_detail', 'batch_detail'])]
+    #[Groups(['machine_list', 'machine_detail', 'batch_type_detail', 'production_list', 'production_detail', 'batch_detail'])]
     private ?string $name = null;
 
     #[ORM\ManyToOne(inversedBy: 'machines')]
