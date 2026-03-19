@@ -52,6 +52,10 @@ class GroupRoleWorkArea
     #[Groups(['group_role_work_area_list', 'group_role_work_area_detail', 'group_detail'])]
     private bool $canDelete = false;
 
+    #[ORM\Column]
+    #[Groups(['group_role_work_area_list', 'group_role_work_area_detail', 'group_detail'])]
+    private ?bool $check_order = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -161,6 +165,18 @@ class GroupRoleWorkArea
     public function setCanDelete(bool $canDelete): static
     {
         $this->canDelete = $canDelete;
+
+        return $this;
+    }
+
+    public function isCheckOrder(): ?bool
+    {
+        return $this->check_order;
+    }
+
+    public function setCheckOrder(bool $check_order): static
+    {
+        $this->check_order = $check_order;
 
         return $this;
     }
