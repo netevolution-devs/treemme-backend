@@ -63,7 +63,7 @@ class WorkAreaController extends AbstractController
         }
     }
 
-    #[Route('/backoffice/work/area',
+    #[Route('/work/area',
         name: 'post_work_area',
         methods: ['POST'])]
     public function AddWorkArea(
@@ -104,7 +104,7 @@ class WorkAreaController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
         }
     }
-    #[Route('/backoffice/work/area/{id}',
+    #[Route('/work/area/{id}',
         name: 'put_work_area',
         methods: ['PUT'])]
     public function modifyWorkArea(
@@ -141,7 +141,7 @@ class WorkAreaController extends AbstractController
 
         return new JsonResponse($this->doResponse->doResponse($result));
     }
-    #[Route('/backoffice/work/area/{id}',
+    #[Route('/work/area/{id}',
         name: 'delete_work_area',
         methods: ['DELETE'])]
     public function deleteWorkArea(
