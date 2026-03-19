@@ -256,10 +256,59 @@ final class GroupController extends AbstractController
         $groupRoleWorkArea->setCreatedAt($now);
         $groupRoleWorkArea->setUpdatedAt($now);
 
+        // Permessi opzionali
+        if (isset($data['can_get'])) $groupRoleWorkArea->setCanGet((bool)$data['can_get']);
+        if (isset($data['can_post'])) $groupRoleWorkArea->setCanPost((bool)$data['can_post']);
+        if (isset($data['can_put'])) $groupRoleWorkArea->setCanPut((bool)$data['can_put']);
+        if (isset($data['can_delete'])) $groupRoleWorkArea->setCanDelete((bool)$data['can_delete']);
+
         $em = $this->doctrine;
         $em->persist($groupRoleWorkArea);
         $em->flush();
 
         return new JsonResponse($this->doResponse->doResponse('Role assigned to group in work area successfully'));
+    }
+
+    #[Route('/api/user/assign-gruop',
+        name: 'user_assign_group',
+        methods: ['POST'])]
+    public function assignUserToGroup(
+        Request $request
+    ): JsonResponse
+    {
+        $data = $request->toArray();
+
+        $userId = $data['user_id'] ?? null;
+        $groupId = $data['group_id'] ?? null;
+
+        if (!$userId || !$groupId) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Missing user_id or group_id', 400));
+        }
+
+        $user = $this->doctrine->getRepository(User::class)->find($userId);
+
+        if (!$user) {
+            return new JsonResponse($this->doResponse->doErrorResponse('User not found', 404));
+        }
+
+        $group = $this->doctrine->getRepository(Group::class)->find($groupId);
+
+        if (!$group) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Group not found', 404));
+        }
+
+        $GroupUser = new GroupUser();
+
+        $GroupUser->setUser($user);
+        $GroupUser->setGroup($group);
+        $now = new \DateTimeImmutable();
+        $GroupUser->setCreatedAt($now);
+        $GroupUser->setUpdatedAt($now);
+
+        $em = $this->doctrine;
+        $em->persist($GroupUser);
+        $em->flush();
+
+        return new JsonResponse($this->doResponse->doResponse('Role assigned to user successfully'));
     }
 }
