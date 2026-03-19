@@ -48,20 +48,29 @@ class UserController extends AbstractController
     }
 
 
-    /**
-     * @OA\Response(
-     *     response=200,
-     *     description="Returns a new User",
-     *     @OA\JsonContent(
-     *        type="array",
-     *        @OA\Items(ref=@Model(type=User::class, groups={"detail"}))
-     *     )
-     * )
-     *
-     * @OA\Tag(name="add_user")
-     * @Security(name="Bearer")
-     *
-     */
+    #[Route('/api/user', name: 'get_users', methods: ['GET'])]
+    public function getUsers(): JsonResponse
+    {
+        $users = $this->doctrine->getRepository(User::class)->findAll();
+        $userData = $this->groupSerializer->serializeGroup($users, 'user_detail');
+
+        return new JsonResponse($this->doResponse->doResponse($userData));
+    }
+
+    #[Route('/api/user/{id}', name: 'get_user_detail', methods: ['GET'])]
+    public function getUserDetail(int $id): JsonResponse
+    {
+        $user = $this->doctrine->getRepository(User::class)->find($id);
+
+        if (!$user) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Utente non trovato'), 404);
+        }
+
+        $userData = $this->groupSerializer->serializeGroup($user, 'user_detail');
+
+        return new JsonResponse($this->doResponse->doResponse($userData));
+    }
+
     #[Route('/api/user', name: 'add_user', methods: ['POST'])]
     public function addUser(
         UserPasswordHasherInterface $passwordHasher,
@@ -121,20 +130,6 @@ class UserController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse(['id' => $user->getId()]));
     }
 
-    /**
-     * @OA\Response(
-     *     response=200,
-     *     description="Update an existing User",
-     *     @OA\JsonContent(
-     *        type="array",
-     *        @OA\Items(ref=@Model(type=User::class, groups={"detail"}))
-     *     )
-     * )
-     *
-     * @OA\Tag(name="edit_user")
-     * @Security(name="Bearer")
-     *
-     */
     #[Route('/api/user/{id}', name: 'edit_user', methods: ['PUT'])]
     public function editUser(
         int $id,
