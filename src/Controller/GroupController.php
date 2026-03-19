@@ -269,7 +269,24 @@ final class GroupController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse('Role assigned to group in work area successfully'));
     }
 
-    #[Route('/api/user/assign-group',
+    #[Route('/api/user/remove-group/{id}',
+        name: 'group_remove_role',
+        requirements: ['id' => '\d+'],
+        methods: ['DELETE'])]
+    public function removeRoleToGroupWorkArea( int $id): JsonResponse
+    {
+        $GroupRoleWorkArea = $this->doctrine->getRepository(GroupRoleWorkArea::class)->find($id);
+        if (!$GroupRoleWorkArea) {
+            return new JsonResponse($this->doResponse->doErrorResponse('GroupRoleWorkArea not found', 404));
+        }
+
+        $em = $this->doctrine;
+        $em->remove($GroupRoleWorkArea);
+        $em->flush();
+        return new JsonResponse($this->doResponse->doResponse('Role removed from group in work area successfully'));
+    }
+
+    #[Route('/api/user/assign-user',
         name: 'user_assign_group',
         methods: ['POST'])]
     public function assignUserToGroup(
@@ -312,7 +329,7 @@ final class GroupController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse('Role assigned to user successfully'));
     }
 
-    #[Route('/api/user/remove-group/{id}',
+    #[Route('/api/user/remove-user/{id}',
         name: 'user_remove_group',
         requirements: ['id' => '\d+'],
         methods: ['DELETE'])]
