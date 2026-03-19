@@ -255,6 +255,7 @@ class UserController extends AbstractController
                         'can_post' => $grwa->isCanPost(),
                         'can_put' => $grwa->isCanPut(),
                         'can_delete' => $grwa->isCanDelete(),
+                        'check_order' => $grwa->isCheckOrder(),
                     ];
                 }
             }
