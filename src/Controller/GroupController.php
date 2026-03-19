@@ -269,7 +269,7 @@ final class GroupController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse('Role assigned to group in work area successfully'));
     }
 
-    #[Route('/api/user/assign-gruop',
+    #[Route('/api/user/assign-group',
         name: 'user_assign_group',
         methods: ['POST'])]
     public function assignUserToGroup(
