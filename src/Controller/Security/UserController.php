@@ -73,8 +73,12 @@ class UserController extends AbstractController
     {
         $data = $this->request->getCurrentRequest()->request->all();
 
-        $email = $data['email'];
-        $password = $data['password'];
+        $email = $data['email'] ?? null;
+        $password = $data['password'] ?? null;
+
+        if (!$email || !$password) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Email e password obbligatori'), 400);
+        }
 
         $role = $data['role'] ?? 'ROLE_USER';
         $roles = explode(',', $role);
@@ -115,6 +119,116 @@ class UserController extends AbstractController
         $actionLoggerService->logAction('add_new_user', $this->groupSerializer->serializeGroup($user, 'user_detail'));
 
         return new JsonResponse($this->doResponse->doResponse(['id' => $user->getId()]));
+    }
+
+    /**
+     * @OA\Response(
+     *     response=200,
+     *     description="Update an existing User",
+     *     @OA\JsonContent(
+     *        type="array",
+     *        @OA\Items(ref=@Model(type=User::class, groups={"detail"}))
+     *     )
+     * )
+     *
+     * @OA\Tag(name="edit_user")
+     * @Security(name="Bearer")
+     *
+     */
+    #[Route('/api/user/{id}', name: 'edit_user', methods: ['PUT'])]
+    public function editUser(
+        int $id,
+        UserPasswordHasherInterface $passwordHasher,
+        CreateMethodsByInput $createMethodsByInput,
+        ValidatorInterface $validator,
+        ValidatorOutputFormatter $validatorOutputFormatter,
+        ActionLoggerService $actionLoggerService,
+    ): JsonResponse
+    {
+        $user = $this->doctrine->getRepository(User::class)->find($id);
+
+        if (!$user) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Utente non trovato'), 404);
+        }
+
+        $data = $this->request->getCurrentRequest()->request->all();
+
+        if (isset($data['password']) && !empty($data['password'])) {
+            $hashedPassword = $passwordHasher->hashPassword(
+                $user,
+                $data['password']
+            );
+            $user->setPassword($hashedPassword);
+            unset($data['password']);
+        }
+
+        if (isset($data['role'])) {
+            $roles = explode(',', $data['role']);
+            $user->setRoles($roles);
+            unset($data['role']);
+        }
+
+        try {
+            $createMethodsByInput->createMethods($user, $data);
+        } catch (Exception $e) {
+            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()), 400);
+        }
+
+        $errors = $validator->validate($user);
+
+        if (count($errors) > 0) {
+            return new JsonResponse(array('errors' => $validatorOutputFormatter->formatOutput($errors)), 400);
+        }
+
+        try {
+            $this->doctrine->flush();
+        } catch (Exception $e) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Errore durante il salvataggio o email già esistente', $e->getFile()));
+        }
+
+        $actionLoggerService->logAction('edit_user', $this->groupSerializer->serializeGroup($user, 'user_detail'));
+
+        return new JsonResponse($this->doResponse->doResponse(['id' => $user->getId()]));
+    }
+
+    /**
+     * @OA\Response(
+     *     response=200,
+     *     description="Delete a User",
+     *     @OA\JsonContent(
+     *        type="object",
+     *        @OA\Property(property="status", type="string", example="ok")
+     *     )
+     * )
+     *
+     * @OA\Tag(name="delete_user")
+     * @Security(name="Bearer")
+     *
+     */
+    #[Route('/api/user/{id}', name: 'delete_user', methods: ['DELETE'])]
+    public function deleteUser(
+        int $id,
+        ActionLoggerService $actionLoggerService,
+    ): JsonResponse
+    {
+        $user = $this->doctrine->getRepository(User::class)->find($id);
+
+        if (!$user) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Utente non trovato'), 404);
+        }
+
+        $userData = $this->groupSerializer->serializeGroup($user, 'user_detail');
+
+        $this->doctrine->remove($user);
+        try {
+            $this->doctrine->flush();
+        } catch (Exception $e) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Errore durante la cancellazione', $e->getFile()));
+        }
+
+        $actionLoggerService->logAction('delete_user', $userData);
+
+        return new JsonResponse($this->doResponse->doResponse(['status' => 'deleted']));
     }
 
     #[Route('/api/whoami', name: 'whoami', methods: ['GET'])]
