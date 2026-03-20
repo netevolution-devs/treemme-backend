@@ -177,6 +177,12 @@ class Contact
     #[ORM\OneToMany(mappedBy: 'subcontractor', targetEntity: Ddt::class)]
     private Collection $ddts;
 
+    /**
+     * @var Collection<int, Ddt>
+     */
+    #[ORM\OneToMany(mappedBy: 'client', targetEntity: Ddt::class)]
+    private Collection $ddtsFromClient;
+
     public function __construct()
     {
         $this->contactAddresses = new ArrayCollection();
@@ -192,6 +198,7 @@ class Contact
         $this->contactSubcontractors = new ArrayCollection();
         $this->subcontractorContacts = new ArrayCollection();
         $this->ddts = new ArrayCollection();
+        $this->ddtsFromClient = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -792,6 +799,36 @@ class Contact
             // set the owning side to null (unless already changed)
             if ($ddt->getSubcontractor() === $this) {
                 $ddt->setSubcontractor(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Ddt>
+     */
+    public function getDdtsFromClient(): Collection
+    {
+        return $this->ddtsFromClient;
+    }
+
+    public function addDdtsFromClient(Ddt $ddtsFromClient): static
+    {
+        if (!$this->ddtsFromClient->contains($ddtsFromClient)) {
+            $this->ddtsFromClient->add($ddtsFromClient);
+            $ddtsFromClient->setClient($this);
+        }
+
+        return $this;
+    }
+
+    public function removeDdtsFromClient(Ddt $ddtsFromClient): static
+    {
+        if ($this->ddtsFromClient->removeElement($ddtsFromClient)) {
+            // set the owning side to null (unless already changed)
+            if ($ddtsFromClient->getClient() === $this) {
+                $ddtsFromClient->setClient(null);
             }
         }
 

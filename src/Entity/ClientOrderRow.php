@@ -117,6 +117,9 @@ class ClientOrderRow
     #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?Currency $currency = null;
 
+    #[ORM\ManyToOne(inversedBy: 'cleintOrderRows')]
+    private ?Selection $selection = null;
+
     public function __construct()
     {
         $this->batchOrders = new ArrayCollection();
@@ -434,5 +437,17 @@ class ClientOrderRow
         }
 
         return (float)($this->quantity - $producedQuantity);
+    }
+
+    public function getSelection(): ?Selection
+    {
+        return $this->selection;
+    }
+
+    public function setSelection(?Selection $selection): static
+    {
+        $this->selection = $selection;
+
+        return $this;
     }
 }
