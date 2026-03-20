@@ -7,6 +7,7 @@ use App\Entity\DdtRow;
 use App\Entity\Batch;
 use App\Entity\MeasurementUnit;
 use App\Entity\Currency;
+use App\Entity\Processing;
 use App\Entity\Selection;
 use App\Entity\WarehouseMovement;
 use App\Entity\WarehouseMovementReason;
@@ -445,6 +446,13 @@ final class DdtRowController extends AbstractController
                 $ddtRow->setSelection($selection);
             }
             unset($data['selection_id']);
+        }
+        if (isset($data['processing_id'])) {
+            $processing = $this->doctrine->getRepository(Processing::class)->find($data['processing_id']);
+            if ($processing) {
+                $ddtRow->setProcessing($processing);
+            }
+            unset($data['processing_id']);
         }
     }
 
