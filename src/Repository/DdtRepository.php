@@ -31,13 +31,18 @@ class DdtRepository extends ServiceEntityRepository
 //        ;
 //    }
 
-    public function findByFilters(?int $subcontractorId = null, ?\DateTime $startDate = null, ?\DateTime $endDate = null): array
+    public function findByFilters(?int $subcontractorId = null, ?int $clientId = null, ?\DateTime $startDate = null, ?\DateTime $endDate = null): array
     {
         $qb = $this->createQueryBuilder('d');
 
         if ($subcontractorId) {
-            $qb->andWhere('d.subcontractor = :subcontractorId')
+            $qb->andWhere('IDENTITY(d.subcontractor) = :subcontractorId')
                 ->setParameter('subcontractorId', $subcontractorId);
+        }
+
+        if ($clientId) {
+            $qb->andWhere('IDENTITY(d.client) = :clientId')
+                ->setParameter('clientId', $clientId);
         }
 
         if ($startDate) {

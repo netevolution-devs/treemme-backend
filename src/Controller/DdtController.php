@@ -57,6 +57,7 @@ final class DdtController extends AbstractController
         }
 
         $subcontractorId = $request->query->get('subcontractor_id') ? (int)$request->query->get('subcontractor_id') : null;
+        $clientId = $request->query->get('client_id') ? (int)$request->query->get('client_id') : null;
         $startDateStr = $request->query->get('start_date');
         $endDateStr = $request->query->get('end_date');
 
@@ -66,8 +67,8 @@ final class DdtController extends AbstractController
         $endDate = $endDateStr ? \DateTime::createFromFormat('Y-m-d', $endDateStr) : null;
         if ($endDate) $endDate->setTime(0, 0, 0);
 
-        if ($subcontractorId || $startDate || $endDate) {
-            $ddts = $ddtRepository->findByFilters($subcontractorId, $startDate, $endDate);
+        if ($subcontractorId || $clientId || $startDate || $endDate) {
+            $ddts = $ddtRepository->findByFilters($subcontractorId, $clientId, $startDate, $endDate);
         } else {
             $ddts = $ddtRepository->findBy([], ['id' => 'DESC']);
         }
@@ -159,6 +160,14 @@ final class DdtController extends AbstractController
                 $ddt->setSubcontractor($subcontractor);
             }
             unset($data['subcontractor_id']);
+        }
+
+        if (isset($data['client_id'])) {
+            $client = $this->doctrine->getRepository(Contact::class)->find($data['client_id']);
+            if ($client) {
+                $ddt->setClient($client);
+            }
+            unset($data['client_id']);
         }
 
         if (isset($data['reason_id'])) {

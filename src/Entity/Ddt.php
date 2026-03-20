@@ -30,7 +30,6 @@ class Ddt
     private ?\DateTime $ddt_start_date = null;
 
     #[ORM\ManyToOne(inversedBy: 'ddts')]
-    #[ORM\JoinColumn(nullable: false)]
     #[Groups(['ddt_list', 'ddt_detail'])]
     private ?Contact $subcontractor = null;
 
@@ -45,6 +44,10 @@ class Ddt
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['ddt_list', 'ddt_detail'])]
     private ?DdtReason $reason = null;
+
+    #[ORM\ManyToOne(inversedBy: 'ddtsFromClient')]
+    #[Groups(['ddt_list', 'ddt_detail'])]
+    private ?Contact $client = null;
 
     public function __construct()
     {
@@ -142,6 +145,18 @@ class Ddt
     public function setReason(?DdtReason $reason): static
     {
         $this->reason = $reason;
+
+        return $this;
+    }
+
+    public function getClient(): ?Contact
+    {
+        return $this->client;
+    }
+
+    public function setClient(?Contact $client): static
+    {
+        $this->client = $client;
 
         return $this;
     }
