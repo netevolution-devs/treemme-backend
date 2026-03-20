@@ -49,11 +49,18 @@ class Selection
     #[ORM\OneToMany(mappedBy: 'selection', targetEntity: DdtRow::class)]
     private Collection $ddtRows;
 
+    /**
+     * @var Collection<int, ClientOrderRow>
+     */
+    #[ORM\OneToMany(mappedBy: 'selection', targetEntity: ClientOrderRow::class)]
+    private Collection $cleintOrderRows;
+
     public function __construct()
     {
         $this->selections = new ArrayCollection();
         $this->batchSelections = new ArrayCollection();
         $this->ddtRows = new ArrayCollection();
+        $this->cleintOrderRows = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -193,6 +200,36 @@ class Selection
             // set the owning side to null (unless already changed)
             if ($ddtRow->getSelection() === $this) {
                 $ddtRow->setSelection(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ClientOrderRow>
+     */
+    public function getCleintOrderRows(): Collection
+    {
+        return $this->cleintOrderRows;
+    }
+
+    public function addCleintOrderRow(ClientOrderRow $cleintOrderRow): static
+    {
+        if (!$this->cleintOrderRows->contains($cleintOrderRow)) {
+            $this->cleintOrderRows->add($cleintOrderRow);
+            $cleintOrderRow->setSelection($this);
+        }
+
+        return $this;
+    }
+
+    public function removeCleintOrderRow(ClientOrderRow $cleintOrderRow): static
+    {
+        if ($this->cleintOrderRows->removeElement($cleintOrderRow)) {
+            // set the owning side to null (unless already changed)
+            if ($cleintOrderRow->getSelection() === $this) {
+                $cleintOrderRow->setSelection(null);
             }
         }
 
