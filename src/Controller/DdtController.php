@@ -146,6 +146,15 @@ final class DdtController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse('DDT non trovato', 404));
         }
 
+        if($ddt->getDdtRows()->count() != 0){
+            $ddtRows = $ddt->getDdtRows();
+
+            foreach($ddtRows as $ddtRow){
+                $this->doctrine->remove($ddtRow);
+                $this->doctrine->flush();
+            }
+        }
+
         $this->doctrine->remove($ddt);
         $this->doctrine->flush();
 
