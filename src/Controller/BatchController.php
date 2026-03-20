@@ -317,11 +317,6 @@ final class BatchController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse('Solo i lotti di tipo Partita possono essere rinverditi'), 400);
         }
 
-        $existingRework = $batchRepository->findOneBy(['batch_code' => 'R' . $batchCode]);
-        if ($existingRework) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Questo lotto è già stato rinverdito (Lotto ' . $existingRework->getBatchCode() . ')'), 400);
-        }
-
         $fatherBatchCode = $fatherBatch->getBatchCode();
         if (str_starts_with($fatherBatchCode, 'SF') || str_starts_with($fatherBatchCode, 'SC')) {
             return new JsonResponse($this->doResponse->doErrorResponse('Un lotto spaccato (SF/SC) non può essere rinverdito'));
@@ -332,35 +327,49 @@ final class BatchController extends AbstractController
 
         $newQuantity = ($fatherBatch->getQuantity() / $fatherBatch->getPieces()) * $piecesToRework;
 
-        $newType = $this->doctrine->getRepository(BatchType::class)->findOneBy(['name' => 'Rinverdimento']);
+        if ($piecesToRework > $availablePieces) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Numero di pezzi superiore alla disponibilità (' . $availablePieces . ')'), 400);
+        }
 
-        $newBatch = new Batch();
-        $newBatch->setBatchType($newType);
-        $newBatch->setBatchCode('R' . $fatherBatch->getBatchCode());
-        $newBatch->setBatchDate(new \DateTime());
-        $newBatch->setPieces($piecesToRework);
-        $newBatch->setMeasurementUnit($fatherBatch->getMeasurementUnit());
-        $newBatch->setQuantity($newQuantity);
-        $newBatch->setStockItems((float)$piecesToRework);
-        $newBatch->setStockQuantity($newQuantity);
-        $newBatch->setLeather($fatherBatch->getLeather());
-        $newBatch->setSampling($fatherBatch->isSampling() ?? false);
-        $newBatch->setSplitSelected($fatherBatch->isSplitSelected() ?? false);
-        $newBatch->setCompleted(false);
-        $newBatch->setChecked(false);
-        $newBatch->setSqFtAverageExpected($fatherBatch->getSqFtAverageExpected() ?? 0.0);
-        $newBatch->setSqFtAverageFound($fatherBatch->getSqFtAverageFound() ?? 0.0);
-        $newBatch->setSelectionNote($fatherBatch->getSelectionNote());
-        $newBatch->setBatchNote($fatherBatch->getBatchNote());
+        $newBatch = $batchRepository->findOneBy(['batch_code' => 'R' . $batchCode]);
+        $isNew = false;
+        if (!$newBatch) {
+            $newBatch = new Batch();
+            $newType = $this->doctrine->getRepository(BatchType::class)->findOneBy(['name' => 'Rinverdimento']);
+            $newBatch->setBatchType($newType);
+            $newBatch->setBatchCode('R' . $fatherBatch->getBatchCode());
+            $newBatch->setBatchDate(new \DateTime());
+            $newBatch->setPieces(0);
+            $newBatch->setQuantity(0);
+            $newBatch->setStockItems(0.0);
+            $newBatch->setStockQuantity(0.0);
+            $newBatch->setLeather($fatherBatch->getLeather());
+            $newBatch->setSampling($fatherBatch->isSampling() ?? false);
+            $newBatch->setSplitSelected($fatherBatch->isSplitSelected() ?? false);
+            $newBatch->setCompleted(false);
+            $newBatch->setChecked(false);
+            $newBatch->setSqFtAverageExpected($fatherBatch->getSqFtAverageExpected() ?? 0.0);
+            $newBatch->setSqFtAverageFound($fatherBatch->getSqFtAverageFound() ?? 0.0);
+            $newBatch->setSelectionNote($fatherBatch->getSelectionNote());
+            $newBatch->setBatchNote($fatherBatch->getBatchNote());
+            $newBatch->setMeasurementUnit($fatherBatch->getMeasurementUnit());
+            $now = new \DateTimeImmutable();
+            $newBatch->setCreatedAt($now);
+            $newBatch->setUpdatedAt($now);
+            $isNew = true;
+        }
+
+        $newBatch->setPieces($newBatch->getPieces() + $piecesToRework);
+        $newBatch->setQuantity($newBatch->getQuantity() + $newQuantity);
+        $newBatch->setStockItems($newBatch->getStockItems() + (float)$piecesToRework);
+        $newBatch->setStockQuantity($newBatch->getStockQuantity() + $newQuantity);
 
         $fatherBatch->setStockItems($availablePieces - $piecesToRework);
         $fatherBatch->setStockQuantity($availableQuantity - $newQuantity);
 
-        $now = new \DateTimeImmutable();
-        $newBatch->setCreatedAt($now);
-        $newBatch->setUpdatedAt($now);
-
-        $this->doctrine->persist($newBatch);
+        if ($isNew) {
+            $this->doctrine->persist($newBatch);
+        }
 
         $batchComposition = new BatchComposition();
         $batchComposition->setBatch($newBatch);
@@ -429,13 +438,8 @@ final class BatchController extends AbstractController
         }
 
         $baseCode = (strlen($batchCode) > 1 && $batchCode[0] === 'R') ? substr($batchCode, 1) : $batchCode;
-        $existingSF = $batchRepository->findOneBy(['batch_code' => 'SF' . $baseCode]);
-        $existingSC = $batchRepository->findOneBy(['batch_code' => 'SC' . $baseCode]);
-
-        if ($existingSF || $existingSC) {
-            $alreadyCreated = $existingSF ? $existingSF->getBatchCode() : $existingSC->getBatchCode();
-            return new JsonResponse($this->doResponse->doErrorResponse('Questo lotto è già stato spaccato (Lotto ' . $alreadyCreated . ')'), 400);
-        }
+        $sfBatch = $batchRepository->findOneBy(['batch_code' => 'SF' . $baseCode]);
+        $scBatch = $batchRepository->findOneBy(['batch_code' => 'SC' . $baseCode]);
 
         $availablePieces = (float)($reworkedBatch->getStockItems() ?? 0);
         $availableQuantity = (float)($reworkedBatch->getStockQuantity() ?? 0);
@@ -460,52 +464,75 @@ final class BatchController extends AbstractController
             $scLeather = $this->getOrCreateLeatherForSplit($originalLeather, 'Crosta');
         }
 
-        $sfBatch = new Batch();
-        $sfBatch->setBatchType($newType);
-        $sfBatch->setBatchCode('SF' . $baseCode);
-        $sfBatch->setBatchDate(new \DateTime());
-        $sfBatch->setPieces((int)$pieces);
-        $sfBatch->setMeasurementUnit($reworkedBatch->getMeasurementUnit());
-        $sfBatch->setQuantity($calculatedQuantity);
-        $sfBatch->setStockItems($pieces);
-        $sfBatch->setStockQuantity($calculatedQuantity);
-        $sfBatch->setLeather($sfLeather);
-        $sfBatch->setSampling($reworkedBatch->isSampling() ?? false);
-        $sfBatch->setSplitSelected($reworkedBatch->isSplitSelected() ?? false);
-        $sfBatch->setCompleted(false);
-        $sfBatch->setChecked(false);
-        $sfBatch->setSqFtAverageExpected($reworkedBatch->getSqFtAverageExpected() ?? 0.0);
-        $sfBatch->setSqFtAverageFound($reworkedBatch->getSqFtAverageFound() ?? 0.0);
-        $sfBatch->setSelectionNote($reworkedBatch->getSelectionNote());
-        $sfBatch->setBatchNote($reworkedBatch->getBatchNote());
-        $now = new \DateTimeImmutable();
-        $sfBatch->setCreatedAt($now);
-        $sfBatch->setUpdatedAt($now);
-        $this->doctrine->persist($sfBatch);
+        $isNewSf = false;
+        if (!$sfBatch) {
+            $sfBatch = new Batch();
+            $sfBatch->setBatchType($newType);
+            $sfBatch->setBatchCode('SF' . $baseCode);
+            $sfBatch->setBatchDate(new \DateTime());
+            $sfBatch->setPieces(0);
+            $sfBatch->setQuantity(0);
+            $sfBatch->setStockItems(0.0);
+            $sfBatch->setStockQuantity(0.0);
+            $sfBatch->setLeather($sfLeather);
+            $sfBatch->setSampling($reworkedBatch->isSampling() ?? false);
+            $sfBatch->setSplitSelected($reworkedBatch->isSplitSelected() ?? false);
+            $sfBatch->setCompleted(false);
+            $sfBatch->setChecked(false);
+            $sfBatch->setSqFtAverageExpected($reworkedBatch->getSqFtAverageExpected() ?? 0.0);
+            $sfBatch->setSqFtAverageFound($reworkedBatch->getSqFtAverageFound() ?? 0.0);
+            $sfBatch->setSelectionNote($reworkedBatch->getSelectionNote());
+            $sfBatch->setBatchNote($reworkedBatch->getBatchNote());
+            $sfBatch->setMeasurementUnit($reworkedBatch->getMeasurementUnit());
+            $now = new \DateTimeImmutable();
+            $sfBatch->setCreatedAt($now);
+            $sfBatch->setUpdatedAt($now);
+            $isNewSf = true;
+        }
 
-        // Crea lotto SC
-        $scBatch = new Batch();
-        $scBatch->setBatchType($newType);
-        $scBatch->setBatchCode('SC' . $baseCode);
-        $scBatch->setBatchDate(new \DateTime());
-        $scBatch->setPieces((int)$pieces);
-        $scBatch->setMeasurementUnit($reworkedBatch->getMeasurementUnit());
-        $scBatch->setQuantity($calculatedQuantity);
-        $scBatch->setStockItems($pieces);
-        $scBatch->setStockQuantity($calculatedQuantity);
-        $scBatch->setLeather($scLeather);
-        $scBatch->setSampling($reworkedBatch->isSampling() ?? false);
-        $scBatch->setSplitSelected($reworkedBatch->isSplitSelected() ?? false);
-        $scBatch->setCompleted(false);
-        $scBatch->setChecked(false);
-        $scBatch->setSqFtAverageExpected($reworkedBatch->getSqFtAverageExpected() ?? 0.0);
-        $scBatch->setSqFtAverageFound($reworkedBatch->getSqFtAverageFound() ?? 0.0);
-        $scBatch->setSelectionNote($reworkedBatch->getSelectionNote());
-        $scBatch->setBatchNote($reworkedBatch->getBatchNote());
-        $scBatchNow = new \DateTimeImmutable();
-        $scBatch->setCreatedAt($scBatchNow);
-        $scBatch->setUpdatedAt($scBatchNow);
-        $this->doctrine->persist($scBatch);
+        $sfBatch->setPieces($sfBatch->getPieces() + (int)$pieces);
+        $sfBatch->setQuantity($sfBatch->getQuantity() + $calculatedQuantity);
+        $sfBatch->setStockItems($sfBatch->getStockItems() + $pieces);
+        $sfBatch->setStockQuantity($sfBatch->getStockQuantity() + $calculatedQuantity);
+
+        if ($isNewSf) {
+            $this->doctrine->persist($sfBatch);
+        }
+
+        $isNewSc = false;
+        if (!$scBatch) {
+            $scBatch = new Batch();
+            $scBatch->setBatchType($newType);
+            $scBatch->setBatchCode('SC' . $baseCode);
+            $scBatch->setBatchDate(new \DateTime());
+            $scBatch->setPieces(0);
+            $scBatch->setQuantity(0);
+            $scBatch->setStockItems(0.0);
+            $scBatch->setStockQuantity(0.0);
+            $scBatch->setLeather($scLeather);
+            $scBatch->setSampling($reworkedBatch->isSampling() ?? false);
+            $scBatch->setSplitSelected($reworkedBatch->isSplitSelected() ?? false);
+            $scBatch->setCompleted(false);
+            $scBatch->setChecked(false);
+            $scBatch->setSqFtAverageExpected($reworkedBatch->getSqFtAverageExpected() ?? 0.0);
+            $scBatch->setSqFtAverageFound($reworkedBatch->getSqFtAverageFound() ?? 0.0);
+            $scBatch->setSelectionNote($reworkedBatch->getSelectionNote());
+            $scBatch->setBatchNote($reworkedBatch->getBatchNote());
+            $scBatch->setMeasurementUnit($reworkedBatch->getMeasurementUnit());
+            $scBatchNow = new \DateTimeImmutable();
+            $scBatch->setCreatedAt($scBatchNow);
+            $scBatch->setUpdatedAt($scBatchNow);
+            $isNewSc = true;
+        }
+
+        $scBatch->setPieces($scBatch->getPieces() + (int)$pieces);
+        $scBatch->setQuantity($scBatch->getQuantity() + $calculatedQuantity);
+        $scBatch->setStockItems($scBatch->getStockItems() + $pieces);
+        $scBatch->setStockQuantity($scBatch->getStockQuantity() + $calculatedQuantity);
+
+        if ($isNewSc) {
+            $this->doctrine->persist($scBatch);
+        }
 
         $sfComp = new BatchComposition();
         $sfComp->setBatch($sfBatch);
