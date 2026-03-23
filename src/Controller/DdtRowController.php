@@ -299,14 +299,13 @@ final class DdtRowController extends AbstractController
         $quantity = $data['quantity'] ?? $ddtRow->getQuantity();
         $pieces = $data['pieces'] ?? $ddtRow->getPieces();
 
-        $reason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Carico']);
+        $reason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Reso C/O Lavorazione']);
         if (!$reason) {
-            $reasonTypeIn = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => 'In']);
+            $reasonTypeIn = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => 'Carico']);
             if ($reasonTypeIn) {
                 $reason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['reason_type' => $reasonTypeIn]);
             }
         }
-
         if (!$reason) {
             return new JsonResponse($this->doResponse->doErrorResponse('Causale di magazzino "Carico" non trovata', 400));
         }
@@ -322,6 +321,45 @@ final class DdtRowController extends AbstractController
         $warehouseMovement->setMovementNote('Rientro riga DDT ' . $ddtRow->getId());
 
         $this->doctrine->persist($warehouseMovement);
+        $this->doctrine->flush();
+
+        $diffPieces = $pieces - $ddtRow->getPieces();
+        if ($diffPieces !== 0) {
+            $reasonName = $diffPieces > 0 ? "Compensazione positiva" : "Compensazione negativa";
+            $compReason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => $reasonName]);
+
+            if (!$compReason) {
+                $compReason = new WarehouseMovementReason();
+                $compReason->setName($reasonName);
+                $movementType = $diffPieces > 0 ? 'Carico' : 'Scarico';
+                $reasonType = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => $movementType]);
+                if (!$reasonType) {
+                    $reasonType = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => $movementType === 'Carico' ? 'Carico' : 'Scarico']);
+                }
+                if (!$reasonType) {
+                    $reasonType = new WarehouseMovementReasonType();
+                    $reasonType->setName($movementType);
+                    $reasonType->setMovementType($movementType === 'Carico' ? 'Carico' : 'Scarico');
+                    $this->doctrine->persist($reasonType);
+                }
+                $compReason->setReasonType($reasonType);
+                $this->doctrine->persist($compReason);
+            }
+
+            $compMovement = new WarehouseMovement();
+            $compMovement->setBatch($batch);
+            $compMovement->setQuantity(0);
+            $compMovement->setPiece($diffPieces);
+            $compMovement->setReason($compReason);
+            $compMovement->setDdtNumber($ddtRow->getDdt()->getDdtNumber());
+            $compMovement->setDdtDate($ddtRow->getDdt()->getDdtDate());
+            $compMovement->setDate(new \DateTime());
+            $compMovement->setMovementNote('Compensazione riga DDT ' . $ddtRow->getId());
+            $this->doctrine->persist($compMovement);
+
+            $batch->setStockItems($batch->getStockItems() + $diffPieces);
+            $this->doctrine->persist($batch);
+        }
 
         $batch->setStockQuantity($batch->getStockQuantity() + $quantity);
         $batch->setStockItems($batch->getStockItems() + $pieces);

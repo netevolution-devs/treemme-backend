@@ -101,15 +101,7 @@ final class LeatherController extends AbstractController
             $leather = $this->handleRelations($leather, $data);
             $leather = $this->createMethodsByInput->createMethods($leather, $data);
 
-            $nameParts = [
-                $leather->getSpecies()?->getName(),
-                $leather->getProvenance()?->getNation()?->getName(),
-                $leather->getType()?->getName(),
-                $leather->getWeight()?->getName(),
-                $leather->getStatus()?->getName(),
-                $leather->getThickness()?->getName(),
-                $leather->getFlay()?->getName(),
-            ];
+            $leather->setName($leather->generateName());
 
             $typeCode = strtoupper(trim((string) $leather->getType()?->getCode()));
             $typeCode = $typeCode === '' ? '' : (mb_strlen($typeCode) === 1 ? $typeCode . $typeCode : mb_substr($typeCode, 0, 2));
@@ -129,11 +121,6 @@ final class LeatherController extends AbstractController
             }
 
             $flayCode = strtoupper(trim((string) $leather->getFlay()?->getCode()));
-
-            $leather->setName(implode(' ', array_filter(
-                $nameParts,
-                static fn (?string $value): bool => $value !== null && trim($value) !== ''
-            )));
 
             $code = $typeCode . $speciesCode . $nationCode . $weightCode . $thicknessCode . $flayCode;
 
@@ -177,6 +164,8 @@ final class LeatherController extends AbstractController
         try {
             $leather = $this->handleRelations($leather, $data);
             $leather = $this->createMethodsByInput->createMethods($leather, $data);
+
+            $leather->setName($leather->generateName());
 
             $errors = $validator->validate($leather);
             if (count($errors) > 0) {

@@ -1025,21 +1025,35 @@ final class BatchController extends AbstractController
             $this->doctrine->persist($newType);
         }
 
-        // Logic from LeatherController to generate Name and Code
-        $nameParts = [
-            $originalLeather->getSpecies()?->getName(),
-            $originalLeather->getProvenance()?->getNation()?->getName(),
-            $newType->getName(),
-            $originalLeather->getWeight()?->getName(),
-            $originalLeather->getStatus()?->getName(),
-            $originalLeather->getThickness()?->getName(),
-            $originalLeather->getFlay()?->getName(),
-        ];
+        $existingLeather = $leatherRepo->findOneBy([
+            'species' => $originalLeather->getSpecies(),
+            'provenance' => $originalLeather->getProvenance(),
+            'weight' => $originalLeather->getWeight(),
+            'status' => $originalLeather->getStatus(),
+            'thickness' => $originalLeather->getThickness(),
+            'flay' => $originalLeather->getFlay(),
+            'type' => $newType,
+            'supplier' => $originalLeather->getSupplier(),
+            'contact' => $originalLeather->getContact(),
+        ]);
 
-        $newName = implode(' ', array_filter(
-            $nameParts,
-            static fn(?string $value): bool => $value !== null && trim($value) !== ''
-        ));
+        if ($existingLeather) {
+            return $existingLeather;
+        }
+
+        $newLeather = new Leather();
+        $newLeather->setType($newType);
+
+        $newLeather->setSpecies($originalLeather->getSpecies());
+        $newLeather->setProvenance($originalLeather->getProvenance());
+        $newLeather->setWeight($originalLeather->getWeight());
+        $newLeather->setStatus($originalLeather->getStatus());
+        $newLeather->setThickness($originalLeather->getThickness());
+        $newLeather->setFlay($originalLeather->getFlay());
+        $newLeather->setContact($originalLeather->getContact());
+        $newLeather->setSupplier($originalLeather->getSupplier());
+
+        $newLeather->setName($newLeather->generateName());
 
         $typeCode = strtoupper(trim((string)$newType->getCode()));
         $typeCode = $typeCode === '' ? '' : (mb_strlen($typeCode) === 1 ? $typeCode . $typeCode : mb_substr($typeCode, 0, 2));
@@ -1053,38 +1067,19 @@ final class BatchController extends AbstractController
         $weightCode = strtoupper(trim((string)$originalLeather->getWeight()?->getName()));
 
         $thicknessCode = '';
-        if (method_exists($originalLeather, 'getThicknessMm')) {
-            $thicknessValue = (string)$originalLeather->getThicknessMm();
+        if (method_exists($newLeather, 'getThicknessMm')) {
+            $thicknessValue = (string)$newLeather->getThicknessMm();
             $thicknessCode = preg_replace('/[^\d]/', '', $thicknessValue) ?? '';
         }
         if ($thicknessCode === '' || (int)$thicknessCode === 0) {
-            $thicknessCode = strtoupper(trim((string)$originalLeather->getThickness()?->getName()));
+            $thicknessCode = strtoupper(trim((string)$newLeather->getThickness()?->getName()));
         }
 
-        $flayCode = strtoupper(trim((string)$originalLeather->getFlay()?->getCode()));
+        $flayCode = strtoupper(trim((string)$newLeather->getFlay()?->getCode()));
 
         $newCode = $typeCode . $speciesCode . $nationCode . $weightCode . $thicknessCode . $flayCode;
         $newCode = preg_replace('/[^A-Za-z0-9]/', '', $newCode);
-
-        $existingLeather = $leatherRepo->findOneBy(['code' => $newCode]);
-        if ($existingLeather) {
-            return $existingLeather;
-        }
-
-        $newLeather = new Leather();
-        $newLeather->setName($newName);
         $newLeather->setCode($newCode);
-        $newLeather->setType($newType);
-
-        // Copy other properties
-        $newLeather->setSpecies($originalLeather->getSpecies());
-        $newLeather->setProvenance($originalLeather->getProvenance());
-        $newLeather->setWeight($originalLeather->getWeight());
-        $newLeather->setStatus($originalLeather->getStatus());
-        $newLeather->setThickness($originalLeather->getThickness());
-        $newLeather->setFlay($originalLeather->getFlay());
-        $newLeather->setContact($originalLeather->getContact());
-        $newLeather->setSupplier($originalLeather->getSupplier());
 
         $newLeather->setSqftLeatherMin($originalLeather->getSqftLeatherMin());
         $newLeather->setSqftLeatherMax($originalLeather->getSqftLeatherMax());
