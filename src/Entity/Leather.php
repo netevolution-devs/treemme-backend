@@ -146,6 +146,24 @@ class Leather
         return $this->name;
     }
 
+    public function generateName(): string
+    {
+        $nameParts = [
+            $this->getSpecies()?->getName(),
+            $this->getProvenance()?->getNation()?->getName(),
+            $this->getType()?->getName(),
+            $this->getWeight()?->getName(),
+            $this->getStatus()?->getCode(),
+            $this->getThickness()?->getName(),
+            $this->getFlay()?->getCode(),
+        ];
+
+        return implode(' ', array_filter(
+            $nameParts,
+            static fn (?string $value): bool => $value !== null && trim($value) !== ''
+        ));
+    }
+
     public function setName(string $name): static
     {
         $this->name = $name;
