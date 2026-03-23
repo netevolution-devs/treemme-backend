@@ -40,17 +40,14 @@ class LeatherProvenance
     private ?LeatherFlay $flay = null;
 
     #[ORM\Column]
-    #[ORM\JoinColumn(nullable: false)]
     #[Groups(['leather_provenance_list', 'leather_provenance_detail'])]
     private ?float $psp_yield_coefficient = null;
 
     #[ORM\Column]
-    #[ORM\JoinColumn(nullable: false)]
     #[Groups(['leather_provenance_list', 'leather_provenance_detail'])]
     private ?float $grain_yield_coefficient = null;
 
     #[ORM\Column]
-    #[ORM\JoinColumn(nullable: false)]
     #[Groups(['leather_provenance_list', 'leather_provenance_detail'])]
     private ?float $crust_yield_coefficient = null;
 
