@@ -234,7 +234,23 @@ class Currency
             return null;
         }
 
-        $changes = $this->currencyChanges->toArray();
+        $now = new \DateTimeImmutable('now');
+        $from = $now->setTime(0, 0)->modify('-1 day');
+        $to = $now->modify('+1 day')->setTime(0, 0);
+
+        $changes = array_values(array_filter(
+            $this->currencyChanges->toArray(),
+            static function (CurrencyChange $change) use ($from, $to): bool {
+                $date = $change->getDate();
+
+                return $date >= $from && $date < $to;
+            }
+        ));
+
+        if ($changes === []) {
+            return null;
+        }
+
         usort($changes, function ($a, $b) {
             return $b->getDate() <=> $a->getDate() ?: $b->getId() <=> $a->getId();
         });

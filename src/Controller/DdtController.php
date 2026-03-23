@@ -43,7 +43,7 @@ final class DdtController extends AbstractController
         defaults: ['id' => null],
         requirements: ['id' => '\d+'],
         methods: ['GET', 'HEAD'])]
-    public function getDdt(?int $id): JsonResponse
+    public function getDdt(?int $id, Request $request): JsonResponse
     {
         $ddtRepository = $this->doctrine->getRepository(Ddt::class);
 
@@ -56,7 +56,23 @@ final class DdtController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($results[0]));
         }
 
-        $ddts = $ddtRepository->findBy([], ['id' => 'DESC']);
+        $subcontractorId = $request->query->get('subcontractor_id') ? (int)$request->query->get('subcontractor_id') : null;
+        $clientId = $request->query->get('client_id') ? (int)$request->query->get('client_id') : null;
+        $startDateStr = $request->query->get('start_date');
+        $endDateStr = $request->query->get('end_date');
+
+        $startDate = $startDateStr ? \DateTime::createFromFormat('Y-m-d', $startDateStr) : null;
+        if ($startDate) $startDate->setTime(0, 0, 0);
+
+        $endDate = $endDateStr ? \DateTime::createFromFormat('Y-m-d', $endDateStr) : null;
+        if ($endDate) $endDate->setTime(0, 0, 0);
+
+        if ($subcontractorId || $clientId || $startDate || $endDate) {
+            $ddts = $ddtRepository->findByFilters($subcontractorId, $clientId, $startDate, $endDate);
+        } else {
+            $ddts = $ddtRepository->findBy([], ['id' => 'DESC']);
+        }
+
         $results = $this->groupSerializer->serializeGroup($ddts, 'ddt_list');
         return new JsonResponse($this->doResponse->doResponse($results));
     }
@@ -130,6 +146,15 @@ final class DdtController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse('DDT non trovato', 404));
         }
 
+        if($ddt->getDdtRows()->count() != 0){
+            $ddtRows = $ddt->getDdtRows();
+
+            foreach($ddtRows as $ddtRow){
+                $this->doctrine->remove($ddtRow);
+                $this->doctrine->flush();
+            }
+        }
+
         $this->doctrine->remove($ddt);
         $this->doctrine->flush();
 
@@ -144,6 +169,14 @@ final class DdtController extends AbstractController
                 $ddt->setSubcontractor($subcontractor);
             }
             unset($data['subcontractor_id']);
+        }
+
+        if (isset($data['client_id'])) {
+            $client = $this->doctrine->getRepository(Contact::class)->find($data['client_id']);
+            if ($client) {
+                $ddt->setClient($client);
+            }
+            unset($data['client_id']);
         }
 
         if (isset($data['reason_id'])) {

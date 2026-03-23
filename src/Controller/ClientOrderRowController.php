@@ -8,6 +8,7 @@ use App\Entity\ClientOrder;
 use App\Entity\Currency;
 use App\Entity\Product;
 use App\Entity\MeasurementUnit;
+use App\Entity\Selection;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -184,6 +185,14 @@ final class ClientOrderRowController extends AbstractController
                 $clientOrderRow->setCurrency($unit);
             }
             unset($data['currency_id']);
+        }
+
+        if (isset($data['selection_id'])) {
+            $selection = $this->doctrine->getRepository(Selection::class)->find($data['selection_id']);
+            if ($selection) {
+                $clientOrderRow->setSelection($selection);
+            }
+            unset($data['selection_id']);
         }
 
         return $clientOrderRow;

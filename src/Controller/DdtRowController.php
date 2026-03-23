@@ -7,6 +7,7 @@ use App\Entity\DdtRow;
 use App\Entity\Batch;
 use App\Entity\MeasurementUnit;
 use App\Entity\Currency;
+use App\Entity\Processing;
 use App\Entity\Selection;
 use App\Entity\WarehouseMovement;
 use App\Entity\WarehouseMovementReason;
@@ -141,6 +142,8 @@ final class DdtRowController extends AbstractController
         $batch->setStockQuantity($batch->getStockQuantity() - $ddtRow->getQuantity());
         $batch->setStockItems($batch->getStockItems() - $ddtRow->getPieces());
 
+        $this->updateBatchSqFtAverageFound($batch);
+
         $this->doctrine->persist($batch);
 
         $ddt = $ddtRow->getDdt();
@@ -172,6 +175,10 @@ final class DdtRowController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse('Riga DDT non trovata', 404));
         }
 
+        $oldPieces = $ddtRow->getPieces();
+        $oldQuantity = $ddtRow->getQuantity();
+        $oldBatch = $ddtRow->getBatch();
+
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
 
         try {
@@ -184,6 +191,52 @@ final class DdtRowController extends AbstractController
         $errors = $validator->validate($ddtRow);
         if (count($errors) > 0) {
             return new JsonResponse($this->doResponse->doErrorResponse($this->validatorOutputFormatter->formatOutput($errors), 400));
+        }
+
+        if ($ddtRow->getPrice()) {
+            $ddtRow->setTotalValue($ddtRow->getPrice() * $ddtRow->getPieces());
+            $ddtRow->setCurrencyTotalValue($ddtRow->getCurrencyPrice() * $ddtRow->getPieces());
+        }
+
+        $newBatch = $ddtRow->getBatch();
+
+        // Se il lotto è lo stesso, gestiamo la differenza
+        if ($oldBatch && $newBatch && $oldBatch->getId() === $newBatch->getId()) {
+            $diffPieces = $ddtRow->getPieces() - $oldPieces;
+            $diffQuantity = $ddtRow->getQuantity() - $oldQuantity;
+
+            $newBatch->setStockItems($newBatch->getStockItems() - $diffPieces);
+            $newBatch->setStockQuantity($newBatch->getStockQuantity() - $diffQuantity);
+
+            $this->updateBatchSqFtAverageFound($newBatch);
+            $this->doctrine->persist($newBatch);
+        } else {
+            // Se il lotto è cambiato
+            if ($oldBatch) {
+                $oldBatch->setStockItems($oldBatch->getStockItems() + $oldPieces);
+                $oldBatch->setStockQuantity($oldBatch->getStockQuantity() + $oldQuantity);
+                $this->updateBatchSqFtAverageFound($oldBatch);
+                $this->doctrine->persist($oldBatch);
+            }
+            if ($newBatch) {
+                $newBatch->setStockItems($newBatch->getStockItems() - $ddtRow->getPieces());
+                $newBatch->setStockQuantity($newBatch->getStockQuantity() - $ddtRow->getQuantity());
+                $this->updateBatchSqFtAverageFound($newBatch);
+                $this->doctrine->persist($newBatch);
+            }
+        }
+
+        // Aggiornamento movimento di magazzino associato
+        $warehouseMovement = $this->doctrine->getRepository(WarehouseMovement::class)->findOneBy([
+            'batch' => $oldBatch,
+            'movement_note' => 'Riga DDT ' . $ddtRow->getId()
+        ]);
+
+        if ($warehouseMovement) {
+            $warehouseMovement->setBatch($newBatch);
+            $warehouseMovement->setQuantity($ddtRow->getQuantity());
+            $warehouseMovement->setPiece($ddtRow->getPieces());
+            $this->doctrine->persist($warehouseMovement);
         }
 
         $this->doctrine->flush();
@@ -201,6 +254,23 @@ final class DdtRowController extends AbstractController
         $ddtRow = $this->doctrine->getRepository(DdtRow::class)->find($id);
         if (!$ddtRow) {
             return new JsonResponse($this->doResponse->doErrorResponse('Riga DDT non trovata', 404));
+        }
+
+        $batch = $ddtRow->getBatch();
+        if ($batch) {
+            $batch->setStockItems($batch->getStockItems() + $ddtRow->getPieces());
+            $batch->setStockQuantity($batch->getStockQuantity() + $ddtRow->getQuantity());
+            $this->updateBatchSqFtAverageFound($batch);
+            $this->doctrine->persist($batch);
+        }
+
+        // Rimuoviamo anche il movimento di magazzino associato
+        $warehouseMovement = $this->doctrine->getRepository(WarehouseMovement::class)->findOneBy([
+            'batch' => $batch,
+            'movement_note' => 'Riga DDT ' . $ddtRow->getId()
+        ]);
+        if ($warehouseMovement) {
+            $this->doctrine->remove($warehouseMovement);
         }
 
         $this->doctrine->remove($ddtRow);
@@ -255,6 +325,10 @@ final class DdtRowController extends AbstractController
 
         $batch->setStockQuantity($batch->getStockQuantity() + $quantity);
         $batch->setStockItems($batch->getStockItems() + $pieces);
+
+        $this->doctrine->persist($batch);
+
+        $this->updateBatchSqFtAverageFound($batch);
 
         $this->doctrine->persist($batch);
         $this->doctrine->flush();
@@ -372,6 +446,35 @@ final class DdtRowController extends AbstractController
                 $ddtRow->setSelection($selection);
             }
             unset($data['selection_id']);
+        }
+        if (isset($data['processing_id'])) {
+            $processing = $this->doctrine->getRepository(Processing::class)->find($data['processing_id']);
+            if ($processing) {
+                $ddtRow->setProcessing($processing);
+            }
+            unset($data['processing_id']);
+        }
+    }
+
+    private function updateBatchSqFtAverageFound(Batch $batch): void
+    {
+        if ($batch->getMeasurementUnit()) {
+            $measurementUnit = $batch->getMeasurementUnit();
+
+            if ($measurementUnit->getPrefix() == 'MQ') {
+                $coefficientUm = $measurementUnit->getMeasurementUnitCoefficients()->first();
+                if ($batch->getStockItems() > 0 && $batch->getStockQuantity() > 0 && $coefficientUm) {
+                    $batch->setSqFtAverageFound($batch->getStockItems() / ($coefficientUm->getCoefficient() * $batch->getStockQuantity()));
+                } else {
+                    $batch->setSqFtAverageFound(0.0);
+                }
+            } elseif ($batch->getMeasurementUnit()->getPrefix() == 'PQ') {
+                if ($batch->getStockItems() > 0 && $batch->getStockQuantity() > 0) {
+                    $batch->setSqFtAverageFound($batch->getStockItems() / $batch->getStockQuantity());
+                } else {
+                    $batch->setSqFtAverageFound(0.0);
+                }
+            }
         }
     }
 }

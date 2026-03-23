@@ -88,6 +88,10 @@ class DdtRow
     #[Groups(['ddt_row_detail'])]
     private ?Selection $selection = null;
 
+    #[ORM\ManyToOne(inversedBy: 'ddtRows')]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    private ?Processing $processing = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -293,6 +297,18 @@ class DdtRow
     public function setSelection(?Selection $selection): static
     {
         $this->selection = $selection;
+
+        return $this;
+    }
+
+    public function getProcessing(): ?Processing
+    {
+        return $this->processing;
+    }
+
+    public function setProcessing(?Processing $processing): static
+    {
+        $this->processing = $processing;
 
         return $this;
     }
