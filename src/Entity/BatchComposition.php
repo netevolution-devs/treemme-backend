@@ -86,7 +86,7 @@ class BatchComposition
 
     public function setFatherBatchQuantity(?float $father_batch_quantity): static
     {
-        $this->father_batch_quantity = $father_batch_quantity;
+        $this->father_batch_quantity = $father_batch_quantity !== null ? round($father_batch_quantity, 3) : null;
 
         return $this;
     }
