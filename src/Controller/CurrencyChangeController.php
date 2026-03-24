@@ -57,7 +57,7 @@ final class CurrencyChangeController extends AbstractController
             $results = [$currencyChange];
         } else {
             if ($currency) {
-                $results = $repository->findOneBy(['currency' => $currency]);
+                $results = $repository->findBy(['currency' => $currency]);
                 if (!$results) {
                     return new JsonResponse($this->doResponse->doErrorResponse('Currency change not found', 404));
                 }
