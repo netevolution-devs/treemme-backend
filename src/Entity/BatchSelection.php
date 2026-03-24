@@ -44,6 +44,7 @@ class BatchSelection
 
     #[ORM\ManyToOne(inversedBy: 'batchSelections')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['batch_selection_detail', 'batch_detail', 'batch_list'])]
     private ?LeatherThickness $thickness = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
