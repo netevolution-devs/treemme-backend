@@ -167,13 +167,13 @@ final class CurrencyChangeController extends AbstractController
 
     private function handleRelations(CurrencyChange $currencyChange, array &$data): CurrencyChange
     {
-        if (isset($data['currency'])) {
-            $currency = $this->doctrine->getRepository(Currency::class)->find($data['currency']);
+        if (isset($data['currency_id'])) {
+            $currency = $this->doctrine->getRepository(Currency::class)->find($data['currency_id']);
             if (!$currency) {
                 throw new \RuntimeException('Currency not found');
             }
             $currencyChange->setCurrency($currency);
-            unset($data['currency']);
+            unset($data['currency_id']);
         }
 
         return $currencyChange;
