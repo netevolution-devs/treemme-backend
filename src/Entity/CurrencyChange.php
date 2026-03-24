@@ -17,7 +17,7 @@ class CurrencyChange
 
     #[ORM\ManyToOne(inversedBy: 'currencyChanges')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['currency_change_list', 'currency_change_detail'])]
+    #[Groups(['currency_change_detail'])]
     private ?Currency $currency = null;
 
     #[ORM\Column]
