@@ -43,9 +43,11 @@ final class CurrencyChangeController extends AbstractController
         defaults: ['id' => null],
         requirements: ['id' => '\d*'],
         methods: ['GET', 'HEAD'])]
-    public function getCurrencyChange(?int $id): JsonResponse
+    public function getCurrencyChange(?int $id, Request $request): JsonResponse
     {
         $repository = $this->doctrine->getRepository(CurrencyChange::class);
+
+        $currency = $request->query->get('currency');
 
         if ($id) {
             $currencyChange = $repository->find($id);
@@ -54,7 +56,14 @@ final class CurrencyChangeController extends AbstractController
             }
             $results = [$currencyChange];
         } else {
-            $results = $repository->findBy([], ['id' => 'DESC']);
+            if ($currency) {
+                $results = $repository->findOneBy(['currency' => $currency]);
+                if (!$results) {
+                    return new JsonResponse($this->doResponse->doErrorResponse('Currency change not found', 404));
+                }
+            } else {
+                $results = $repository->findBy([], ['id' => 'DESC']);
+            }
         }
 
         $serialized = $this->groupSerializer->serializeGroup($results, $id ? 'currency_change_detail' : 'currency_change_list');
