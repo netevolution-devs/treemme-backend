@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\BatchSelectionRepository;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\Serializer\Annotation\Groups;
 
@@ -44,6 +45,10 @@ class BatchSelection
     #[ORM\ManyToOne(inversedBy: 'batchSelections')]
     #[ORM\JoinColumn(nullable: false)]
     private ?LeatherThickness $thickness = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['batch_selection_detail', 'batch_detail', 'batch_list'])]
+    private ?string $note = null;
 
     public function getId(): ?int
     {
@@ -93,7 +98,7 @@ class BatchSelection
 
     public function setQuantity(?float $quantity): static
     {
-        $this->quantity = $quantity;
+        $this->quantity = $quantity !== null ? round($quantity, 3) : null;
 
         return $this;
     }
@@ -117,7 +122,7 @@ class BatchSelection
 
     public function setStockQuantity(?float $stock_quantity): static
     {
-        $this->stock_quantity = $stock_quantity;
+        $this->stock_quantity = $stock_quantity !== null ? round($stock_quantity, 3) : null;
 
         return $this;
     }
@@ -130,6 +135,18 @@ class BatchSelection
     public function setThickness(?LeatherThickness $thickness): static
     {
         $this->thickness = $thickness;
+
+        return $this;
+    }
+
+    public function getNote(): ?string
+    {
+        return $this->note;
+    }
+
+    public function setNote(?string $note): static
+    {
+        $this->note = $note;
 
         return $this;
     }

@@ -285,7 +285,7 @@ class Batch
 
     public function setQuantity(float $quantity): static
     {
-        $this->quantity = $quantity;
+        $this->quantity = round($quantity, 3);
 
         return $this;
     }
@@ -297,7 +297,7 @@ class Batch
 
     public function setStockItems(float $stock_items): static
     {
-        $this->stock_items = $stock_items;
+        $this->stock_items = round($stock_items, 3);
 
         return $this;
     }
@@ -309,7 +309,7 @@ class Batch
 
     public function setStockQuantity(float $stock_quantity): static
     {
-        $this->stock_quantity = $stock_quantity;
+        $this->stock_quantity = round($stock_quantity, 3);
 
         return $this;
     }
@@ -369,7 +369,7 @@ class Batch
 
     public function setSqFtAverageExpected(float $sq_ft_average_expected): static
     {
-        $this->sq_ft_average_expected = $sq_ft_average_expected;
+        $this->sq_ft_average_expected = round($sq_ft_average_expected, 3);
 
         return $this;
     }
@@ -381,7 +381,7 @@ class Batch
 
     public function setSqFtAverageFound(float $sq_ft_average_found): static
     {
-        $this->sq_ft_average_found = $sq_ft_average_found;
+        $this->sq_ft_average_found = round($sq_ft_average_found, 3);
 
         return $this;
     }

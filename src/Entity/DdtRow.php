@@ -152,7 +152,7 @@ class DdtRow
 
     public function setQuantity(float $quantity): static
     {
-        $this->quantity = $quantity;
+        $this->quantity = round($quantity, 3);
 
         return $this;
     }
