@@ -111,6 +111,26 @@ final class BatchController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse($results));
     }
 
+    #[Route('/batch/split/available',
+        name: 'get_available_split_batches',
+        methods: ['GET', 'HEAD'])]
+    public function getAvailableSplitBatches(): JsonResponse
+    {
+        $batchRepository = $this->doctrine->getRepository(Batch::class);
+        $allAvailableBatches = $batchRepository->findAvailableSplitStock();
+
+        $batches = [];
+        foreach ($allAvailableBatches as $batch) {
+            if($batch->getBatchType()->getName() === 'Spaccato' && $batch->getLeather()->getType()->getName() === "Fiore"){
+                $batches[] = $batch;
+            }
+        }
+
+        $results = $this->groupSerializer->serializeGroup($batches, 'batch_list');
+
+        return new JsonResponse($this->doResponse->doResponse($results));
+    }
+
     #[Route('/batch/dye',
         name: 'post_batch_dye',
         methods: ['POST'])]
