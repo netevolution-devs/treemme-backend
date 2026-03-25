@@ -43,9 +43,11 @@ final class CurrencyChangeController extends AbstractController
         defaults: ['id' => null],
         requirements: ['id' => '\d*'],
         methods: ['GET', 'HEAD'])]
-    public function getCurrencyChange(?int $id): JsonResponse
+    public function getCurrencyChange(?int $id, Request $request): JsonResponse
     {
         $repository = $this->doctrine->getRepository(CurrencyChange::class);
+
+        $currency = $request->query->get('currency');
 
         if ($id) {
             $currencyChange = $repository->find($id);
@@ -54,7 +56,14 @@ final class CurrencyChangeController extends AbstractController
             }
             $results = [$currencyChange];
         } else {
-            $results = $repository->findBy([], ['id' => 'DESC']);
+            if ($currency) {
+                $results = $repository->findBy(['currency' => $currency], ['date' => 'DESC']);
+                if (!$results) {
+                    return new JsonResponse($this->doResponse->doErrorResponse('Currency change not found', 404));
+                }
+            } else {
+                $results = $repository->findBy([], ['date' => 'DESC']);
+            }
         }
 
         $serialized = $this->groupSerializer->serializeGroup($results, $id ? 'currency_change_detail' : 'currency_change_list');
@@ -158,13 +167,13 @@ final class CurrencyChangeController extends AbstractController
 
     private function handleRelations(CurrencyChange $currencyChange, array &$data): CurrencyChange
     {
-        if (isset($data['currency'])) {
-            $currency = $this->doctrine->getRepository(Currency::class)->find($data['currency']);
+        if (isset($data['currency_id'])) {
+            $currency = $this->doctrine->getRepository(Currency::class)->find($data['currency_id']);
             if (!$currency) {
                 throw new \RuntimeException('Currency not found');
             }
             $currencyChange->setCurrency($currency);
-            unset($data['currency']);
+            unset($data['currency_id']);
         }
 
         return $currencyChange;
