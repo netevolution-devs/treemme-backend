@@ -79,7 +79,14 @@ final class BatchController extends AbstractController
                 if (empty($batch)) {
                     return new JsonResponse($this->doResponse->doErrorResponse('Nessun batch trovato contenente il codice ' . $code . ' (ignorando zeri)', 404));
                 }
-            } else {
+            } else if ($request->query->get('type')) {
+                $batchType = $this->doctrine->getRepository(BatchType::class)->find($request->query->get('type'));
+
+                if ($batchType) {
+                    $batch = $batchRepository->findBy(['batch_type' => $batchType], ['id' => 'DESC']);
+                }
+            }
+            else {
                 $batch = $batchRepository->findBy([], ['id' => 'DESC']);
             }
         }
