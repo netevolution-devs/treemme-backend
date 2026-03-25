@@ -126,6 +126,7 @@ class Contact
     private Collection $contactAgents;
 
     #[ORM\OneToMany(mappedBy: 'agent', targetEntity: ContactAgent::class, orphanRemoval: true)]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier'])]
     private Collection $agentContacts;
 
     #[ORM\Column]
