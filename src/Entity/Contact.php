@@ -188,6 +188,10 @@ class Contact
     #[ORM\OneToMany(mappedBy: 'client', targetEntity: Ddt::class)]
     private Collection $ddtsFromClient;
 
+    #[ORM\ManyToOne(inversedBy: 'contacts')]
+    #[Groups(['contact_detail','contact_client','contact_supplier','contact_agent_list'])]
+    private ?ShipmentCondition $shipment_condition = null;
+
     public function __construct()
     {
         $this->contactAddresses = new ArrayCollection();
@@ -836,6 +840,18 @@ class Contact
                 $ddtsFromClient->setClient(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getShipmentCondition(): ?ShipmentCondition
+    {
+        return $this->shipment_condition;
+    }
+
+    public function setShipmentCondition(?ShipmentCondition $shipment_condition): static
+    {
+        $this->shipment_condition = $shipment_condition;
 
         return $this;
     }
