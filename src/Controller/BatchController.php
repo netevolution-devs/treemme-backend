@@ -79,12 +79,28 @@ final class BatchController extends AbstractController
                 if (empty($batch)) {
                     return new JsonResponse($this->doResponse->doErrorResponse('Nessun batch trovato contenente il codice ' . $code . ' (ignorando zeri)', 404));
                 }
-            } else if ($request->query->get('type')) {
-                $batchType = $this->doctrine->getRepository(BatchType::class)->find($request->query->get('type'));
+            } else if ($request->query->get('type') || $request->query->get('year')) {
+                $type = $request->query->get('type');
+                $year = $request->query->get('year');
 
-                if ($batchType) {
-                    $batch = $batchRepository->findBy(['batch_type' => $batchType], ['id' => 'DESC']);
+                $qb = $batchRepository->createQueryBuilder('b');
+
+                if ($type) {
+                    $batchType = $this->doctrine->getRepository(BatchType::class)->find($type);
+                    if ($batchType) {
+                        $qb->andWhere('b.batch_type = :type')
+                            ->setParameter('type', $batchType);
+                    }
                 }
+
+                if ($year) {
+                    $qb->andWhere('YEAR(b.batch_date) = :year')
+                        ->setParameter('year', $year);
+                }
+
+                $batch = $qb->orderBy('b.id', 'DESC')
+                    ->getQuery()
+                    ->getResult();
             }
             else {
                 $batch = $batchRepository->findBy([], ['id' => 'DESC']);
