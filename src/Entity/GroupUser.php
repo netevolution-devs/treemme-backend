@@ -17,7 +17,7 @@ class GroupUser
 
     #[ORM\ManyToOne(inversedBy: 'groupUsers')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['group_user_list', 'group_user_detail'])]
+    #[Groups(['group_user_list', 'group_user_detail', 'user_list', 'user_detail'])]
     private ?Group $group = null;
 
     #[ORM\ManyToOne(inversedBy: 'groupUsers')]
