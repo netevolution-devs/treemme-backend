@@ -174,7 +174,7 @@ class Contact
      */
     #[ORM\OneToMany(mappedBy: 'subcontractor', targetEntity: ContactSubcontractor::class, orphanRemoval: true)]
     #[Groups(['contact_list','contact_detail','contact_client','contact_supplier'])]
-    #[SerializedName('agent_subcontractors')]
+    #[SerializedName('subcontractor_suppliers')]
     private Collection $subcontractorContacts;
 
     /**
