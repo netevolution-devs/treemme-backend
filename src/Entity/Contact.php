@@ -100,6 +100,7 @@ class Contact
     private ?User $check_user = null;
 
     #[ORM\ManyToOne(inversedBy: 'clients')]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list'])]
     private ?Payment $payment = null;
 
     #[ORM\Column]
