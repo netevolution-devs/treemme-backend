@@ -14,15 +14,18 @@ class LeatherThickness
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['leather_thickness_list', 'leather_thickness_detail', 'leather_list', 'leather_detail', 'batch_detail', 'leather_type_detail', 'article_detail'])]
+    #[Groups(['leather_thickness_list', 'leather_thickness_detail', 'leather_list', 'leather_detail',
+        'batch_detail', 'leather_type_detail', 'article_detail', 'batch_selection_detail', 'batch_list'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['leather_thickness_list', 'leather_thickness_detail', 'leather_list', 'leather_detail', 'batch_detail', 'leather_type_detail', 'article_detail'])]
+    #[Groups(['leather_thickness_list', 'leather_thickness_detail', 'leather_list', 'leather_detail',
+        'batch_detail', 'leather_type_detail', 'article_detail', 'batch_selection_detail', 'batch_list'])]
     private ?string $name = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['leather_thickness_list', 'leather_thickness_detail', 'leather_detail', 'batch_detail', 'leather_type_detail', 'article_detail'])]
+    #[Groups(['leather_thickness_list', 'leather_thickness_detail', 'leather_detail', 'batch_detail',
+        'leather_type_detail', 'article_detail', 'batch_selection_detail', 'batch_list'])]
     private ?float $thickness_mm = null;
 
     /**
