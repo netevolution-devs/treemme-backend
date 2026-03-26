@@ -39,6 +39,7 @@ class BatchComposition
     private ?string $composition_note = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['batch_composition_list', 'batch_composition_detail', 'batch_detail'])]
     private ?\DateTime $date = null;
 
     public function getId(): ?int

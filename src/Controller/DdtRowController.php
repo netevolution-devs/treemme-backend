@@ -133,6 +133,11 @@ final class DdtRowController extends AbstractController
             $ddtRow->setTotalValue($ddtRow->getPrice() * $ddtRow->getPieces());
             $ddtRow->setCurrencyTotalValue($ddtRow->getCurrencyPrice() * $ddtRow->getPieces());
         }
+        if($ddtRow->getHalfPiece() !== null) {
+            $ddtRow->setWholePiece($ddtRow->getPieces() - ($ddtRow->getHalfPiece() * 2));
+        } else {
+            $ddtRow->setWholePiece($ddtRow->getPieces());
+        }
 
         $this->doctrine->persist($ddtRow);
         $this->doctrine->flush();
