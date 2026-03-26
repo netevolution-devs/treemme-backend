@@ -61,6 +61,13 @@ class LeatherProvenance
     #[ORM\OneToMany(mappedBy: 'provenance', targetEntity: Leather::class)]
     private Collection $leather;
 
+    #[ORM\Column]
+    #[Groups(['leather_provenance_list', 'leather_provenance_detail'])]
+    private ?float $rind_yield_coefficient = null;
+
+    #[ORM\Column]
+    private ?float $raw_yield_coefficient = null;
+
     public function __construct()
     {
         $this->leather = new ArrayCollection();
@@ -205,6 +212,30 @@ class LeatherProvenance
                 $leather->setProvenance(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getRindYieldCoefficient(): ?float
+    {
+        return $this->rind_yield_coefficient;
+    }
+
+    public function setRindYieldCoefficient(float $rind_yield_coefficient): static
+    {
+        $this->rind_yield_coefficient = $rind_yield_coefficient;
+
+        return $this;
+    }
+
+    public function getRawYieldCoefficient(): ?float
+    {
+        return $this->raw_yield_coefficient;
+    }
+
+    public function setRawYieldCoefficient(float $raw_yield_coefficient): static
+    {
+        $this->raw_yield_coefficient = $raw_yield_coefficient;
 
         return $this;
     }

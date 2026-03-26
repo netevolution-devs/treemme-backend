@@ -668,8 +668,9 @@ final class BatchController extends AbstractController
                 $quantity = (float)($data['quantity'] ?? $batch->getQuantity() ?? 0);
 
                 if ($pieces > 0) {
+                    $baseSqFtAverage = 0;
                     if ($measurementUnit->getPrefix() === 'SQFT' || $measurementUnit->getPrefix() === 'PQ') {
-                        $batch->setSqFtAverageExpected($quantity / $pieces);
+                        $baseSqFtAverage = $quantity / $pieces;
                     } else {
                         $targetUm = $this->doctrine->getRepository(MeasurementUnit::class)->findOneBy(['prefix' => 'SQFT'])
                             ?? $this->doctrine->getRepository(MeasurementUnit::class)->findOneBy(['prefix' => 'PQ']);
@@ -681,9 +682,28 @@ final class BatchController extends AbstractController
                             ]);
 
                             if ($coefficientEntity) {
-                                $batch->setSqFtAverageExpected(($quantity * $coefficientEntity->getCoefficient()) / $pieces);
+                                $baseSqFtAverage = ($quantity * $coefficientEntity->getCoefficient()) / $pieces;
                             }
                         }
+                    }
+
+                    if ($baseSqFtAverage > 0) {
+                        $coefficient = 1.0;
+                        $leather = $batch->getLeather();
+                        if ($leather && $leather->getProvenance() && $leather->getType()) {
+                            $provenance = $leather->getProvenance();
+                            $type = $leather->getType();
+
+                            $coefficient = match ($type->getName()) {
+                                'Crosta' => $provenance->getRindYieldCoefficient() ?? 1.0,
+                                'Crust' => $provenance->getCrustYieldCoefficient() ?? 1.0,
+                                'Pieno Spessore' => $provenance->getPspYieldCoefficient() ?? 1.0,
+                                'Fiore' => $provenance->getGrainYieldCoefficient() ?? 1.0,
+                                'Grezzo' => $provenance->getRawYieldCoefficient() ?? 1.0,
+                                default => 1.0,
+                            };
+                        }
+                        $batch->setSqFtAverageExpected($baseSqFtAverage * $coefficient);
                     }
                 }
             } else {
