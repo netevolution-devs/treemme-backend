@@ -160,7 +160,7 @@ final class DdtRowController extends AbstractController
         $wearhouseMovement->setReason($ddtRow->getDdt()->getReason()->getWarehouseMovementReason());
         $wearhouseMovement->setDdtDate($ddt->getDdtDate());
         $wearhouseMovement->setDate($ddt->getDdtDate());
-        $wearhouseMovement->setMovementNote('Riga DDT ' . $ddtRow->getId());
+        $wearhouseMovement->setMovementNote('Riga DDT ' . $ddtRow->getId() . 'del DDT ' . $ddt->getDdtNumber());
 
         $this->doctrine->persist($wearhouseMovement);
         $this->doctrine->flush();
@@ -304,7 +304,9 @@ final class DdtRowController extends AbstractController
         $quantity = $data['quantity'] ?? $ddtRow->getQuantity();
         $pieces = $data['pieces'] ?? $ddtRow->getPieces();
 
-        $reason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Reso C/O Lavorazione']);
+        $ddt = $ddtRow->getDdt();
+
+        $reason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Reso ' . $ddt->getReason()->getName()]);
         if (!$reason) {
             $reasonTypeIn = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => 'Carico']);
             if ($reasonTypeIn) {
@@ -323,7 +325,7 @@ final class DdtRowController extends AbstractController
         $warehouseMovement->setDdtNumber($ddtRow->getDdt()->getDdtNumber());
         $warehouseMovement->setDdtDate($ddtRow->getDdt()->getDdtDate());
         $warehouseMovement->setDate(new \DateTime());
-        $warehouseMovement->setMovementNote('Rientro riga DDT ' . $ddtRow->getId());
+        $warehouseMovement->setMovementNote('Rientro riga DDT ' . $ddtRow->getId() . ' del DDT ' . $ddtRow->getDdt()->getDdtNumber());
 
         $this->doctrine->persist($warehouseMovement);
         $this->doctrine->flush();
@@ -336,7 +338,7 @@ final class DdtRowController extends AbstractController
             if (!$compReason) {
                 $compReason = new WarehouseMovementReason();
                 $compReason->setName($reasonName);
-                $movementType = $diffPieces > 0 ? 'Carico' : 'Scarico';
+                $movementType = $diffPieces > 0 ? 'Compensazione positiva' : 'Compensazione negativa';
                 $reasonType = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => $movementType]);
                 if (!$reasonType) {
                     $reasonType = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => $movementType === 'Carico' ? 'Carico' : 'Scarico']);
@@ -344,7 +346,7 @@ final class DdtRowController extends AbstractController
                 if (!$reasonType) {
                     $reasonType = new WarehouseMovementReasonType();
                     $reasonType->setName($movementType);
-                    $reasonType->setMovementType($movementType === 'Carico' ? 'Carico' : 'Scarico');
+                    $reasonType->setMovementType($movementType === 'Compensazione positiva' ? 'Compensazione positiva' : 'Compensazione negativa');
                     $this->doctrine->persist($reasonType);
                 }
                 $compReason->setReasonType($reasonType);
@@ -359,7 +361,7 @@ final class DdtRowController extends AbstractController
             $compMovement->setDdtNumber($ddtRow->getDdt()->getDdtNumber());
             $compMovement->setDdtDate($ddtRow->getDdt()->getDdtDate());
             $compMovement->setDate(new \DateTime());
-            $compMovement->setMovementNote('Compensazione riga DDT ' . $ddtRow->getId());
+            $compMovement->setMovementNote('Compensazione riga DDT ' . $ddtRow->getId() . ' del DDT ' . $ddtRow->getDdt()->getDdtNumber());
             $this->doctrine->persist($compMovement);
 
             $batch->setStockItems($batch->getStockItems() + $diffPieces);
