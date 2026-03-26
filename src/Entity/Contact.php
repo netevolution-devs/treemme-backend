@@ -8,6 +8,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\Serializer\Annotation\Groups;
+use JMS\Serializer\Annotation\SerializedName;
 
 #[ORM\Entity(repositoryClass: ContactRepository::class)]
 class Contact
@@ -127,6 +128,7 @@ class Contact
 
     #[ORM\OneToMany(mappedBy: 'agent', targetEntity: ContactAgent::class, orphanRemoval: true)]
     #[Groups(['contact_list','contact_detail','contact_client','contact_supplier'])]
+    #[SerializedName('agent_clients')]
     private Collection $agentContacts;
 
     #[ORM\Column]
@@ -170,6 +172,8 @@ class Contact
      * @var Collection<int, ContactSubcontractor>
      */
     #[ORM\OneToMany(mappedBy: 'subcontractor', targetEntity: ContactSubcontractor::class, orphanRemoval: true)]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier'])]
+    #[SerializedName('agent_subcontractors')]
     private Collection $subcontractorContacts;
 
     /**
