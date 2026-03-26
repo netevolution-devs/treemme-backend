@@ -399,6 +399,9 @@ final class BatchController extends AbstractController
         }
 
         $batchComposition = new BatchComposition();
+        if(isset($data['date'])){
+            $batchComposition->setDate(new \DateTime($data['date']) ?: new \DateTime());
+        }
         $batchComposition->setBatch($newBatch);
         $batchComposition->setFatherBatch($fatherBatch);
         $batchComposition->setFatherBatchPiece($piecesToRework);
@@ -562,6 +565,9 @@ final class BatchController extends AbstractController
         }
 
         $sfComp = new BatchComposition();
+        if(isset($data['date'])){
+            $sfComp->setDate(new \DateTime($data['date']) ?: new \DateTime());
+        }
         $sfComp->setBatch($sfBatch);
         $sfComp->setFatherBatch($reworkedBatch);
         $sfComp->setFatherBatchPiece((int)$pieces);
@@ -570,6 +576,9 @@ final class BatchController extends AbstractController
         $this->doctrine->persist($sfComp);
 
         $scComp = new BatchComposition();
+        if(isset($data['date'])){
+            $scComp->setDate(new \DateTime($data['date']) ?: new \DateTime());
+        }
         $scComp->setBatch($scBatch);
         $scComp->setFatherBatch($reworkedBatch);
         $scComp->setFatherBatchPiece((int)$pieces);
