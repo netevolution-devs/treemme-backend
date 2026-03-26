@@ -340,8 +340,8 @@ final class BatchController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse('Batch not found', 404), 404);
         }
 
-        if (!$fatherBatch->getBatchType() || $fatherBatch->getBatchType()->getName() !== 'Partita') {
-            return new JsonResponse($this->doResponse->doErrorResponse('Solo i lotti di tipo Partita possono essere rinverditi'), 400);
+        if (!$fatherBatch->getBatchType() || ($fatherBatch->getBatchType()->getName() !== 'Partita' && $fatherBatch->getBatchType()->getName() !== 'Lotto')) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Solo i lotti di tipo Partita o Lotto possono essere rinverditi'), 400);
         }
 
         $fatherBatchCode = $fatherBatch->getBatchCode();
