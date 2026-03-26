@@ -30,9 +30,16 @@ class ShipmentCondition
     #[ORM\OneToMany(mappedBy: 'shipment_condition', targetEntity: ClientOrder::class)]
     private Collection $clientOrders;
 
+    /**
+     * @var Collection<int, Contact>
+     */
+    #[ORM\OneToMany(mappedBy: 'shipment_condition', targetEntity: Contact::class)]
+    private Collection $contacts;
+
     public function __construct()
     {
         $this->clientOrders = new ArrayCollection();
+        $this->contacts = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -88,6 +95,36 @@ class ShipmentCondition
             // set the owning side to null (unless already changed)
             if ($clientOrder->getShipmentCondition() === $this) {
                 $clientOrder->setShipmentCondition(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Contact>
+     */
+    public function getContacts(): Collection
+    {
+        return $this->contacts;
+    }
+
+    public function addContact(Contact $contact): static
+    {
+        if (!$this->contacts->contains($contact)) {
+            $this->contacts->add($contact);
+            $contact->setShipmentCondition($this);
+        }
+
+        return $this;
+    }
+
+    public function removeContact(Contact $contact): static
+    {
+        if ($this->contacts->removeElement($contact)) {
+            // set the owning side to null (unless already changed)
+            if ($contact->getShipmentCondition() === $this) {
+                $contact->setShipmentCondition(null);
             }
         }
 
