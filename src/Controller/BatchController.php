@@ -133,7 +133,7 @@ final class BatchController extends AbstractController
     public function getAvailableSplitBatches(): JsonResponse
     {
         $batchRepository = $this->doctrine->getRepository(Batch::class);
-        $allAvailableBatches = $batchRepository->findAvailableSplitStock();
+        $allAvailableBatches = $batchRepository->findAvailableStock();
 
         $batches = [];
         foreach ($allAvailableBatches as $batch) {
