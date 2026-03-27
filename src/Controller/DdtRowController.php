@@ -152,7 +152,6 @@ final class DdtRowController extends AbstractController
         }
 
         if ($ddtRow->getPrice()) {
-            dd($ddtRow);
             $ddtRow->setTotalValue($ddtRow->getPrice() * $ddtRow->getPieces());
             $ddtRow->setCurrencyTotalValue($ddtRow->getCurrencyPrice() * $ddtRow->getPieces());
         }
@@ -183,7 +182,7 @@ final class DdtRowController extends AbstractController
         $wearhouseMovement->setReason($ddtRow->getDdt()->getReason()->getWarehouseMovementReason());
         $wearhouseMovement->setDdtDate($ddt->getDdtDate());
         $wearhouseMovement->setDate($ddt->getDdtDate());
-        $wearhouseMovement->setMovementNote('Riga DDT ' . $ddtRow->getId() . 'del DDT ' . $ddt->getDdtNumber());
+        $wearhouseMovement->setMovementNote($ddtRow->getRowNote() ?: 'Riga DDT ' . $ddtRow->getId() . 'del DDT ' . $ddt->getDdtNumber());
 
         if ($ddt->getSubcontractor()) {
             $wearhouseMovement->setContact($ddt->getSubcontractor());
@@ -234,7 +233,6 @@ final class DdtRowController extends AbstractController
 
         $newBatch = $ddtRow->getBatch();
 
-        // Se il lotto è lo stesso, gestiamo la differenza
         if ($oldBatch && $newBatch && $oldBatch->getId() === $newBatch->getId()) {
             $diffPieces = $ddtRow->getPieces() - $oldPieces;
             $diffQuantity = $ddtRow->getQuantity() - $oldQuantity;
@@ -245,7 +243,6 @@ final class DdtRowController extends AbstractController
             $this->updateBatchSqFtAverageFound($newBatch);
             $this->doctrine->persist($newBatch);
         } else {
-            // Se il lotto è cambiato
             if ($oldBatch) {
                 $oldBatch->setStockItems($oldBatch->getStockItems() + $oldPieces);
                 $oldBatch->setStockQuantity($oldBatch->getStockQuantity() + $oldQuantity);
@@ -465,7 +462,7 @@ final class DdtRowController extends AbstractController
         $warehouseMovement->setDdtNumber($ddtRow->getDdt()->getDdtNumber());
         $warehouseMovement->setDdtDate($ddtRow->getDdt()->getDdtDate());
         $warehouseMovement->setDate(new \DateTime());
-        $warehouseMovement->setMovementNote($data['movement_note'] ?: 'Rientro riga DDT ' . $ddtRow->getId());
+        $warehouseMovement->setMovementNote($data['row_note'] ?: 'Rientro riga DDT ' . $ddtRow->getId());
         $warehouseMovement->setContact($subcontractor);
 
         $this->doctrine->persist($warehouseMovement);
