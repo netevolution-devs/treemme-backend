@@ -80,7 +80,14 @@ final class DdtRowController extends AbstractController
         $ddtRowsSelected = [];
         foreach ($ddtRows as $ddtRow) {
             $ddt = $ddtRow->getDdt();
-            if (!$ddt || $ddt->getReason()?->getName() !== 'C/O Lavorazione') {
+            if (!$ddt) {
+                continue;
+            }
+            $ddtReason = $ddt->getReason();
+            $ddtReasonName = $ddtReason?->getName();
+
+            // Esclude i DDT con causale "Vendita" o senza causale
+            if (!$ddtReasonName || $ddtReasonName === 'Vendita') {
                 continue;
             }
 
@@ -98,6 +105,18 @@ final class DdtRowController extends AbstractController
             $movementsArray = $movements->toArray();
             usort($movementsArray, fn($a, $b) => $a->getId() <=> $b->getId());
 
+            $lastMovement = end($movementsArray);
+            $lastMovementReasonName = $lastMovement?->getReason()?->getName();
+
+            // Calcola il nome del movimento di "Reso" atteso
+            $resoReasonName = "Reso " . $ddtReasonName;
+
+            // Restituisce il lotto solamente quando l'ultimo movimento ha il movementReason->Name == al ddtReason->Name
+            // Oppure se è un "Reso {ddtReason->Name}"
+            if ($lastMovementReasonName !== $ddtReasonName && $lastMovementReasonName !== $resoReasonName) {
+                continue;
+            }
+
             $firstMovementOut = null;
             $returnedPieces = 0;
 
@@ -106,24 +125,27 @@ final class DdtRowController extends AbstractController
                 $reasonName = $reason?->getName();
                 $reasonTypeName = $reason?->getReasonType()?->getName();
 
-                // Identifica il primo movimento di "C/O Lavorazione" in "Scarico"
-                if ($firstMovementOut === null && $reasonName === 'C/O Lavorazione' && $reasonTypeName === 'Scarico') {
+                // Identifica il primo movimento in uscita con la causale del DDT
+                if ($firstMovementOut === null && $reasonName === $ddtReasonName && $reasonTypeName === 'Scarico') {
                     $firstMovementOut = $movement;
                     continue;
                 }
 
-                // Se abbiamo già trovato il movimento di partenza, cerchiamo i resi successivi
-                if ($firstMovementOut !== null && $reasonName === 'Reso C/O Lavorazione') {
-                    // Prende il valore assoluto di piece per gestire sia -100 che 100
+                // Somma i pezzi rientrati per i movimenti di "Reso" corrispondenti
+                if ($firstMovementOut !== null && $reasonName === $resoReasonName) {
                     $returnedPieces += abs($movement->getPiece() ?? 0);
                 }
             }
 
             if ($firstMovementOut !== null) {
                 $outPieces = abs($firstMovementOut->getPiece() ?? 0);
-                if ($returnedPieces < $outPieces) {
+                $remainingPieces = $outPieces - $returnedPieces;
+
+                // Se l'ultimo movimento è esattamente ddtReasonName, lo includiamo a prescindere dal conteggio
+                // Se invece l'ultimo movimento è il "Reso", allora scatta il calcolo dei pezzi ancora da rientrare
+                if ($lastMovementReasonName === $ddtReasonName || $remainingPieces > 0) {
                     $results = $this->groupSerializer->serializeGroup($ddtRow, 'ddt_row_list');
-                    $results['stock_pieces'] = $outPieces - $returnedPieces;
+                    $results['stock_pieces'] = $remainingPieces;
                     $ddtRowsSelected[] = $results;
                 }
             }
