@@ -274,7 +274,6 @@ final class DdtRowController extends AbstractController
             $warehouseMovement = $this->doctrine->getRepository(WarehouseMovement::class)->findOneBy(["movement_note" => 'Riga DDT ' . $ddtRow->getId()]);
         }
 
-        dd($warehouseMovement);
         $warehouseMovement->setBatch($newBatch);
         $warehouseMovement->setQuantity($ddtRow->getQuantity());
         $warehouseMovement->setPiece($ddtRow->getPieces());
