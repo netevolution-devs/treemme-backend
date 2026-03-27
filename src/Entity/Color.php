@@ -56,9 +56,19 @@ class Color
     #[ORM\Column]
     private ?\DateTimeImmutable $updated_at = null;
 
+    /**
+     * @var Collection<int, Article>
+     */
+    #[ORM\OneToMany(mappedBy: 'color', targetEntity: Article::class)]
+    private Collection $articles;
+
+    #[ORM\ManyToOne(inversedBy: 'colors')]
+    private ?contact $client = null;
+
     public function __construct()
     {
         $this->products = new ArrayCollection();
+        $this->articles = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -188,6 +198,48 @@ class Color
     public function setUpdatedAt(\DateTimeImmutable $updated_at): static
     {
         $this->updated_at = $updated_at;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Article>
+     */
+    public function getArticles(): Collection
+    {
+        return $this->articles;
+    }
+
+    public function addArticle(Article $article): static
+    {
+        if (!$this->articles->contains($article)) {
+            $this->articles->add($article);
+            $article->setColor($this);
+        }
+
+        return $this;
+    }
+
+    public function removeArticle(Article $article): static
+    {
+        if ($this->articles->removeElement($article)) {
+            // set the owning side to null (unless already changed)
+            if ($article->getColor() === $this) {
+                $article->setColor(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function getClient(): ?contact
+    {
+        return $this->client;
+    }
+
+    public function setClient(?contact $client): static
+    {
+        $this->client = $client;
 
         return $this;
     }

@@ -199,6 +199,12 @@ class Contact
     #[ORM\OneToMany(mappedBy: 'contact', targetEntity: WarehouseMovement::class)]
     private Collection $warehouseMovements;
 
+    /**
+     * @var Collection<int, Color>
+     */
+    #[ORM\OneToMany(mappedBy: 'client', targetEntity: Color::class)]
+    private Collection $colors;
+
     public function __construct()
     {
         $this->contactAddresses = new ArrayCollection();
@@ -216,6 +222,7 @@ class Contact
         $this->ddts = new ArrayCollection();
         $this->ddtsFromClient = new ArrayCollection();
         $this->warehouseMovements = new ArrayCollection();
+        $this->colors = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -888,6 +895,36 @@ class Contact
             // set the owning side to null (unless already changed)
             if ($warehouseMovement->getContact() === $this) {
                 $warehouseMovement->setContact(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Color>
+     */
+    public function getColors(): Collection
+    {
+        return $this->colors;
+    }
+
+    public function addColor(Color $color): static
+    {
+        if (!$this->colors->contains($color)) {
+            $this->colors->add($color);
+            $color->setClient($this);
+        }
+
+        return $this;
+    }
+
+    public function removeColor(Color $color): static
+    {
+        if ($this->colors->removeElement($color)) {
+            // set the owning side to null (unless already changed)
+            if ($color->getClient() === $this) {
+                $color->setClient(null);
             }
         }
 
