@@ -151,10 +151,13 @@ final class DdtRowController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse($this->validatorOutputFormatter->formatOutput($errors), 400));
         }
 
+
         if ($ddtRow->getPrice()) {
             $ddtRow->setTotalValue($ddtRow->getPrice() * $ddtRow->getPieces());
+            $ddtRow->setCurrencyPrice($ddtRow->getPrice() * $ddtRow->getCurrencyChange());
             $ddtRow->setCurrencyTotalValue($ddtRow->getCurrencyPrice() * $ddtRow->getPieces());
         }
+
         if($ddtRow->getHalfPiece() !== null) {
             $ddtRow->setWholePiece($ddtRow->getPieces() - ($ddtRow->getHalfPiece() * 2));
         } else {
