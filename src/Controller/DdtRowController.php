@@ -185,7 +185,7 @@ final class DdtRowController extends AbstractController
         $wearhouseMovement->setReason($ddtRow->getDdt()->getReason()->getWarehouseMovementReason());
         $wearhouseMovement->setDdtDate($ddt->getDdtDate());
         $wearhouseMovement->setDate($ddt->getDdtDate());
-        $wearhouseMovement->setMovementNote($ddtRow->getRowNote() ?: 'Riga DDT ' . $ddtRow->getId() . 'del DDT ' . $ddt->getDdtNumber());
+        $wearhouseMovement->setMovementNote($ddtRow->getRowNote() ?: 'Riga DDT ' . $ddtRow->getId());
 
         if ($ddt->getSubcontractor()) {
             $wearhouseMovement->setContact($ddt->getSubcontractor());
@@ -231,7 +231,14 @@ final class DdtRowController extends AbstractController
 
         if ($ddtRow->getPrice()) {
             $ddtRow->setTotalValue($ddtRow->getPrice() * $ddtRow->getPieces());
+            $ddtRow->setCurrencyPrice($ddtRow->getPrice() * $ddtRow->getCurrencyChange());
             $ddtRow->setCurrencyTotalValue($ddtRow->getCurrencyPrice() * $ddtRow->getPieces());
+        }
+
+        if($ddtRow->getHalfPiece() !== null) {
+            $ddtRow->setWholePiece($ddtRow->getPieces() - ($ddtRow->getHalfPiece() * 2));
+        } else {
+            $ddtRow->setWholePiece($ddtRow->getPieces());
         }
 
         $newBatch = $ddtRow->getBatch();
@@ -261,17 +268,14 @@ final class DdtRowController extends AbstractController
         }
 
         // Aggiornamento movimento di magazzino associato
-        $warehouseMovement = $this->doctrine->getRepository(WarehouseMovement::class)->findOneBy([
-            'batch' => $oldBatch,
-            'movement_note' => 'Riga DDT ' . $ddtRow->getId()
-        ]);
+        $warehouseMovement = $this->doctrine->getRepository(WarehouseMovement::class)->findOneBy(["ddt_row" => $ddtRow, "movement_note" => $ddtRow->getRowNote() ?: 'Riga DDT ' . $ddtRow->getId()]);
 
-        if ($warehouseMovement) {
-            $warehouseMovement->setBatch($newBatch);
-            $warehouseMovement->setQuantity($ddtRow->getQuantity());
-            $warehouseMovement->setPiece($ddtRow->getPieces());
-            $this->doctrine->persist($warehouseMovement);
-        }
+
+        $warehouseMovement->setBatch($newBatch);
+        $warehouseMovement->setQuantity($ddtRow->getQuantity());
+        $warehouseMovement->setPiece($ddtRow->getPieces());
+
+        $this->doctrine->persist($warehouseMovement);
 
         $this->doctrine->flush();
 
@@ -300,7 +304,6 @@ final class DdtRowController extends AbstractController
 
         // Rimuoviamo anche il movimento di magazzino associato
         $warehouseMovement = $this->doctrine->getRepository(WarehouseMovement::class)->findOneBy([
-            'batch' => $batch,
             'movement_note' => 'Riga DDT ' . $ddtRow->getId()
         ]);
         if ($warehouseMovement) {
