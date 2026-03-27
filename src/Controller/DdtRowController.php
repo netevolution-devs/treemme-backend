@@ -268,8 +268,7 @@ final class DdtRowController extends AbstractController
         }
 
         // Aggiornamento movimento di magazzino associato
-        $warehouseMovement = $this->doctrine->getRepository(WarehouseMovement::class)->findOneBy(["ddt_row" => $ddtRow, "movement_note" => $ddtRow->getRowNote() ?: 'Riga DDT ' . $ddtRow->getId()]);
-
+        $warehouseMovement = $this->doctrine->getRepository(WarehouseMovement::class)->findOneBy(["movement_note" => $ddtRow->getRowNote() ?: 'Riga DDT ' . $ddtRow->getId()]);
 
         $warehouseMovement->setBatch($newBatch);
         $warehouseMovement->setQuantity($ddtRow->getQuantity());
