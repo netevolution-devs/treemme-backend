@@ -136,7 +136,7 @@ final class DdtRowController extends AbstractController
         methods: ['POST'])]
     public function postDdtRow(Request $request, ValidatorInterface $validator): JsonResponse
     {
-        $data = $request->toArray();
+        $data = json_decode($request->getContent(), true) ?? $request->request->all();
         $ddtRow = new DdtRow();
 
         try {
@@ -215,7 +215,7 @@ final class DdtRowController extends AbstractController
         $oldQuantity = $ddtRow->getQuantity();
         $oldBatch = $ddtRow->getBatch();
 
-        $data = json_decode($request->getContent(), true) ?? $request->request->all();
+        $data = $request->toArray();
 
         try {
             $this->handleRelations($ddtRow, $data);
