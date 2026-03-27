@@ -8,6 +8,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\Serializer\Annotation\Groups;
+use JMS\Serializer\Annotation\MaxDepth;
 
 #[ORM\Entity(repositoryClass: WarehouseMovementRepository::class)]
 class WarehouseMovement
@@ -69,6 +70,8 @@ class WarehouseMovement
     private Collection $sonWarehouseMovements;
 
     #[ORM\ManyToOne(inversedBy: 'warehouseMovements')]
+    #[Groups(['batch_detail'])]
+    #[MaxDepth(1)]
     private ?Contact $contact = null;
 
     public function __construct()
