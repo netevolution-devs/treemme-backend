@@ -124,7 +124,7 @@ class Batch
 
     #[ORM\ManyToOne(inversedBy: 'batches')]
     #[ORM\JoinColumn(nullable: true)]
-    #[Groups(['batch_list', 'batch_detail'])]
+    #[Groups(['batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
     private ?Leather $leather = null;
 
     /**
