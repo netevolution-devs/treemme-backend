@@ -329,16 +329,20 @@ final class GroupController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse('Role assigned to user successfully'));
     }
 
-    #[Route('/api/user/remove-user/{id}',
+    #[Route('/api/user/remove-user/{id}/{id_group}',
         name: 'user_remove_group',
         requirements: ['id' => '\d+'],
         methods: ['DELETE'])]
     public function removeUserToGroup(
         Request $request,
-        int $id
+        int $id,
+        int $id_group
     ): JsonResponse
     {
-        $GroupUser = $this->doctrine->getRepository(GroupUser::class)->find($id);
+        $user = $this->doctrine->getRepository(User::class)->find($id);
+        $group = $this->doctrine->getRepository(Group::class)->find($id_group);
+
+        $GroupUser = $this->doctrine->getRepository(GroupUser::class)->findOneBy(['user' => $user, 'group' => $group]);
         if (!$GroupUser) {
             return new JsonResponse($this->doResponse->doErrorResponse('GroupUser not found', 404));
         }
