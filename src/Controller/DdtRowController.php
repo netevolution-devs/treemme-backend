@@ -122,13 +122,14 @@ final class DdtRowController extends AbstractController
             if ($firstMovementOut !== null) {
                 $outPieces = abs($firstMovementOut->getPiece() ?? 0);
                 if ($returnedPieces < $outPieces) {
-                    $ddtRowsSelected[] = $ddtRow;
+                    $results = $this->groupSerializer->serializeGroup($ddtRow, 'ddt_row_list');
+                    $results['stock_pieces'] = $outPieces - $returnedPieces;
+                    $ddtRowsSelected[] = $results;
                 }
             }
         }
 
-        $results = $this->groupSerializer->serializeGroup($ddtRowsSelected, 'ddt_row_list');
-        return new JsonResponse($this->doResponse->doResponse($results));
+        return new JsonResponse($this->doResponse->doResponse($ddtRowsSelected));
     }
 
     #[Route('/ddt-row',
