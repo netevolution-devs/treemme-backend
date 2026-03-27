@@ -193,6 +193,12 @@ class Contact
     #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list'])]
     private ?ShipmentCondition $shipment_condition = null;
 
+    /**
+     * @var Collection<int, WarehouseMovement>
+     */
+    #[ORM\OneToMany(mappedBy: 'contact', targetEntity: WarehouseMovement::class)]
+    private Collection $warehouseMovements;
+
     public function __construct()
     {
         $this->contactAddresses = new ArrayCollection();
@@ -209,6 +215,7 @@ class Contact
         $this->subcontractorContacts = new ArrayCollection();
         $this->ddts = new ArrayCollection();
         $this->ddtsFromClient = new ArrayCollection();
+        $this->warehouseMovements = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -853,6 +860,36 @@ class Contact
     public function setShipmentCondition(?ShipmentCondition $shipment_condition): static
     {
         $this->shipment_condition = $shipment_condition;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, WarehouseMovement>
+     */
+    public function getWarehouseMovements(): Collection
+    {
+        return $this->warehouseMovements;
+    }
+
+    public function addWarehouseMovement(WarehouseMovement $warehouseMovement): static
+    {
+        if (!$this->warehouseMovements->contains($warehouseMovement)) {
+            $this->warehouseMovements->add($warehouseMovement);
+            $warehouseMovement->setContact($this);
+        }
+
+        return $this;
+    }
+
+    public function removeWarehouseMovement(WarehouseMovement $warehouseMovement): static
+    {
+        if ($this->warehouseMovements->removeElement($warehouseMovement)) {
+            // set the owning side to null (unless already changed)
+            if ($warehouseMovement->getContact() === $this) {
+                $warehouseMovement->setContact(null);
+            }
+        }
 
         return $this;
     }
