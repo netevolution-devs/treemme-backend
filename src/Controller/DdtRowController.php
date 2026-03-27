@@ -94,15 +94,36 @@ final class DdtRowController extends AbstractController
                 continue;
             }
 
-            // Ordina i movimenti per ID decrescente per trovare l'ultimo
+            // Ordina i movimenti per ID per trovare il movimento di partenza e i successivi
             $movementsArray = $movements->toArray();
-            usort($movementsArray, fn($a, $b) => $b->getId() <=> $a->getId());
-            $lastMovement = $movementsArray[0];
+            usort($movementsArray, fn($a, $b) => $a->getId() <=> $b->getId());
 
-            $reason = $lastMovement->getReason();
-            if ($reason?->getName() === 'C/O Lavorazione' &&
-                $reason->getReasonType()?->getName() === 'Scarico') {
-                $ddtRowsSelected[] = $ddtRow;
+            $firstMovementOut = null;
+            $returnedPieces = 0;
+
+            foreach ($movementsArray as $movement) {
+                $reason = $movement->getReason();
+                $reasonName = $reason?->getName();
+                $reasonTypeName = $reason?->getReasonType()?->getName();
+
+                // Identifica il primo movimento di "C/O Lavorazione" in "Scarico"
+                if ($firstMovementOut === null && $reasonName === 'C/O Lavorazione' && $reasonTypeName === 'Scarico') {
+                    $firstMovementOut = $movement;
+                    continue;
+                }
+
+                // Se abbiamo già trovato il movimento di partenza, cerchiamo i resi successivi
+                if ($firstMovementOut !== null && $reasonName === 'Reso C/O Lavorazione') {
+                    // Prende il valore assoluto di piece per gestire sia -100 che 100
+                    $returnedPieces += abs($movement->getPiece() ?? 0);
+                }
+            }
+
+            if ($firstMovementOut !== null) {
+                $outPieces = abs($firstMovementOut->getPiece() ?? 0);
+                if ($returnedPieces < $outPieces) {
+                    $ddtRowsSelected[] = $ddtRow;
+                }
             }
         }
 
@@ -131,6 +152,7 @@ final class DdtRowController extends AbstractController
         }
 
         if ($ddtRow->getPrice()) {
+            dd($ddtRow);
             $ddtRow->setTotalValue($ddtRow->getPrice() * $ddtRow->getPieces());
             $ddtRow->setCurrencyTotalValue($ddtRow->getCurrencyPrice() * $ddtRow->getPieces());
         }
