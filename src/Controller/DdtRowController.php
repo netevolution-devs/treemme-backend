@@ -136,7 +136,7 @@ final class DdtRowController extends AbstractController
         methods: ['POST'])]
     public function postDdtRow(Request $request, ValidatorInterface $validator): JsonResponse
     {
-        $data = $request->toArray();
+        $data = json_decode($request->getContent(), true) ?? $request->request->all();
         $ddtRow = new DdtRow();
 
         try {
@@ -215,7 +215,7 @@ final class DdtRowController extends AbstractController
         $oldQuantity = $ddtRow->getQuantity();
         $oldBatch = $ddtRow->getBatch();
 
-        $data = json_decode($request->getContent(), true) ?? $request->request->all();
+        $data = $request->toArray();
 
         try {
             $this->handleRelations($ddtRow, $data);
@@ -268,8 +268,11 @@ final class DdtRowController extends AbstractController
         }
 
         // Aggiornamento movimento di magazzino associato
-        $warehouseMovement = $this->doctrine->getRepository(WarehouseMovement::class)->findOneBy(["ddt_row" => $ddtRow, "movement_note" => $ddtRow->getRowNote() ?: 'Riga DDT ' . $ddtRow->getId()]);
+        $warehouseMovement = $this->doctrine->getRepository(WarehouseMovement::class)->findOneBy(["movement_note" => $ddtRow->getRowNote()]);
 
+        if($warehouseMovement == null){
+            $warehouseMovement = $this->doctrine->getRepository(WarehouseMovement::class)->findOneBy(["movement_note" => 'Riga DDT ' . $ddtRow->getId()]);
+        }
 
         $warehouseMovement->setBatch($newBatch);
         $warehouseMovement->setQuantity($ddtRow->getQuantity());
