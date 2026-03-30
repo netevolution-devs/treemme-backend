@@ -8,6 +8,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\Serializer\Annotation\Groups;
+use JMS\Serializer\Annotation\MaxDepth;
 
 #[ORM\Entity(repositoryClass: ColorRepository::class)]
 class Color
@@ -15,7 +16,7 @@ class Color
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['color_list', 'color_detail', 'color_type_detail', 'product_list', 'product_detail'])]
+    #[Groups(['color_list', 'color_detail', 'color_type_detail', 'article_list', 'article_detail'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'colors')]
@@ -24,15 +25,15 @@ class Color
     private ?ColorType $color_type = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['color_list', 'color_detail', 'color_type_detail', 'product_list', 'product_detail'])]
+    #[Groups(['color_list', 'color_detail', 'color_type_detail', 'article_list', 'article_detail'])]
     private ?string $color = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['color_list', 'color_detail', 'product_list', 'product_detail'])]
+    #[Groups(['color_list', 'color_detail', 'article_list', 'article_detail'])]
     private ?string $shade = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['color_list', 'color_detail'])]
+    #[Groups(['color_list', 'color_detail', 'article_list', 'article_detail'])]
     private ?string $var_color = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
@@ -40,7 +41,7 @@ class Color
     private ?string $color_note = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['color_list', 'color_detail'])]
+    #[Groups(['color_list', 'color_detail', 'article_list', 'article_detail'])]
     private ?string $client_color = null;
 
     /**
@@ -60,9 +61,12 @@ class Color
      * @var Collection<int, Article>
      */
     #[ORM\OneToMany(mappedBy: 'color', targetEntity: Article::class)]
+    #[Groups(['color_detail'])]
+    #[MaxDepth(1)]
     private Collection $articles;
 
     #[ORM\ManyToOne(inversedBy: 'colors')]
+    #[Groups(['color_detail'])]
     private ?contact $client = null;
 
     public function __construct()
