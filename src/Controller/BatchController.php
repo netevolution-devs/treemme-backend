@@ -22,10 +22,13 @@ use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
 use App\Service\ValidatorOutputFormatter;
+use App\Service\PdfGeneratorService;
+use App\Service\QrCodeService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -36,6 +39,9 @@ final class BatchController extends AbstractController
     private $doResponse;
     private $groupSerializer;
     private $validatorOutputFormatter;
+    private $pdfGenerator;
+    private $qrCodeService;
+    private string $batch_tag;
 
     public function __construct(
         CreateMethodsByInput     $createMethodsByInput,
@@ -43,6 +49,9 @@ final class BatchController extends AbstractController
         DoResponseService        $doResponseService,
         GroupSerializerService   $groupSerializer,
         ValidatorOutputFormatter $validatorOutputFormatter,
+        PdfGeneratorService      $pdfGenerator,
+        QrCodeService            $qrCodeService,
+                                 $batch_tag
     )
     {
         $this->createMethodsByInput = $createMethodsByInput;
@@ -50,6 +59,9 @@ final class BatchController extends AbstractController
         $this->doResponse = $doResponseService;
         $this->groupSerializer = $groupSerializer;
         $this->validatorOutputFormatter = $validatorOutputFormatter;
+        $this->pdfGenerator = $pdfGenerator;
+        $this->qrCodeService = $qrCodeService;
+        $this->batch_tag = $batch_tag;
     }
 
     #[Route('/batch/{id}',
@@ -112,6 +124,31 @@ final class BatchController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($results[0]));
         }
         return new JsonResponse($this->doResponse->doResponse($results));
+    }
+
+    #[Route('/batch/{id}/pdf',
+        name: 'get_batch_pdf',
+        requirements: ['id' => '\d+'],
+        methods: ['GET'])]
+    public function generateBatchPdf(int $id): Response
+    {
+        $batch = $this->doctrine->getRepository(Batch::class)->find($id);
+
+        if (!$batch) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Batch not found', 404));
+        }
+
+        $qrCode = $this->qrCodeService->generateQrCode($this->batch_tag . $batch->getId());
+
+        $pdfContent = $this->pdfGenerator->generatePdf('print/batch_pdf.html.twig', [
+            'batch' => $batch,
+            'qrCode' => $qrCode
+        ], 'batch_' . $batch->getBatchCode() . '.pdf');
+
+        return new Response($pdfContent, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="batch_' . $batch->getBatchCode() . '.pdf"'
+        ]);
     }
 
     #[Route('/batch/available',

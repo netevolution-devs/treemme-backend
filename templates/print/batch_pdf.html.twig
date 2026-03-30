@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Batch PDF</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 24px;
+            line-height: 1.4;
+            color: #000;
+            text-transform: uppercase;
+        }
+
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .info-table td {
+            border: 1px solid #000;
+            padding: 3px;
+            text-align: left;
+            vertical-align: middle;
+        }
+
+        .header-cell {
+            font-weight: bold;
+        }
+
+        .bold {
+            font-weight: bold;
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        .qr-code-container {
+            position: relative;
+            margin-top: 10px;
+        }
+
+        .qr-code {
+            width: 120px;
+            height: 120px;
+        }
+    </style>
+</head>
+<body>
+<table class="info-table">
+    {# Intestazione #}
+    <tr style="font-size: 14px;">
+        <td class="center header-cell">Conceria Tre Emme</td>
+        <td class="center">Sistema Qualità</td>
+        <td class="center"><span
+                    style="font-weight: bold;">Tipo:</span> {{ batch.batchType ? batch.batchType.name : 'N/A' }}</td>
+        <td class="center">rev 1</td>
+    </tr>
+
+    {# batch_code e pieces #}
+    <tr>
+        <td colspan="2" class="bold center" style="text-align: center; font-size: 70px;">
+            {{ batch.batchCode }}
+        </td>
+        <td colspan="2" class="bold center" style="text-align: center; font-size: 70px;">
+            {{ batch.pieces }}
+        </td>
+    </tr>
+
+    {# Data Consegna #}
+    <tr>
+        <td colspan="4">
+            <span style="font-weight: bold;">Data Consegna:</span> {{ batch.batchDate ? batch.batchDate|date('d/m/Y') : '' }}
+        </td>
+    </tr>
+
+    {# Pellame o Articolo #}
+    <tr>
+        <td colspan="4">
+            {% if batch.article %}
+                {{ batch.article.name }}
+            {% elseif batch.leather %}
+                {{ batch.leather.name }}
+            {% else %}
+                N/A
+            {% endif %}
+        </td>
+    </tr>
+    {# Note #}
+    <tr>
+        <td colspan="4">
+            <span style="font-weight: bold;">Note:</span>{{ batch.batchNote }}
+        </td>
+    </tr>
+    {# Scortico #}
+    <tr>
+        <td colspan="4">
+            <span style="font-weight: bold;">Scortico:</span> {{ (batch.leather and batch.leather.flay) ? batch.leather.flay.name : 'N/A' }}
+        </td>
+    </tr>
+    <tr>
+
+        <td colspan="4" class="qr-code-container" style="text-align: right; font-size: 18px;">
+            <img src="{{ qrCode }}" class="qr-code">
+        </td>
+    </tr>
+</table>
+<br><br><br>
+<table class="info-table">
+    {# Intestazione #}
+    <tr style="font-size: 14px;">
+        <td class="center header-cell">Conceria Tre Emme</td>
+        <td class="center">Sistema Qualità</td>
+        <td class="center"><span
+                    style="font-weight: bold;">Tipo:</span> {{ batch.batchType ? batch.batchType.name : 'N/A' }}</td>
+        <td class="center">rev 1</td>
+    </tr>
+
+    {# batch_code e pieces #}
+    <tr>
+        <td colspan="2" class="bold center" style="text-align: center; font-size: 70px;">
+            {{ batch.batchCode }}
+        </td>
+        <td colspan="2" class="bold center" style="text-align: center; font-size: 70px;">
+            {{ batch.pieces }}
+        </td>
+    </tr>
+
+    {# Data Consegna #}
+    <tr>
+        <td colspan="4">
+            <span style="font-weight: bold;">Data Consegna:</span> {{ batch.batchDate ? batch.batchDate|date('d/m/Y') : '' }}
+        </td>
+    </tr>
+
+    {# Pellame o Articolo #}
+    <tr>
+        <td colspan="4">
+            {% if batch.article %}
+                {{ batch.article.name }}
+            {% elseif batch.leather %}
+                {{ batch.leather.name }}
+            {% else %}
+                N/A
+            {% endif %}
+        </td>
+    </tr>
+    {# Note #}
+    <tr>
+        <td colspan="4">
+            <span style="font-weight: bold;">Note:</span>{{ batch.batchNote }}
+        </td>
+    </tr>
+    {# Scortico #}
+    <tr>
+        <td colspan="4">
+            <span style="font-weight: bold;">Scortico:</span> {{ (batch.leather and batch.leather.flay) ? batch.leather.flay.name : 'N/A' }}
+        </td>
+    </tr>
+    <tr>
+        <td colspan="4" class="qr-code-container" style="text-align: right;">
+            <img src="{{ qrCode }}" class="qr-code">
+        </td>
+    </tr>
+</table>
+</body>
+</html>
