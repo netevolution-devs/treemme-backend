@@ -16,11 +16,12 @@ class Article
     #[ORM\GeneratedValue]
     #[ORM\Column]
     #[Groups(['article_list', 'article_detail', 'client_order_row_detail', 'client_order_detail',
-        'batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+        'batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'color_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['article_list', 'article_detail', 'client_order_row_detail', 'client_order_detail', 'batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['article_list', 'article_detail', 'client_order_row_detail', 'client_order_detail',
+        'batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'color_detail'])]
     private ?string $code = null;
 
     #[ORM\ManyToOne(inversedBy: 'articles')]
@@ -28,7 +29,7 @@ class Article
     private ?Contact $client = null;
 
     #[ORM\Column]
-    #[Groups(['article_list', 'article_detail'])]
+    #[Groups(['article_list', 'article_detail', 'color_detail'])]
     private ?bool $full_grain = null;
 
     #[ORM\ManyToOne(inversedBy: 'articles')]
