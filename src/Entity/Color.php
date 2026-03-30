@@ -19,11 +19,6 @@ class Color
     #[Groups(['color_list', 'color_detail', 'color_type_detail', 'article_list', 'article_detail'])]
     private ?int $id = null;
 
-    #[ORM\ManyToOne(inversedBy: 'colors')]
-    #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['color_list', 'color_detail'])]
-    private ?ColorType $color_type = null;
-
     #[ORM\Column(length: 255)]
     #[Groups(['color_list', 'color_detail', 'color_type_detail', 'article_list', 'article_detail'])]
     private ?string $color = null;
@@ -78,18 +73,6 @@ class Color
     public function getId(): ?int
     {
         return $this->id;
-    }
-
-    public function getColorType(): ?ColorType
-    {
-        return $this->color_type;
-    }
-
-    public function setColorType(?ColorType $color_type): static
-    {
-        $this->color_type = $color_type;
-
-        return $this;
     }
 
     public function getColor(): ?string
