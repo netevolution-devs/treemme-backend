@@ -191,10 +191,8 @@ class ArticleController extends AbstractController
             unset($data['color_id']);
         }
 
-        // Mappatura campi semplici
         $this->createMethodsByInput->createMethods($article, $data);
 
-        // Generazione Nome
         $nameParts = [
             $article->getArticleType()?->getName(),
             $article->getArticleType()?->getLeatherType()?->getName(),
@@ -208,7 +206,6 @@ class ArticleController extends AbstractController
             static fn (?string $value): bool => $value !== null && trim($value) !== ''
         )));
 
-        // Generazione Codice (versione compressa)
         $codeParts = [
             $this->compressString($article->getArticleType()?->getName()),
             $article->getThickness()?->getName(),
@@ -230,10 +227,8 @@ class ArticleController extends AbstractController
         $string = trim($string);
         if ($string === '') return null;
 
-        // Se è già un codice corto (es. 2-4 caratteri), lo teniamo così
         if (strlen($string) <= 3) return strtoupper($string);
 
-        // Altrimenti prendiamo le prime 3 consonanti o i primi 3 caratteri
         $consonants = preg_replace('/[aeiou\s]/i', '', $string);
         if (strlen($consonants) >= 3) {
             return strtoupper(substr($consonants, 0, 3));
