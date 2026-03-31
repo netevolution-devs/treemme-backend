@@ -211,7 +211,6 @@ class ArticleController extends AbstractController
         // Generazione Codice (versione compressa)
         $codeParts = [
             $this->compressString($article->getArticleType()?->getName()),
-            $article->getArticleType()?->getLeatherType()?->getCode() ?: $this->compressString($article->getArticleType()?->getLeatherType()?->getName()),
             $article->getThickness()?->getName(),
             $this->compressString($article->getPrint()?->getName()),
             $this->compressString($article->getColor()?->getColor()),
