@@ -151,6 +151,28 @@ final class BatchController extends AbstractController
         ]);
     }
 
+    #[Route('/batch/{id}/terzisti-pdf',
+        name: 'get_batch_terzisti_pdf',
+        requirements: ['id' => '\d+'],
+        methods: ['GET'])]
+    public function generateTerzistiPdf(int $id): Response
+    {
+        $batch = $this->doctrine->getRepository(Batch::class)->find($id);
+
+        if (!$batch) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Batch not found', 404));
+        }
+
+        $pdfContent = $this->pdfGenerator->generatePdf('print/terzisti_pdf.html.twig', [
+            'batch' => $batch
+        ], 'terzisti_' . $batch->getBatchCode() . '.pdf');
+
+        return new Response($pdfContent, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="terzisti_' . $batch->getBatchCode() . '.pdf"'
+        ]);
+    }
+
     #[Route('/batch/available',
         name: 'get_available_batches',
         methods: ['GET', 'HEAD'])]
