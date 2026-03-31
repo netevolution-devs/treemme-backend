@@ -36,16 +36,6 @@
         .center {
             text-align: center;
         }
-
-        .qr-code-container {
-            position: relative;
-            margin-top: 10px;
-        }
-
-        .qr-code {
-            width: 120px;
-            height: 120px;
-        }
     </style>
 </head>
 <body>
@@ -100,12 +90,6 @@
             <span style="font-weight: bold;">Scortico:</span> {{ (batch.leather and batch.leather.flay) ? batch.leather.flay.name : 'N/A' }}
         </td>
     </tr>
-    <tr>
-
-        <td colspan="4" class="qr-code-container" style="text-align: right; font-size: 18px;">
-            <img src="{{ qrCode }}" class="qr-code">
-        </td>
-    </tr>
 </table>
 <br><br><br>
 <table class="info-table">
@@ -157,11 +141,6 @@
     <tr>
         <td colspan="4">
             <span style="font-weight: bold;">Scortico:</span> {{ (batch.leather and batch.leather.flay) ? batch.leather.flay.name : 'N/A' }}
-        </td>
-    </tr>
-    <tr>
-        <td colspan="4" class="qr-code-container" style="text-align: right;">
-            <img src="{{ qrCode }}" class="qr-code">
         </td>
     </tr>
 </table>

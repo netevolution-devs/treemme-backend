@@ -50,7 +50,7 @@ services:
 
   App\Controller\BatchController:
     arguments:
-      $batch_tag: '%env(BATCH_TAG)%'
+      $subcontractor_tag: '%env(SUBCONTRACTOR_TAG)%'
 
   App\Service\TotpService:
     arguments:

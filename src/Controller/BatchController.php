@@ -41,7 +41,7 @@ final class BatchController extends AbstractController
     private $validatorOutputFormatter;
     private $pdfGenerator;
     private $qrCodeService;
-    private string $batch_tag;
+    private string $subcontractor_tag;
 
     public function __construct(
         CreateMethodsByInput     $createMethodsByInput,
@@ -51,7 +51,7 @@ final class BatchController extends AbstractController
         ValidatorOutputFormatter $validatorOutputFormatter,
         PdfGeneratorService      $pdfGenerator,
         QrCodeService            $qrCodeService,
-                                 $batch_tag
+                                 $subcontractor_tag,
     )
     {
         $this->createMethodsByInput = $createMethodsByInput;
@@ -61,7 +61,7 @@ final class BatchController extends AbstractController
         $this->validatorOutputFormatter = $validatorOutputFormatter;
         $this->pdfGenerator = $pdfGenerator;
         $this->qrCodeService = $qrCodeService;
-        $this->batch_tag = $batch_tag;
+        $this->subcontractor_tag = $subcontractor_tag;
     }
 
     #[Route('/batch/{id}',
@@ -138,11 +138,8 @@ final class BatchController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse('Batch not found', 404));
         }
 
-        $qrCode = $this->qrCodeService->generateQrCode($this->batch_tag . $batch->getId());
-
         $pdfContent = $this->pdfGenerator->generatePdf('print/batch_pdf.html.twig', [
-            'batch' => $batch,
-            'qrCode' => $qrCode
+            'batch' => $batch
         ], 'batch_' . $batch->getBatchCode() . '.pdf');
 
         return new Response($pdfContent, 200, [
@@ -151,11 +148,11 @@ final class BatchController extends AbstractController
         ]);
     }
 
-    #[Route('/batch/{id}/terzisti-pdf',
-        name: 'get_batch_terzisti_pdf',
+    #[Route('/batch/{id}/subcontractor-pdf',
+        name: 'get_batch_subcontractor_pdf',
         requirements: ['id' => '\d+'],
         methods: ['GET'])]
-    public function generateTerzistiPdf(int $id): Response
+    public function generateSubcontractorPdf(int $id, Request $request): Response
     {
         $batch = $this->doctrine->getRepository(Batch::class)->find($id);
 
@@ -163,8 +160,17 @@ final class BatchController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse('Batch not found', 404));
         }
 
+        $full = $request->query->get('full', 0);
+
+        $qrCode = null;
+        if (!$full) {
+            $qrCode = $this->qrCodeService->generateQrCode($this->subcontractor_tag . $batch->getId());
+        }
+
         $pdfContent = $this->pdfGenerator->generatePdf('print/terzisti_pdf.html.twig', [
-            'batch' => $batch
+            'batch' => $batch,
+            'qrCode' => $qrCode,
+            'full' => $full
         ], 'terzisti_' . $batch->getBatchCode() . '.pdf');
 
         return new Response($pdfContent, 200, [
