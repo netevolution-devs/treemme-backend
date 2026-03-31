@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>MOD TERZISTI DOC M9-110 REV 2</title>
+    <style>
+        @page {
+            margin: 0.5cm;
+        }
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            font-size: 10pt;
+            margin: 0;
+            padding: 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 4px;
+            text-align: center;
+            vertical-align: middle;
+            word-wrap: break-word;
+        }
+        .header-table td {
+            font-weight: bold;
+            font-size: 12pt;
+        }
+        .label {
+            font-size: 8pt;
+            text-align: left;
+            border-bottom: none;
+            font-weight: normal;
+        }
+        .value {
+            font-weight: bold;
+            font-size: 11pt;
+            border-top: none;
+        }
+        .empty-row td {
+            height: 25px;
+        }
+        .left {
+            text-align: left;
+        }
+        .bold {
+            font-weight: bold;
+        }
+        .no-border-bottom {
+            border-bottom: none;
+        }
+        .no-border-top {
+            border-top: none;
+        }
+    </style>
+</head>
+<body>
+
+    <table class="header-table">
+        <tr>
+            <td width="25%">CONCERIA SADA</td>
+            <td width="25%">SISTEMA QUALITA'</td>
+            <td width="25%">MOD TERZISTI</td>
+            <td width="25%">DOC M9-110 REV 2</td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td class="label" width="15%">Lotto</td>
+            <td class="label" width="15%">Data</td>
+            <td class="label" width="10%">Botte</td>
+            <td class="label" width="20%">Cliente</td>
+            <td class="label" width="20%">Ordine</td>
+            <td class="label" width="10%">PQ ordine</td>
+            <td class="label" width="10%">Pelli</td>
+        </tr>
+        <tr>
+            <td class="value">{{ batch.batchCode }}</td>
+            <td class="value">{{ batch.batchDate ? batch.batchDate|date('d/m/Y') : '' }}</td>
+            <td class="value">
+                {% set botte = '' %}
+                {% for prod in batch.productions %}
+                    {% if loop.first %}
+                        {% set botte = prod.machine ? prod.machine.name : '' %}
+                    {% endif %}
+                {% endfor %}
+                {{ botte }}
+            </td>
+            <td class="value">
+                {% set cliente = '' %}
+                {% if batch.batchOrders|length > 0 %}
+                    {% set orderRow = batch.batchOrders[0].orderRow %}
+                    {% if orderRow and orderRow.clientOrder and orderRow.clientOrder.client %}
+                        {% set cliente = orderRow.clientOrder.client.name %}
+                    {% endif %}
+                {% endif %}
+                {{ cliente }}
+            </td>
+            <td class="value">
+                {% set ordine = '' %}
+                {% if batch.batchOrders|length > 0 %}
+                    {% set orderRow = batch.batchOrders[0].orderRow %}
+                    {% if orderRow and orderRow.clientOrder %}
+                        {% set ordine = orderRow.clientOrder.clientOrderNumber ~ ' del ' ~ (orderRow.clientOrder.clientOrderDate ? orderRow.clientOrder.clientOrderDate|date('d/m/Y') : '') %}
+                    {% endif %}
+                {% endif %}
+                {{ ordine }}
+            </td>
+            <td class="value">
+                {% set pq = '' %}
+                {% if batch.batchOrders|length > 0 %}
+                    {% set orderRow = batch.batchOrders[0].orderRow %}
+                    {% if orderRow %}
+                        {% set pq = orderRow.quantity %}
+                    {% endif %}
+                {% endif %}
+                {{ pq }}
+            </td>
+            <td class="value" style="font-size: 14pt;">{{ batch.pieces }}</td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td class="label" width="33%">Articolo</td>
+            <td class="label" width="33%">Riferimenti colore</td>
+            <td class="label" width="24%">Stampa</td>
+            <td class="label" width="10%">SP</td>
+        </tr>
+        <tr>
+            <td class="value left">{{ batch.article ? batch.article.name : '' }}</td>
+            <td class="value">
+                {% if batch.article and batch.article.color %}
+                    {{ batch.article.color.color }}
+                {% endif %}
+            </td>
+            <td class="value">
+                {% if batch.article and batch.article.print %}
+                    {{ batch.article.print.name }}
+                {% else %}
+                    NESSUNA
+                {% endif %}
+            </td>
+            <td class="value">
+                {% if batch.article and batch.article.thickness %}
+                    {{ batch.article.thickness.name }}
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td class="bold" width="30%">LAVORAZIONI ESTERNE</td>
+            <td class="bold" width="10%">PELLI</td>
+            <td class="bold" width="10%">FIRMA</td>
+            <td class="bold" width="10%">CNSGN</td>
+            <td class="bold" width="20%">CONTROLLO</td>
+            <td class="bold" width="5%">OK</td>
+            <td class="bold" width="5%">KO</td>
+            <td class="bold" width="10%">FIRMA</td>
+        </tr>
+        <tr class="empty-row">
+            <td class="bold left">TELAIO</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr class="empty-row">
+            <td class="bold left">PALISSONE</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr class="empty-row">
+            <td class="bold left">SMERIGLIO</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td class="label left" style="border-bottom: 1px solid black;">NOTE:</td>
+        </tr>
+    </table>
+
+    <div style="margin-top: 10px;">
+        <table style="border: none;">
+            <tr>
+                <td style="border: none; text-align: center; font-weight: bold; font-size: 12pt;" width="50%">COMPOSIZIONE LOTTO</td>
+                <td style="border: none; text-align: center; font-weight: bold; font-size: 12pt;" width="50%">PARTITA/E</td>
+            </tr>
+        </table>
+        
+        <table>
+            <tr>
+                <td width="15%" class="bold">LOTTO</td>
+                <td width="5%" class="bold">SP</td>
+                <td width="10%" class="bold">PELLI</td>
+                <td width="20%" class="bold">SCELTA</td>
+                <td width="15%" class="bold">LOTTO</td>
+                <td width="5%" class="bold">SP</td>
+                <td width="10%" class="bold">PELLI</td>
+                <td width="20%" class="bold">SCELTA</td>
+            </tr>
+            {# Mostriamo la composizione del lotto in due colonne #}
+            {% set compositions = batch.batchCompositions %}
+            {% set half = (compositions|length / 2)|round(0, 'ceil') %}
+            
+            {% for i in 0..(half > 0 ? half - 1 : 0) %}
+                {% if compositions|length > 0 %}
+                <tr>
+                    {# Prima colonna #}
+                    {% set comp1 = compositions[i]|default(null) %}
+                    {% if comp1 %}
+                        <td>{{ comp1.fatherBatch ? comp1.fatherBatch.batchCode : '' }}</td>
+                        <td>
+                            {% if comp1.fatherBatch and comp1.fatherBatch.article and comp1.fatherBatch.article.thickness %}
+                                {{ comp1.fatherBatch.article.thickness.name }}
+                            {% endif %}
+                        </td>
+                        <td>{{ comp1.fatherBatchPiece }}</td>
+                        <td class="left">
+                            {% if comp1.fatherBatch %}
+                                {% for sel in comp1.fatherBatch.batchSelections %}
+                                    {{ sel.selection ? sel.selection.name : '' }}{{ not loop.last ? ', ' : '' }}
+                                {% endfor %}
+                            {% endif %}
+                        </td>
+                    {% else %}
+                        <td></td><td></td><td></td><td></td>
+                    {% endif %}
+
+                    {# Seconda colonna #}
+                    {% set comp2 = compositions[i + half]|default(null) %}
+                    {% if comp2 %}
+                        <td>{{ comp2.fatherBatch ? comp2.fatherBatch.batchCode : '' }}</td>
+                        <td>
+                            {% if comp2.fatherBatch and comp2.fatherBatch.article and comp2.fatherBatch.article.thickness %}
+                                {{ comp2.fatherBatch.article.thickness.name }}
+                            {% endif %}
+                        </td>
+                        <td>{{ comp2.fatherBatchPiece }}</td>
+                        <td class="left">
+                            {% if comp2.fatherBatch %}
+                                {% for sel in comp2.fatherBatch.batchSelections %}
+                                    {{ sel.selection ? sel.selection.name : '' }}{{ not loop.last ? ', ' : '' }}
+                                {% endfor %}
+                            {% endif %}
+                        </td>
+                    {% else %}
+                        <td></td><td></td><td></td><td></td>
+                    {% endif %}
+                </tr>
+                {% else %}
+                <tr class="empty-row">
+                    <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                </tr>
+                {% endif %}
+            {% endfor %}
+            
+            {# Se non ci sono composizioni, aggiungiamo alcune righe vuote #}
+            {% if compositions|length == 0 %}
+                {% for i in 1..5 %}
+                <tr class="empty-row">
+                    <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                </tr>
+                {% endfor %}
+            {% endif %}
+        </table>
+    </div>
+
+</body>
+</html>
