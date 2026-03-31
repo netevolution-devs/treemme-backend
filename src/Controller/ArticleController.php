@@ -201,7 +201,6 @@ class ArticleController extends AbstractController
             $article->getThickness()?->getName(),
             $article->getPrint()?->getName(),
             $article->getColor()?->getColor(),
-            $article->getClient()?->getName(),
         ];
 
         $article->setName(implode(' ', array_filter(
