@@ -14,11 +14,11 @@ class Payment
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['payment_list', 'payment_detail', 'client_detail', 'client_order_detail'])]
+    #[Groups(['payment_list', 'payment_detail', 'client_detail', 'client_order_detail', 'contact_detail', 'contact_list'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['payment_list', 'payment_detail', 'client_detail', 'client_order_detail'])]
+    #[Groups(['payment_list', 'payment_detail', 'client_detail', 'client_order_detail', 'contact_detail', 'contact_list'])]
     private ?string $name = null;
 
     /**

@@ -19,14 +19,25 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class BatchSelectionController extends AbstractController
 {
+    private $createMethodsByInput;
+    private $doctrine;
+    private $doResponse;
+    private $groupSerializer;
+    private $validatorOutputFormatter;
+
     public function __construct(
-        private CreateMethodsByInput     $createMethodsByInput,
-        private EntityManagerInterface   $entityManager,
-        private DoResponseService        $doResponseService,
-        private GroupSerializerService   $groupSerializer,
-        private ValidatorOutputFormatter $validatorOutputFormatter
+        CreateMethodsByInput     $createMethodsByInput,
+        EntityManagerInterface   $entityManager,
+        DoResponseService        $doResponseService,
+        GroupSerializerService   $groupSerializer,
+        ValidatorOutputFormatter $validatorOutputFormatter,
     )
     {
+        $this->createMethodsByInput = $createMethodsByInput;
+        $this->doctrine = $entityManager;
+        $this->doResponse = $doResponseService;
+        $this->groupSerializer = $groupSerializer;
+        $this->validatorOutputFormatter = $validatorOutputFormatter;
     }
 
     #[Route('/batch-selection', name: 'post_batch_selection', methods: ['POST'])]
@@ -47,7 +58,7 @@ class BatchSelectionController extends AbstractController
             $batchSelection->setStockPieces($data['pieces']);
 
             if (isset($data['batch_id'])) {
-                $fatherBatch = $this->entityManager->getRepository(Batch::class)->find($data['batch_id']);
+                $fatherBatch = $this->doctrine->getRepository(Batch::class)->find($data['batch_id']);
                 if ($fatherBatch) {
                     $batchSelection->setBatch($fatherBatch);
                 }
@@ -59,7 +70,7 @@ class BatchSelectionController extends AbstractController
             }
 
             if (isset($data['selection_id'])) {
-                $selection = $this->entityManager->getRepository(Selection::class)->find($data['selection_id']);
+                $selection = $this->doctrine->getRepository(Selection::class)->find($data['selection_id']);
                 if ($selection) {
                     $batchSelection->setSelection($selection);
                 }
@@ -67,7 +78,7 @@ class BatchSelectionController extends AbstractController
             }
 
             if(isset($data['thickness_id'])){
-                $thickness = $this->entityManager->getRepository(LeatherThickness::class)->find($data['thickness_id']);
+                $thickness = $this->doctrine->getRepository(LeatherThickness::class)->find($data['thickness_id']);
                 if ($thickness) {
                     $batchSelection->setThickness($thickness);
                 }
@@ -82,24 +93,24 @@ class BatchSelectionController extends AbstractController
             $errors = $validator->validate($batchSelection);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponseService->doErrorResponse($errors));
+                return new JsonResponse($this->doResponse->doErrorResponse($errors));
             }
 
-            $this->entityManager->persist($batchSelection);
-            $this->entityManager->flush();
+            $this->doctrine->persist($batchSelection);
+            $this->doctrine->flush();
 
             $result = $this->groupSerializer->serializeGroup($batchSelection, 'batch_selection_detail');
-            return new JsonResponse($this->doResponseService->doResponse($result));
+            return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponseService->doErrorResponse($e->getMessage()));
+            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
         }
     }
 
     private function handleRelations(BatchSelection $batchSelection, array &$data): BatchSelection
     {
         if (isset($data['batch_id'])) {
-            $batch = $this->entityManager->getRepository(Batch::class)->find($data['batch_id']);
+            $batch = $this->doctrine->getRepository(Batch::class)->find($data['batch_id']);
             if ($batch) {
                 $batchSelection->setBatch($batch);
             }
@@ -107,7 +118,7 @@ class BatchSelectionController extends AbstractController
         }
 
         if (isset($data['selection_id'])) {
-            $selection = $this->entityManager->getRepository(Selection::class)->find($data['selection_id']);
+            $selection = $this->doctrine->getRepository(Selection::class)->find($data['selection_id']);
             if ($selection) {
                 $batchSelection->setSelection($selection);
             }

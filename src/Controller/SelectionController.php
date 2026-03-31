@@ -64,6 +64,51 @@ final class SelectionController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse($results));
     }
 
+    #[Route('/selection/stock/available/{id}',
+        name: 'get_selection_stock_available',
+        defaults: ['id' => null],
+        requirements: ['id' => '\\d*'],
+        methods: ['GET'])]
+    public function getSelectionStockAvailable(?int $id): JsonResponse
+    {
+        $selectionRepository = $this->doctrine->getRepository(Selection::class);
+
+        if ($id) {
+            $selection = $selectionRepository->find($id);
+            if (!$selection) {
+                return new JsonResponse($this->doResponse->doErrorResponse('Selection not found', 404));
+            }
+
+            $availableBatches = [];
+            foreach ($selection->getBatchSelections() as $batchSelection) {
+                if ($batchSelection->getStockPieces() > 0) {
+                    $availableBatches[] = $batchSelection;
+                }
+            }
+
+            $result = $this->groupSerializer->serializeGroup($availableBatches, 'batch_list');
+            return new JsonResponse($this->doResponse->doResponse($result));
+        }
+
+        $selections = $selectionRepository->findAll();
+
+        $availableSelections = [];
+        foreach ($selections as $selection) {
+            $totalStockPieces = 0;
+            foreach ($selection->getBatchSelections() as $batchSelection) {
+                $totalStockPieces += $batchSelection->getStockPieces() ?? 0;
+            }
+
+            if ($totalStockPieces > 0) {
+                $serializedSelection = $this->groupSerializer->serializeGroup($selection, 'selection_list');
+                $serializedSelection['available_pieces'] = $totalStockPieces;
+                $availableSelections[] = $serializedSelection;
+            }
+        }
+
+        return new JsonResponse($this->doResponse->doResponse($availableSelections));
+    }
+
     #[Route('/selection', name: 'post_selection', methods: ['POST'])]
     public function postSelection(
         Request            $request,

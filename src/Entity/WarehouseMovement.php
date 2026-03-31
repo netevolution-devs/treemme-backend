@@ -8,6 +8,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\Serializer\Annotation\Groups;
+use JMS\Serializer\Annotation\MaxDepth;
 
 #[ORM\Entity(repositoryClass: WarehouseMovementRepository::class)]
 class WarehouseMovement
@@ -68,6 +69,11 @@ class WarehouseMovement
     #[ORM\OneToMany(mappedBy: 'father_movement', targetEntity: self::class)]
     private Collection $sonWarehouseMovements;
 
+    #[ORM\ManyToOne(inversedBy: 'warehouseMovements')]
+    #[Groups(['batch_detail'])]
+    #[MaxDepth(1)]
+    private ?Contact $contact = null;
+
     public function __construct()
     {
         $this->sonWarehouseMovements = new ArrayCollection();
@@ -111,6 +117,14 @@ class WarehouseMovement
     {
         $this->reason = $reason;
 
+        if ($this->piece !== null) {
+            $this->setPiece($this->piece);
+        }
+
+        if ($this->quantity !== null) {
+            $this->setQuantity($this->quantity);
+        }
+
         return $this;
     }
 
@@ -121,7 +135,11 @@ class WarehouseMovement
 
     public function setPiece(?int $piece): static
     {
-        $this->piece = $piece;
+        if ($piece !== null && $this->getReason() && $this->getReason()->getReasonType() && $this->getReason()->getReasonType()->getMovementType() === '-') {
+            $this->piece = -abs($piece);
+        } else {
+            $this->piece = $piece;
+        }
 
         return $this;
     }
@@ -145,7 +163,11 @@ class WarehouseMovement
 
     public function setQuantity(float $quantity): static
     {
-        $this->quantity = round($quantity, 3);
+        if ($this->getReason() && $this->getReason()->getReasonType() && $this->getReason()->getReasonType()->getMovementType() === '-') {
+            $this->quantity = -abs(round($quantity, 3));
+        } else {
+            $this->quantity = round($quantity, 3);
+        }
 
         return $this;
     }
@@ -236,6 +258,18 @@ class WarehouseMovement
                 $sonWarehouseMovement->setFatherMovement(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getContact(): ?Contact
+    {
+        return $this->contact;
+    }
+
+    public function setContact(?Contact $contact): static
+    {
+        $this->contact = $contact;
 
         return $this;
     }

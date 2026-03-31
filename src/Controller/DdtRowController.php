@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\Contact;
 use App\Entity\Ddt;
 use App\Entity\DdtRow;
 use App\Entity\Batch;
@@ -79,7 +80,14 @@ final class DdtRowController extends AbstractController
         $ddtRowsSelected = [];
         foreach ($ddtRows as $ddtRow) {
             $ddt = $ddtRow->getDdt();
-            if (!$ddt || $ddt->getReason()?->getName() !== 'C/O Lavorazione') {
+            if (!$ddt) {
+                continue;
+            }
+            $ddtReason = $ddt->getReason();
+            $ddtReasonName = $ddtReason?->getName();
+
+            // Esclude i DDT con causale "Vendita" o senza causale
+            if (!$ddtReasonName || $ddtReasonName === 'Vendita') {
                 continue;
             }
 
@@ -93,20 +101,57 @@ final class DdtRowController extends AbstractController
                 continue;
             }
 
-            // Ordina i movimenti per ID decrescente per trovare l'ultimo
+            // Ordina i movimenti per ID per trovare il movimento di partenza e i successivi
             $movementsArray = $movements->toArray();
-            usort($movementsArray, fn($a, $b) => $b->getId() <=> $a->getId());
-            $lastMovement = $movementsArray[0];
+            usort($movementsArray, fn($a, $b) => $a->getId() <=> $b->getId());
 
-            $reason = $lastMovement->getReason();
-            if ($reason?->getName() === 'C/O Lavorazione' &&
-                $reason->getReasonType()?->getName() === 'Scarico') {
-                $ddtRowsSelected[] = $ddtRow;
+            $lastMovement = end($movementsArray);
+            $lastMovementReasonName = $lastMovement?->getReason()?->getName();
+
+            // Calcola il nome del movimento di "Reso" atteso
+            $resoReasonName = "Reso " . $ddtReasonName;
+
+            // Restituisce il lotto solamente quando l'ultimo movimento ha il movementReason->Name == al ddtReason->Name
+            // Oppure se è un "Reso {ddtReason->Name}"
+            if ($lastMovementReasonName !== $ddtReasonName && $lastMovementReasonName !== $resoReasonName) {
+                continue;
+            }
+
+            $firstMovementOut = null;
+            $returnedPieces = 0;
+
+            foreach ($movementsArray as $movement) {
+                $reason = $movement->getReason();
+                $reasonName = $reason?->getName();
+                $reasonTypeName = $reason?->getReasonType()?->getName();
+
+                // Identifica il primo movimento in uscita con la causale del DDT
+                if ($firstMovementOut === null && $reasonName === $ddtReasonName && $reasonTypeName === 'Scarico') {
+                    $firstMovementOut = $movement;
+                    continue;
+                }
+
+                // Somma i pezzi rientrati per i movimenti di "Reso" corrispondenti
+                if ($firstMovementOut !== null && $reasonName === $resoReasonName) {
+                    $returnedPieces += abs($movement->getPiece() ?? 0);
+                }
+            }
+
+            if ($firstMovementOut !== null) {
+                $outPieces = abs($firstMovementOut->getPiece() ?? 0);
+                $remainingPieces = $outPieces - $returnedPieces;
+
+                // Se l'ultimo movimento è esattamente ddtReasonName, lo includiamo a prescindere dal conteggio
+                // Se invece l'ultimo movimento è il "Reso", allora scatta il calcolo dei pezzi ancora da rientrare
+                if ($lastMovementReasonName === $ddtReasonName || $remainingPieces > 0) {
+                    $results = $this->groupSerializer->serializeGroup($ddtRow, 'ddt_row_list');
+                    $results['stock_pieces'] = $remainingPieces;
+                    $ddtRowsSelected[] = $results;
+                }
             }
         }
 
-        $results = $this->groupSerializer->serializeGroup($ddtRowsSelected, 'ddt_row_list');
-        return new JsonResponse($this->doResponse->doResponse($results));
+        return new JsonResponse($this->doResponse->doResponse($ddtRowsSelected));
     }
 
     #[Route('/ddt-row',
@@ -129,9 +174,17 @@ final class DdtRowController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse($this->validatorOutputFormatter->formatOutput($errors), 400));
         }
 
+
         if ($ddtRow->getPrice()) {
             $ddtRow->setTotalValue($ddtRow->getPrice() * $ddtRow->getPieces());
+            $ddtRow->setCurrencyPrice($ddtRow->getPrice() * $ddtRow->getCurrencyChange());
             $ddtRow->setCurrencyTotalValue($ddtRow->getCurrencyPrice() * $ddtRow->getPieces());
+        }
+
+        if($ddtRow->getHalfPiece() !== null) {
+            $ddtRow->setWholePiece($ddtRow->getPieces() - ($ddtRow->getHalfPiece() * 2));
+        } else {
+            $ddtRow->setWholePiece($ddtRow->getPieces());
         }
 
         $this->doctrine->persist($ddtRow);
@@ -155,7 +208,13 @@ final class DdtRowController extends AbstractController
         $wearhouseMovement->setReason($ddtRow->getDdt()->getReason()->getWarehouseMovementReason());
         $wearhouseMovement->setDdtDate($ddt->getDdtDate());
         $wearhouseMovement->setDate($ddt->getDdtDate());
-        $wearhouseMovement->setMovementNote('Riga DDT ' . $ddtRow->getId());
+        $wearhouseMovement->setMovementNote($ddtRow->getRowNote() ?: 'Riga DDT ' . $ddtRow->getId());
+
+        if ($ddt->getSubcontractor()) {
+            $wearhouseMovement->setContact($ddt->getSubcontractor());
+        } elseif ($ddt->getClient()) {
+            $wearhouseMovement->setContact($ddt->getClient());
+        }
 
         $this->doctrine->persist($wearhouseMovement);
         $this->doctrine->flush();
@@ -179,7 +238,7 @@ final class DdtRowController extends AbstractController
         $oldQuantity = $ddtRow->getQuantity();
         $oldBatch = $ddtRow->getBatch();
 
-        $data = json_decode($request->getContent(), true) ?? $request->request->all();
+        $data = $request->toArray();
 
         try {
             $this->handleRelations($ddtRow, $data);
@@ -195,12 +254,18 @@ final class DdtRowController extends AbstractController
 
         if ($ddtRow->getPrice()) {
             $ddtRow->setTotalValue($ddtRow->getPrice() * $ddtRow->getPieces());
+            $ddtRow->setCurrencyPrice($ddtRow->getPrice() * $ddtRow->getCurrencyChange());
             $ddtRow->setCurrencyTotalValue($ddtRow->getCurrencyPrice() * $ddtRow->getPieces());
+        }
+
+        if($ddtRow->getHalfPiece() !== null) {
+            $ddtRow->setWholePiece($ddtRow->getPieces() - ($ddtRow->getHalfPiece() * 2));
+        } else {
+            $ddtRow->setWholePiece($ddtRow->getPieces());
         }
 
         $newBatch = $ddtRow->getBatch();
 
-        // Se il lotto è lo stesso, gestiamo la differenza
         if ($oldBatch && $newBatch && $oldBatch->getId() === $newBatch->getId()) {
             $diffPieces = $ddtRow->getPieces() - $oldPieces;
             $diffQuantity = $ddtRow->getQuantity() - $oldQuantity;
@@ -211,7 +276,6 @@ final class DdtRowController extends AbstractController
             $this->updateBatchSqFtAverageFound($newBatch);
             $this->doctrine->persist($newBatch);
         } else {
-            // Se il lotto è cambiato
             if ($oldBatch) {
                 $oldBatch->setStockItems($oldBatch->getStockItems() + $oldPieces);
                 $oldBatch->setStockQuantity($oldBatch->getStockQuantity() + $oldQuantity);
@@ -227,17 +291,17 @@ final class DdtRowController extends AbstractController
         }
 
         // Aggiornamento movimento di magazzino associato
-        $warehouseMovement = $this->doctrine->getRepository(WarehouseMovement::class)->findOneBy([
-            'batch' => $oldBatch,
-            'movement_note' => 'Riga DDT ' . $ddtRow->getId()
-        ]);
+        $warehouseMovement = $this->doctrine->getRepository(WarehouseMovement::class)->findOneBy(["movement_note" => $ddtRow->getRowNote()]);
 
-        if ($warehouseMovement) {
-            $warehouseMovement->setBatch($newBatch);
-            $warehouseMovement->setQuantity($ddtRow->getQuantity());
-            $warehouseMovement->setPiece($ddtRow->getPieces());
-            $this->doctrine->persist($warehouseMovement);
+        if($warehouseMovement == null){
+            $warehouseMovement = $this->doctrine->getRepository(WarehouseMovement::class)->findOneBy(["movement_note" => 'Riga DDT ' . $ddtRow->getId()]);
         }
+
+        $warehouseMovement->setBatch($newBatch);
+        $warehouseMovement->setQuantity($ddtRow->getQuantity());
+        $warehouseMovement->setPiece($ddtRow->getPieces());
+
+        $this->doctrine->persist($warehouseMovement);
 
         $this->doctrine->flush();
 
@@ -266,7 +330,6 @@ final class DdtRowController extends AbstractController
 
         // Rimuoviamo anche il movimento di magazzino associato
         $warehouseMovement = $this->doctrine->getRepository(WarehouseMovement::class)->findOneBy([
-            'batch' => $batch,
             'movement_note' => 'Riga DDT ' . $ddtRow->getId()
         ]);
         if ($warehouseMovement) {
@@ -299,7 +362,9 @@ final class DdtRowController extends AbstractController
         $quantity = $data['quantity'] ?? $ddtRow->getQuantity();
         $pieces = $data['pieces'] ?? $ddtRow->getPieces();
 
-        $reason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Reso C/O Lavorazione']);
+        $ddt = $ddtRow->getDdt();
+
+        $reason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Reso ' . $ddt->getReason()->getName()]);
         if (!$reason) {
             $reasonTypeIn = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => 'Carico']);
             if ($reasonTypeIn) {
@@ -318,48 +383,60 @@ final class DdtRowController extends AbstractController
         $warehouseMovement->setDdtNumber($ddtRow->getDdt()->getDdtNumber());
         $warehouseMovement->setDdtDate($ddtRow->getDdt()->getDdtDate());
         $warehouseMovement->setDate(new \DateTime());
-        $warehouseMovement->setMovementNote('Rientro riga DDT ' . $ddtRow->getId());
+        $warehouseMovement->setMovementNote('Rientro riga DDT ' . $ddtRow->getId() . ' del DDT ' . $ddtRow->getDdt()->getDdtNumber());
+
+        if ($ddt->getSubcontractor()) {
+            $warehouseMovement->setContact($ddt->getSubcontractor());
+        } elseif ($ddt->getClient()) {
+            $warehouseMovement->setContact($ddt->getClient());
+        }
 
         $this->doctrine->persist($warehouseMovement);
         $this->doctrine->flush();
 
-        $diffPieces = $pieces - $ddtRow->getPieces();
-        if ($diffPieces !== 0) {
-            $reasonName = $diffPieces > 0 ? "Compensazione positiva" : "Compensazione negativa";
-            $compReason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => $reasonName]);
-
-            if (!$compReason) {
-                $compReason = new WarehouseMovementReason();
-                $compReason->setName($reasonName);
-                $movementType = $diffPieces > 0 ? 'Carico' : 'Scarico';
-                $reasonType = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => $movementType]);
-                if (!$reasonType) {
-                    $reasonType = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => $movementType === 'Carico' ? 'Carico' : 'Scarico']);
-                }
-                if (!$reasonType) {
-                    $reasonType = new WarehouseMovementReasonType();
-                    $reasonType->setName($movementType);
-                    $reasonType->setMovementType($movementType === 'Carico' ? 'Carico' : 'Scarico');
-                    $this->doctrine->persist($reasonType);
-                }
-                $compReason->setReasonType($reasonType);
-                $this->doctrine->persist($compReason);
-            }
-
-            $compMovement = new WarehouseMovement();
-            $compMovement->setBatch($batch);
-            $compMovement->setQuantity(0);
-            $compMovement->setPiece($diffPieces);
-            $compMovement->setReason($compReason);
-            $compMovement->setDdtNumber($ddtRow->getDdt()->getDdtNumber());
-            $compMovement->setDdtDate($ddtRow->getDdt()->getDdtDate());
-            $compMovement->setDate(new \DateTime());
-            $compMovement->setMovementNote('Compensazione riga DDT ' . $ddtRow->getId());
-            $this->doctrine->persist($compMovement);
-
-            $batch->setStockItems($batch->getStockItems() + $diffPieces);
-            $this->doctrine->persist($batch);
-        }
+//        $diffPieces = $pieces - $ddtRow->getPieces();
+//        if ($diffPieces !== 0) {
+//            $reasonName = $diffPieces > 0 ? "Compensazione positiva" : "Compensazione negativa";
+//            $compReason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => $reasonName]);
+//
+//            if (!$compReason) {
+//                $compReason = new WarehouseMovementReason();
+//                $compReason->setName($reasonName);
+//                $movementType = $diffPieces > 0 ? 'Compensazione positiva' : 'Compensazione negativa';
+//                $reasonType = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => $movementType]);
+//                if (!$reasonType) {
+//                    $reasonType = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => $movementType === 'Carico' ? 'Carico' : 'Scarico']);
+//                }
+//                if (!$reasonType) {
+//                    $reasonType = new WarehouseMovementReasonType();
+//                    $reasonType->setName($movementType);
+//                    $reasonType->setMovementType($movementType === 'Compensazione positiva' ? 'Compensazione positiva' : 'Compensazione negativa');
+//                    $this->doctrine->persist($reasonType);
+//                }
+//                $compReason->setReasonType($reasonType);
+//                $this->doctrine->persist($compReason);
+//            }
+//
+//            $compMovement = new WarehouseMovement();
+//            $compMovement->setBatch($batch);
+//            $compMovement->setQuantity(0);
+//            $compMovement->setPiece($diffPieces);
+//            $compMovement->setReason($compReason);
+//            $compMovement->setDdtNumber($ddtRow->getDdt()->getDdtNumber());
+//            $compMovement->setDdtDate($ddtRow->getDdt()->getDdtDate());
+//            $compMovement->setDate(new \DateTime());
+//            $compMovement->setMovementNote('Compensazione riga DDT ' . $ddtRow->getId() . ' del DDT ' . $ddtRow->getDdt()->getDdtNumber());
+//
+//            if ($ddt->getSubcontractor()) {
+//                $compMovement->setContact($ddt->getSubcontractor());
+//            } elseif ($ddt->getClient()) {
+//                $compMovement->setContact($ddt->getClient());
+//            }
+//            $this->doctrine->persist($compMovement);
+//
+//            $batch->setStockItems($batch->getStockItems() + $diffPieces);
+//            $this->doctrine->persist($batch);
+//        }
 
         $batch->setStockQuantity($batch->getStockQuantity() + $quantity);
         $batch->setStockItems($batch->getStockItems() + $pieces);
@@ -392,18 +469,20 @@ final class DdtRowController extends AbstractController
         }
 
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
+
+        $subcontractor = $this->doctrine->getRepository(Contact::class)->find($data['subcontractor_id']);
         $quantity = $data['quantity'] ?? $ddtRow->getQuantity();
         $pieces = $data['pieces'] ?? $ddtRow->getPieces();
 
-        $reasonIn = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Carico']);
-        if (!$reasonIn) {
-            $reasonTypeIn = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => 'In']);
-            if ($reasonTypeIn) {
-                $reasonIn = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['reason_type' => $reasonTypeIn]);
+        $reasonTransfer = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Reso C/O Lavorazione']);
+        if (!$reasonTransfer) {
+            $reasonTypeTransfer = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => 'Out']);
+            if ($reasonTypeTransfer) {
+                $reasonTransfer = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['reason_type' => $reasonTypeTransfer]);
             }
         }
 
-        if (!$reasonIn) {
+        if (!$reasonTransfer) {
             return new JsonResponse($this->doResponse->doErrorResponse('Causale di magazzino "Carico" non trovata', 400));
         }
 
@@ -411,35 +490,12 @@ final class DdtRowController extends AbstractController
         $warehouseMovement->setBatch($batch);
         $warehouseMovement->setQuantity($quantity);
         $warehouseMovement->setPiece($pieces);
-        $warehouseMovement->setReason($reasonIn);
+        $warehouseMovement->setReason($reasonTransfer);
         $warehouseMovement->setDdtNumber($ddtRow->getDdt()->getDdtNumber());
         $warehouseMovement->setDdtDate($ddtRow->getDdt()->getDdtDate());
         $warehouseMovement->setDate(new \DateTime());
-        $warehouseMovement->setMovementNote('Rientro riga DDT ' . $ddtRow->getId());
-
-        $this->doctrine->persist($warehouseMovement);
-
-        $reasonOut = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Scarico']);
-        if (!$reasonOut) {
-            $reasonTypeOut = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => 'Out']);
-            if ($reasonTypeOut) {
-                $reasonOut = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['reason_type' => $reasonTypeOut]);
-            }
-        }
-
-        if (!$reasonOut) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Causale di magazzino "Scarico" non trovata', 400));
-        }
-
-        $warehouseMovement = new WarehouseMovement();
-        $warehouseMovement->setBatch($batch);
-        $warehouseMovement->setQuantity($quantity);
-        $warehouseMovement->setPiece($pieces);
-        $warehouseMovement->setReason($reasonOut);
-        $warehouseMovement->setDdtNumber($ddtRow->getDdt()->getDdtNumber());
-        $warehouseMovement->setDdtDate($ddtRow->getDdt()->getDdtDate());
-        $warehouseMovement->setDate(new \DateTime());
-        $warehouseMovement->setMovementNote('Uscita riga DDT ' . $ddtRow->getId());
+        $warehouseMovement->setMovementNote($data['row_note'] ?: 'Rientro riga DDT ' . $ddtRow->getId());
+        $warehouseMovement->setContact($subcontractor);
 
         $this->doctrine->persist($warehouseMovement);
         $this->doctrine->flush();

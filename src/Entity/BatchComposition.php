@@ -38,6 +38,10 @@ class BatchComposition
     #[Groups(['batch_composition_list', 'batch_composition_detail', 'batch_detail'])]
     private ?string $composition_note = null;
 
+    #[ORM\Column(nullable: true)]
+    #[Groups(['batch_composition_list', 'batch_composition_detail', 'batch_detail'])]
+    private ?\DateTime $date = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -99,6 +103,18 @@ class BatchComposition
     public function setCompositionNote(?string $composition_note): static
     {
         $this->composition_note = $composition_note;
+
+        return $this;
+    }
+
+    public function getDate(): ?\DateTime
+    {
+        return $this->date;
+    }
+
+    public function setDate(?\DateTime $date): static
+    {
+        $this->date = $date;
 
         return $this;
     }

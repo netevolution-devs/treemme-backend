@@ -43,7 +43,7 @@ final class ColorController extends AbstractController
         defaults: ['id' => null],
         requirements: ['id' => '\d*'],
         methods: ['GET', 'HEAD'])]
-    public function getColor(?int $id): JsonResponse
+    public function getColor(?int $id, Request $request): JsonResponse
     {
         $colorRepository = $this->doctrine->getRepository(Color::class);
 
@@ -53,8 +53,16 @@ final class ColorController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('Color not found', 404));
             }
         } else {
-            $color = $colorRepository->findBy([], ['id' => 'DESC']);
+            $clientId = $request->query->get('client');
+
+            if ($clientId) {
+                $client = $this->doctrine->getRepository(Color::class)->find($clientId);
+                $color = $colorRepository->findBy(['client' => $client], ['id' => 'DESC']);
+            } else {
+                $color = $colorRepository->findBy([], ['id' => 'DESC']);
+            }
         }
+
         $results = $this->groupSerializer->serializeGroup($color, $id ? 'color_detail' : 'color_list');
 
         if ($id) {

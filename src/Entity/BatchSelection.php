@@ -13,12 +13,12 @@ class BatchSelection
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['batch_selection_detail', 'batch_detail'])]
+    #[Groups(['batch_selection_detail', 'batch_detail', 'batch_list'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'batchSelections')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['batch_selection_detail'])]
+    #[Groups(['batch_selection_detail', 'batch_list'])]
     private ?Batch $batch = null;
 
     #[ORM\ManyToOne(inversedBy: 'batchSelections')]

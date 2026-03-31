@@ -5,7 +5,7 @@ namespace App\Controller;
 use App\Entity\Article;
 use App\Entity\ArticlePrint;
 use App\Entity\ArticleType;
-use App\Entity\ColorType;
+use App\Entity\Color;
 use App\Entity\Contact;
 use App\Entity\LeatherThickness;
 use App\Entity\Product;
@@ -184,39 +184,63 @@ class ArticleController extends AbstractController
             unset($data['print_id']);
         }
 
-        if (isset($data['color_type_id'])) {
-            $colorType = $this->entityManager->getRepository(ColorType::class)->find($data['color_type_id']);
-            if (!$colorType) throw new \Exception("Tipo colore con ID {$data['color_type_id']} non trovato");
-            $article->setColorType($colorType);
-            unset($data['color_type_id']);
-        }
-
-        if (isset($data['product_id'])) {
-            $product = $this->entityManager->getRepository(Product::class)->find($data['product_id']);
-            if (!$product) throw new \Exception("Prodotto con ID {$data['product_id']} non trovato");
-            $article->setProduct($product);
-            unset($data['product_id']);
+        if (isset($data['color_id'])) {
+            $color = $this->entityManager->getRepository(Color::class)->find($data['color_id']);
+            if (!$color) throw new \Exception("Colore con ID {$data['color_id']} non trovato");
+            $article->setColor($color);
+            unset($data['color_id']);
         }
 
         // Mappatura campi semplici
         $this->createMethodsByInput->createMethods($article, $data);
 
+        // Generazione Nome
         $nameParts = [
-            $article->getArticleType()?->getArticleClass()?->getName(),
             $article->getArticleType()?->getName(),
-            $article->getArticleVariation(),
+            $article->getArticleType()?->getLeatherType()?->getName(),
             $article->getThickness()?->getName(),
             $article->getPrint()?->getName(),
-            $article->getColorType()?->getName(),
-            $article->getShade(),
-            $article->getColor(),
-            $article->getColorVariation(),
-            $article->getProduct()?->getName(),
+            $article->getColor()?->getColor(),
+            $article->getClient()?->getName(),
         ];
 
         $article->setName(implode(' ', array_filter(
             $nameParts,
             static fn (?string $value): bool => $value !== null && trim($value) !== ''
         )));
+
+        // Generazione Codice (versione compressa)
+        $codeParts = [
+            $this->compressString($article->getArticleType()?->getName()),
+            $article->getArticleType()?->getLeatherType()?->getCode() ?: $this->compressString($article->getArticleType()?->getLeatherType()?->getName()),
+            $article->getThickness()?->getName(),
+            $this->compressString($article->getPrint()?->getName()),
+            $this->compressString($article->getColor()?->getColor()),
+            $this->compressString($article->getClient()?->getName()),
+        ];
+
+        $article->setCode(implode('-', array_filter(
+            $codeParts,
+            static fn (?string $value): bool => $value !== null && trim($value) !== ''
+        )));
+    }
+
+    private function compressString(?string $string): ?string
+    {
+        if (!$string) return null;
+        
+        $string = trim($string);
+        if ($string === '') return null;
+
+        // Se è già un codice corto (es. 2-4 caratteri), lo teniamo così
+        if (strlen($string) <= 3) return strtoupper($string);
+
+        // Altrimenti prendiamo le prime 3 consonanti o i primi 3 caratteri
+        $consonants = preg_replace('/[aeiou\s]/i', '', $string);
+        if (strlen($consonants) >= 3) {
+            return strtoupper(substr($consonants, 0, 3));
+        }
+
+        return strtoupper(substr($string, 0, 3));
     }
 }

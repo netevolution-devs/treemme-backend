@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\BatchSelection;
 use App\Entity\MeasurementUnitCoefficient;
 use App\Entity\WarehouseMovement;
 use App\Entity\WarehouseMovementReason;
@@ -98,30 +99,54 @@ final class BatchCompositionController extends AbstractController
 
         try {
             $fatherBatch = null;
-            if (isset($data['father_batch_id'])) {
-                $fatherBatch = $this->doctrine->getRepository(Batch::class)->find($data['father_batch_id']);
+            $batchSelection = null;
+            if (isset($data['batch_selection_id'])) {
+                $batchSelection = $this->doctrine->getRepository(BatchSelection::class)->find($data['batch_selection_id']);
+                if ($batchSelection) {
+                    $fatherBatch = $batchSelection->getBatch();
+                }
+
+                unset($data['batch_selection_id']);
             }
 
-            $quantityToConvert = null;
-            if ($fatherBatch) {
+            if ($fatherBatch && (!isset($data['father_batch_quantity']) || $data['father_batch_quantity'] === null || $data['father_batch_quantity'] === '')) {
                 $fatherBatchPiecesToConvert = isset($data['father_batch_piece']) ? (float) $data['father_batch_piece'] : 0.0;
-                $fatherBatchPiecesTotal = (float) ($fatherBatch->getPieces() ?? 0);
-                $fatherBatchQuantityTotal = (float) ($fatherBatch->getQuantity() ?? 0);
+                
+                if ($fatherBatch->getSqFtAverageExpected() > 0) {
+                    $quantityToConvert = $fatherBatchPiecesToConvert * $fatherBatch->getSqFtAverageExpected();
+                } elseif ($batchSelection) {
+                    $fatherBatchPiecesTotal = (float) ($batchSelection->getPieces() ?? 0);
+                    $fatherBatchQuantityTotal = (float) ($batchSelection->getQuantity() ?? 0);
 
-                if ($fatherBatchPiecesTotal > 0) {
-                    $pieceQuantity = $fatherBatchQuantityTotal / $fatherBatchPiecesTotal;
-                    $quantityToConvert = $fatherBatchPiecesToConvert * $pieceQuantity;
+                    if ($fatherBatchPiecesTotal > 0) {
+                        $pieceQuantity = $fatherBatchQuantityTotal / $fatherBatchPiecesTotal;
+                        $quantityToConvert = $fatherBatchPiecesToConvert * $pieceQuantity;
+                    } else {
+                        $quantityToConvert = 0.0;
+                    }
                 } else {
-                    $quantityToConvert = 0.0;
+                    $fatherBatchPiecesTotal = (float) ($fatherBatch->getPieces() ?? 0);
+                    $fatherBatchQuantityTotal = (float) ($fatherBatch->getQuantity() ?? 0);
+
+                    if ($fatherBatchPiecesTotal > 0) {
+                        $pieceQuantity = $fatherBatchQuantityTotal / $fatherBatchPiecesTotal;
+                        $quantityToConvert = $fatherBatchPiecesToConvert * $pieceQuantity;
+                    } else {
+                        $quantityToConvert = 0.0;
+                    }
                 }
+
+                if ($quantityToConvert !== null) {
+                    $data['father_batch_quantity'] = $quantityToConvert;
+                }
+            }
+
+            if ($fatherBatch && !isset($data['father_batch_id'])) {
+                $data['father_batch_id'] = $fatherBatch->getId();
             }
 
             $batchComposition = $this->handleRelations($batchComposition, $data);
             $batchComposition = $this->createMethodsByInput->createMethods($batchComposition, $data);
-
-            if ($batchComposition->getFatherBatchQuantity() === null && $quantityToConvert !== null) {
-                $batchComposition->setFatherBatchQuantity($quantityToConvert);
-            }
 
             $batch = $batchComposition->getBatch();
             $childQuantity = (float) ($batchComposition->getFatherBatchQuantity() ?? 0.0);
@@ -158,6 +183,12 @@ final class BatchCompositionController extends AbstractController
                 $fatherBatch->setStockItems($fatherBatch->getStockItems() - $batchComposition->getFatherBatchPiece());
                 $fatherBatch->setStockQuantity($fatherBatch->getStockQuantity() - (float) ($batchComposition->getFatherBatchQuantity() ?? 0.0));
                 $this->doctrine->persist($fatherBatch);
+
+                if ($batchSelection) {
+                    $batchSelection->setStockPieces($batchSelection->getStockPieces() - $batchComposition->getFatherBatchPiece());
+                    $batchSelection->setStockQuantity($batchSelection->getStockQuantity() - (float) ($batchComposition->getFatherBatchQuantity() ?? 0.0));
+                    $this->doctrine->persist($batchSelection);
+                }
             }
 
             $em = $this->doctrine;

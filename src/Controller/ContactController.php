@@ -7,6 +7,8 @@ use App\Entity\ContactAgent;
 use App\Entity\ContactSubcontractor;
 use App\Entity\ContactType;
 use App\Entity\ContactTitle;
+use App\Entity\Payment;
+use App\Entity\ShipmentCondition;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -350,6 +352,22 @@ final class ContactController extends AbstractController
                 $contact->setContactTitle($contactTitle);
             }
             unset($data['contact_title_id']);
+        }
+
+        if (isset($data['payment_id'])) {
+            $payment = $this->doctrine->getRepository(Payment::class)->find($data['payment_id']);
+            if ($payment) {
+                $contact->setPayment($payment);
+            }
+            unset($data['payment_id']);
+        }
+
+        if (isset($data['shipment_condition_id'])) {
+            $shipmentCondition = $this->doctrine->getRepository(ShipmentCondition::class)->find($data['shipment_condition_id']);
+            if ($shipmentCondition) {
+                $contact->setShipmentCondition($shipmentCondition);
+            }
+            unset($data['shipment_condition_id']);
         }
 
         if (isset($data['agent_id'])) {

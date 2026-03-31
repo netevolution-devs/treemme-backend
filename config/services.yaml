@@ -48,6 +48,10 @@ services:
       $mailer_reply_to: '%env(MAILER_REPLY_TO)%'
       $mailer_sender: '%env(MAILER_SENDER)%'
 
+  App\Controller\BatchController:
+    arguments:
+      $batch_tag: '%env(BATCH_TAG)%'
+
   App\Service\TotpService:
     arguments:
       $appName: '%app_name%'

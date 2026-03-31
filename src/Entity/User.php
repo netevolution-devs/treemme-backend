@@ -61,6 +61,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @var Collection<int, GroupUser>
      */
     #[ORM\OneToMany(mappedBy: 'user', targetEntity: GroupUser::class, orphanRemoval: true)]
+    #[Groups(['user_list','user_detail'])]
     private Collection $groupUsers;
 
     /**
