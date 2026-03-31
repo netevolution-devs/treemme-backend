@@ -102,6 +102,7 @@ final class BatchCompositionController extends AbstractController
             $batchSelection = null;
             if (isset($data['batch_selection_id'])) {
                 $batchSelection = $this->doctrine->getRepository(BatchSelection::class)->find($data['batch_selection_id']);
+                $batchComposition->setSelection($batchSelection);
                 if ($batchSelection) {
                     $fatherBatch = $batchSelection->getBatch();
                 }
