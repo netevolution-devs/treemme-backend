@@ -57,7 +57,7 @@ final class ColorController extends AbstractController
             $clientId = $request->query->get('client');
 
             if ($clientId) {
-                $client = $this->doctrine->getRepository(Color::class)->find($clientId);
+                $client = $this->doctrine->getRepository(Contact::class)->find($clientId);
                 $color = $colorRepository->findBy(['client' => $client], ['id' => 'DESC']);
             } else {
                 $color = $colorRepository->findBy([], ['id' => 'DESC']);
