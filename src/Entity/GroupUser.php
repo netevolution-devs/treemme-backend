@@ -12,7 +12,7 @@ class GroupUser
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['group_user_list', 'group_user_detail', 'group_detail'])]
+    #[Groups(['group_user_list', 'group_user_detail', 'group_detail', 'group_role_work_area_list', 'group_role_work_area_detail'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'groupUsers')]
@@ -22,7 +22,7 @@ class GroupUser
 
     #[ORM\ManyToOne(inversedBy: 'groupUsers')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['group_user_list', 'group_user_detail', 'group_list', 'group_detail'])]
+    #[Groups(['group_user_list', 'group_user_detail', 'group_list', 'group_detail', 'group_role_work_area_list', 'group_role_work_area_detail'])]
     private ?User $user = null;
 
     #[ORM\Column]
