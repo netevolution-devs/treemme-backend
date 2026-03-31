@@ -256,11 +256,12 @@ final class GroupController extends AbstractController
         $groupRoleWorkArea->setCreatedAt($now);
         $groupRoleWorkArea->setUpdatedAt($now);
 
-        // Permessi opzionali
-        if (isset($data['can_get'])) $groupRoleWorkArea->setCanGet((bool)$data['can_get']);
-        if (isset($data['can_post'])) $groupRoleWorkArea->setCanPost((bool)$data['can_post']);
-        if (isset($data['can_put'])) $groupRoleWorkArea->setCanPut((bool)$data['can_put']);
-        if (isset($data['can_delete'])) $groupRoleWorkArea->setCanDelete((bool)$data['can_delete']);
+        $groupRoleWorkArea->setCanGet((bool)($data['can_get'] ?? false));
+        $groupRoleWorkArea->setCanPost((bool)($data['can_post'] ?? false));
+        $groupRoleWorkArea->setCanPut((bool)($data['can_put'] ?? false));
+        $groupRoleWorkArea->setCanDelete((bool)($data['can_delete'] ?? false));
+
+        $groupRoleWorkArea->setCheckOrder((int)($data['check_order'] ?? false));
 
         $em = $this->doctrine;
         $em->persist($groupRoleWorkArea);
