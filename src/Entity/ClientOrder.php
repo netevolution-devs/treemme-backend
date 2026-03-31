@@ -47,7 +47,7 @@ class ClientOrder
     #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
     private ?float $percentage_agent = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
     private ?string $client_order_number = null;
 

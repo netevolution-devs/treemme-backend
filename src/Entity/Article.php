@@ -37,8 +37,7 @@ class Article
     #[Groups(['article_list', 'article_detail'])]
     private ?ArticleType $article_type = null;
 
-    #[ORM\Column(length: 255)]
-    #[Groups(['article_list', 'article_detail'])]
+    #[ORM\Column(length: 255, nullable: true)]
     private ?string $article_variation = null;
 
     #[ORM\ManyToOne(inversedBy: 'articles')]
@@ -84,6 +83,9 @@ class Article
     #[ORM\ManyToOne(inversedBy: 'articles')]
     #[Groups(['article_list', 'article_detail'])]
     private ?Color $color = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $client_code = null;
 
     public function __construct()
     {
@@ -317,6 +319,18 @@ class Article
     public function setColor(?Color $color): static
     {
         $this->color = $color;
+
+        return $this;
+    }
+
+    public function getClientCode(): ?string
+    {
+        return $this->client_code;
+    }
+
+    public function setClientCode(?string $client_code): static
+    {
+        $this->client_code = $client_code;
 
         return $this;
     }
