@@ -68,7 +68,7 @@ final class ClientOrderController extends AbstractController
             $qb = $clientOrderRepository->createQueryBuilder('c');
 
             if ($clientOrderNumber) {
-                $qb->andWhere('REPLACE(c.order_number, "0", "") LIKE :order_number')
+                $qb->andWhere("REPLACE(c.order_number, '0', '') LIKE :order_number")
                     ->setParameter('order_number', '%' . $clientOrderNumber . '%');
             }
 
