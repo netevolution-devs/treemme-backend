@@ -113,8 +113,7 @@ final class BatchController extends AbstractController
                 $batch = $qb->orderBy('b.id', 'DESC')
                     ->getQuery()
                     ->getResult();
-            }
-            else {
+            } else {
                 $batch = $batchRepository->findBy([], ['id' => 'DESC']);
             }
         }
