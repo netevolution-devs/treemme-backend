@@ -10,10 +10,12 @@ use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
 use App\Service\ValidatorOutputFormatter;
+use App\Service\PdfGeneratorService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -24,6 +26,7 @@ class ProductionController extends AbstractController
     private $doResponse;
     private $groupSerializer;
     private $validatorOutputFormatter;
+    private $pdfGenerator;
 
     public function __construct(
         CreateMethodsByInput     $createMethodsByInput,
@@ -31,6 +34,7 @@ class ProductionController extends AbstractController
         DoResponseService        $doResponseService,
         GroupSerializerService   $groupSerializer,
         ValidatorOutputFormatter $validatorOutputFormatter,
+        PdfGeneratorService      $pdfGenerator,
     )
     {
         $this->createMethodsByInput = $createMethodsByInput;
@@ -38,6 +42,7 @@ class ProductionController extends AbstractController
         $this->doResponse = $doResponseService;
         $this->groupSerializer = $groupSerializer;
         $this->validatorOutputFormatter = $validatorOutputFormatter;
+        $this->pdfGenerator = $pdfGenerator;
     }
 
     #[Route('/production/{id}', name: 'app_production_index', methods: ['GET'], defaults: ['id' => null], requirements: ['id' => '\d+'])]
@@ -198,5 +203,59 @@ class ProductionController extends AbstractController
 
         // Mappatura campi semplici
         $this->createMethodsByInput->createMethods($production, $data);
+    }
+
+    #[Route('/production/daily-pdf', name: 'production_daily_pdf', methods: ['GET'])]
+    public function generateDailyPdf(Request $request): Response
+    {
+        $dateParam = $request->query->get('date');
+        if (!$dateParam) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Parametro "date" mancante (formato atteso: YYYY-MM-DD)', 400));
+        }
+
+        try {
+            $day = \DateTimeImmutable::createFromFormat('!Y-m-d', $dateParam);
+            $errors = \DateTimeImmutable::getLastErrors();
+
+            if (
+                !$day ||
+                ($errors !== false && (($errors['warning_count'] ?? 0) > 0 || ($errors['error_count'] ?? 0) > 0))
+            ) {
+                throw new \Exception();
+            }
+        } catch (\Exception $e) {
+            return new JsonResponse($this->doResponse->doErrorResponse('Formato data non valido per "date" (atteso: YYYY-MM-DD)'), 400);
+        }
+
+        $start = $day->setTime(0, 0, 0);
+        $end = $day->modify('+1 day')->setTime(0, 0, 0);
+
+        $repo = $this->doctrine->getRepository(Production::class);
+
+        $productions = $repo->findBy(['scheduled_date' => $day]);
+
+        $groupedProductions = [];
+        foreach ($productions as $production) {
+            $machine = $production->getMachine();
+            $machineId = $machine ? $machine->getId() : 0;
+            if (!isset($groupedProductions[$machineId])) {
+                $groupedProductions[$machineId] = [
+                    'machine' => $machine,
+                    'items' => []
+                ];
+            }
+            $groupedProductions[$machineId]['items'][] = $production;
+        }
+
+        $pdfContent = $this->pdfGenerator->generatePdf('print/production_load_pdf.html.twig', [
+            'day' => $day->format('d/m/Y'),
+            'grouped_productions' => $groupedProductions,
+            'app_root' => $this->getParameter('kernel.project_dir')
+        ], 'carico_bottali_' . $day->format('Ymd') . '.pdf');
+
+        return new Response($pdfContent, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="carico_bottali_' . $day->format('Ymd') . '.pdf"'
+        ]);
     }
 }

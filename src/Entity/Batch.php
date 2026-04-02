@@ -69,11 +69,11 @@ class Batch
     private ?string $batch_note = null;
 
     #[ORM\Column]
-    #[Groups(['batch_list', 'batch_detail'])]
+    #[Groups(['batch_detail'])]
     private ?bool $sampling = null;
 
     #[ORM\Column]
-    #[Groups(['batch_list', 'batch_detail'])]
+    #[Groups(['batch_detail'])]
     private ?bool $split_selected = null;
 
     #[ORM\Column]
