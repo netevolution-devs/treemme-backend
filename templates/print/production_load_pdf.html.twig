@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Carico Bottali</title>
+    <style>
+        @page {
+            margin: 0.3cm;
+        }
+        body {
+            font-family: serif;
+            font-size: 12pt;
+            margin: 0;
+            padding: 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .header-table td {
+            border: 2px solid black;
+            padding: 2px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .main-table {
+            border: 2px solid black;
+            margin-top: 5px;
+        }
+        .main-table td {
+            border: 1px solid black;
+            padding: 0px 2px;
+        }
+        .selection-row td {
+            font-size: 8pt;
+            padding: 0 2px;
+        }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .bold { font-weight: bold; }
+        .border-none { border: none !important; }
+        .border-left { border-left: 1px solid black !important; }
+        .border-right { border-right: 1px solid black !important; }
+        .border-top { border-top: 1px solid black !important; }
+        .border-bottom { border-bottom: 1px solid black !important; }
+        .machine-header {
+            margin-top: 10px;
+            margin-bottom: 0;
+            font-size: 11pt;
+            border-bottom: 2px solid black;
+            padding-bottom: 2px;
+        }
+    </style>
+</head>
+<body>
+
+<table class="header-table">
+    <tr>
+        <td style="width: 25%;">CONCERIA SADA</td>
+        <td style="width: 25%;">SISTEMA QUALITA'</td>
+        <td style="width: 25%;">CARICO BOTTALI</td>
+        <td style="width: 25%;">DOC M9-102 REV 3</td>
+    </tr>
+</table>
+
+<table class="header-table" style="margin-top: -2px;">
+    <tr>
+        <td style="width: 10%;">LOTTO</td>
+        <td style="width: 8%;">PEZZI</td>
+        <td style="width: 20%;">SCELTA</td>
+        <td style="width: 5%;">SP</td>
+        <td style="width: 42%;">Note scelta</td>
+        <td style="width: 15%;">{{ day }}</td>
+    </tr>
+</table>
+
+{% for group in grouped_productions %}
+    {% set machine = group.machine %}
+    <div class="machine-header">
+        {{ machine ? machine.name : 'Senza macchinario' }}
+    </div>
+
+    {% for production in group.items %}
+        {% set batch = production.batch %}
+        {% set article = batch.article %}
+        {% set client = article ? article.client : null %}
+
+        <table class="main-table">
+            <tr>
+                <td colspan="6" class="bold text-right border-none" style="font-size: 10pt; border-bottom: 1px solid black !important; padding: 0 3px;">
+                    {{ client ? client.name|upper : '' }}
+                </td>
+            </tr>
+            <tr class="bold" style="font-size: 8pt; background-color: #f0f0f0;">
+                <td style="width: 10%;" class="border-none border-right">{{ batch.batchCode }}</td>
+                <td style="width: 8%;" class="border-none border-right">{{ article ? article.code : article.clientCode }}</td>
+                <td  colspan=3 style="width: 20%;" class="border-none border-right">{{ article ? article.name : '' }} {{ article ? article.articleVariation : '' }}</td>
+                <td style="width: 5%; padding-right: 2px;" class="text-right border-none">{{ batch.pieces }} PZ</td>
+            </tr>
+
+            {% if batch.batchCompositions|length > 0 %}
+                {% for bc in batch.batchCompositions %}
+                    {% set sel = null %}
+                    {% set thi = null %}
+                    {% set fb = null %}
+
+                    {% if bc.selection %}
+                        {% set bs = bc.selection %}
+                        {% set sel = bs.selection %}
+                        {% set thi = bs.thickness %}
+                        {% set fb = bs.batch %}
+                    {% else %}
+                        {% set fb = bc.fatherBatch %}
+                    {% endif %}
+                    <tr class="selection-row" style="background-color: #fafafa;">
+                        <td class="text-center border-none border-right border-top" style="width: 10%;">{{ fb ? fb.batchCode : '?' }}</td>
+                        <td class="text-center border-none border-right border-top" style="width: 8%;">
+                            {{ bc.fatherBatchPiece }}
+                        </td>
+                        <td class="border-none border-right border-top" style="width: 20%;">{{ sel ? sel.name : 'VARIA FRT' }}</td>
+                        <td class="text-center border-none border-right border-top" style="width: 5%;">{{ thi and thi.name ? thi.name : '' }}</td>
+                        <td class="border-none border-right border-top" style="width: 42%;">{{ sel and sel.name ? fb.selectionNote : fb.selectionNote }}</td>
+                        <td class="text-center border-none border-top" style="width: 15%;">{{ fb.batchNote }}</td>
+                    </tr>
+                {% endfor %}
+            {% endif %}
+        </table>
+    {% endfor %}
+{% endfor %}
+
+</body>
+</html>
