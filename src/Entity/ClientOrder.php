@@ -221,7 +221,7 @@ class ClientOrder
         return $this->client_order_number;
     }
 
-    public function setClientOrderNumber(string $client_order_number): static
+    public function setClientOrderNumber(?string $client_order_number): static
     {
         $this->client_order_number = $client_order_number;
 
