@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Color;
 use App\Entity\ColorType;
+use App\Entity\Contact;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -56,7 +57,7 @@ final class ColorController extends AbstractController
             $clientId = $request->query->get('client');
 
             if ($clientId) {
-                $client = $this->doctrine->getRepository(Color::class)->find($clientId);
+                $client = $this->doctrine->getRepository(Contact::class)->find($clientId);
                 $color = $colorRepository->findBy(['client' => $client], ['id' => 'DESC']);
             } else {
                 $color = $colorRepository->findBy([], ['id' => 'DESC']);
@@ -162,12 +163,12 @@ final class ColorController extends AbstractController
 
     private function handleRelations(Color $color, array &$data): Color
     {
-        if (isset($data['color_type_id'])) {
-            $colorType = $this->doctrine->getRepository(ColorType::class)->find($data['color_type_id']);
-            if ($colorType) {
-                $color->setColorType($colorType);
+        if (isset($data['client_id'])) {
+            $client = $this->doctrine->getRepository(Contact::class)->find($data['client_id']);
+            if ($client) {
+                $color->setClient($client);
             }
-            unset($data['color_type_id']);
+            unset($data['client_id']);
         }
 
         return $color;

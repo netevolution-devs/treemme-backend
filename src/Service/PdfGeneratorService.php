@@ -21,6 +21,7 @@ class PdfGeneratorService
         $options->set('defaultFont', 'Arial');
         $options->set('isHtml5ParserEnabled', true);
         $options->set('isRemoteEnabled', true);
+        $options->set('chroot', realpath(__DIR__ . '/../../'));
 
         $dompdf = new Dompdf($options);
         $html = $this->twig->render($template, $data);

@@ -83,6 +83,8 @@ final class ClientOrderRowController extends AbstractController
             $clientOrderRow = $this->handleRelations($clientOrderRow, $data);
             $clientOrderRow = $this->createMethodsByInput->createMethods($clientOrderRow, $data);
 
+            $this->calculatePrices($clientOrderRow);
+
             $errors = $validator->validate($clientOrderRow);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
@@ -120,6 +122,8 @@ final class ClientOrderRowController extends AbstractController
         try {
             $clientOrderRow = $this->handleRelations($clientOrderRow, $data);
             $clientOrderRow = $this->createMethodsByInput->createMethods($clientOrderRow, $data);
+
+            $this->calculatePrices($clientOrderRow);
 
             $errors = $validator->validate($clientOrderRow);
             if (count($errors) > 0) {
@@ -196,5 +200,20 @@ final class ClientOrderRowController extends AbstractController
         }
 
         return $clientOrderRow;
+    }
+
+    private function calculatePrices(ClientOrderRow $clientOrderRow): void
+    {
+        $quantity = $clientOrderRow->getQuantity() ?: 0;
+        $price = $clientOrderRow->getPrice() ?: 0.0;
+        $currencyExchange = $clientOrderRow->getCurrencyExchange() ?: 0.0;
+
+        $totalPrice = $quantity * $price;
+        $currencyPrice = $price * $currencyExchange;
+        $totalCurrencyPrice = $quantity * $currencyPrice;
+
+        $clientOrderRow->setTotalPrice($totalPrice);
+        $clientOrderRow->setCurrencyPrice($currencyPrice);
+        $clientOrderRow->setTotalCurrencyPrice($totalCurrencyPrice);
     }
 }

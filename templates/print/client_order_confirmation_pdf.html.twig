@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Conferma Ordine {{ order.orderNumber }}</title>
+    <style>
+        @page {
+            margin: 150px 50px 80px 50px;
+        }
+
+        header {
+            position: absolute;
+            top: -120px;
+            left: 0;
+            right: 0;
+            height: 100px;
+        }
+
+        footer {
+            position: absolute;
+            bottom: -60px;
+            left: 0;
+            right: 0;
+            height: 50px;
+            border-top: 1px solid #005691;
+            padding-top: 5px;
+            text-align: center;
+            font-size: 9px;
+            color: #005691;
+        }
+
+        .header-logo-left {
+            float: left;
+            width: 300px;
+        }
+
+        .header-logo-right {
+            float: right;
+            width: 100px;
+        }
+
+        body {
+            font-family: serif;
+            font-size: 12px;
+            color: #000;
+            margin: 0;
+            padding: 0;
+        }
+
+        .content {
+            margin-top: 20px;
+        }
+
+        .header {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .header-top {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .customer-info {
+            margin-left: 50px;
+            margin-bottom: 10px;
+            line-height: 1.2;
+        }
+
+        .subject {
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .disclaimer {
+            font-size: 9px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        table.items {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid black;
+        }
+
+        table.items th, table.items td {
+            border-left: 1px solid black;
+            border-right: 1px solid black;
+            padding: 4px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        table.items th {
+            text-transform: uppercase;
+            font-size: 13px;
+            border-bottom: 1px solid black;
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        .right {
+            text-align: right;
+        }
+
+        .footer-info {
+            margin-top: 5px;
+        }
+
+        .footer-bottom {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .conditions-box {
+            border: 1px solid black;
+            padding: 5px;
+            font-size: 9px;
+            width: 100%;
+        }
+
+        .signature-box {
+            width: 100%;
+            vertical-align: top;
+        }
+
+        .signature-line {
+            border-bottom: 1px solid black;
+            height: 2px;
+        }
+
+        .bold {
+            font-weight: bold;
+        }
+
+        .uppercase {
+            text-transform: uppercase;
+        }
+
+        .page-break {
+            page-break-before: always;
+        }
+
+        .privacy-page {
+            text-align: center;
+        }
+
+        .privacy-footer {
+            position: absolute;
+            bottom: -50px;
+            left: 0;
+            right: 0;
+        }
+
+        .privacy-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .privacy-text {
+            font-size: 11px;
+            line-height: 1.4;
+            margin-bottom: 13px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <img src="{{ app_root }}/public/images/logo_treemme_intestazione.jpg" class="header-logo-left" alt="logo_treemme">
+    <img src="{{ app_root }}/public/images/logo_lvg_intestazione.png" class="header-logo-right" alt="logo_lvg">
+</header>
+
+<footer>
+    CONCERIA TRE EMME S.r.l. a Socio Unico Via Marconi, 3/1 - 36050 Zermeghedo (VI) - Italy - Telefono +39 0444
+    484233<br>
+    mmarcolungo@treemmeconceria.com - R.E.A. VI 341788 - Registro Imprese VI/Codice Fiscale e Partita IVA IT 00532550241
+    - C.S. € 500.000,00 i.v.
+</footer>
+
+<div class="content">
+    <div class="header">
+        <div class="header-top">
+            ZERMEGHEDO {{ order.orderDate ? order.orderDate|date('d/m/Y') : '' }}
+        </div>
+
+        <span class="bold">SPETT. LE &nbsp;&nbsp; {{ order.client ? order.client.name : '' }}</span><br><br>
+        <div class="customer-info">
+            {% if order.address %}
+                {{ order.address.address }}<br>
+                {{ order.address.town ? order.address.town.cap : '' }} {{ order.address.town ? order.address.town.name : '' }} {{ order.address.town and order.address.town.province ? '- ' ~ order.address.town.province.acronym : '' }}
+                <br>
+                {{ order.address.nation ? order.address.nation.name : '' }}
+            {% endif %}
+        </div>
+
+        <div class="subject">
+            OGGETTO: CONFERMA VOSTRO ORDINE &nbsp; {{ order.clientOrderNumber }}
+            DEL {{ order.clientOrderDate ? order.clientOrderDate|date('d/m/Y') : '' }} &nbsp; NOSTRO
+            RIF {{ order.orderNumber }}
+        </div>
+
+        <div class="disclaimer">
+            ATTENDIAMO VOSTRO GENTILE E SOLLECITO RISCONTRO ENTRO 7 GG DALLA DATA DEL PRESENTE DOCUMENTO, TRASCORSI I
+            QUALI SI CONSIDERERA' TACITAMENTE ACCETTATO.
+        </div>
+    </div>
+
+    <table class="items">
+        <thead>
+        <tr>
+            <th style="width: 5%;">N</th>
+            <th style="width: 15%;">CODICE</th>
+            <th style="width: 40%;">ARTICOLO</th>
+            <th style="width: 15%;" class="center">QUANTITA'</th>
+            <th style="width: 12%;" class="right">PREZZO</th>
+            <th style="width: 13%;" class="center">DATA PRV</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for row in order.clientOrderRows %}
+            <tr>
+                <td class="center">{{ loop.index }}</td>
+                <td>
+                    {% if row.article %}
+                        {{ row.article.clientCode ?: row.article.code }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if row.article %}
+                        {{ row.article.name }}
+                    {% endif %}
+                </td>
+                <td class="center">
+                    {{ row.measurementUnit ? row.measurementUnit.prefix : '' }} &nbsp; {{ row.quantity }}
+                </td>
+                <td class="right">
+                    € &nbsp; {{ row.price|number_format(2, ',', '.') }}
+                </td>
+                <td class="center">
+                    {{ row.deliveryDateConfirmed ? row.deliveryDateConfirmed|date('d/m/Y') : '' }}
+                </td>
+            </tr>
+        {% endfor %}
+
+        {% if order.clientOrderRows|length < 15 %}
+            {% for i in range(order.clientOrderRows|length + 1, 15) %}
+                <tr>
+                    <td style="height: 20px;">&nbsp;</td>
+                    <td>&nbsp;</td>
+                    <td>&nbsp;</td>
+                    <td>&nbsp;</td>
+                    <td>&nbsp;</td>
+                    <td>&nbsp;</td>
+                </tr>
+            {% endfor %}
+        {% endif %}
+        </tbody>
+    </table>
+
+    <div class="footer-info">
+        <p class="bold italic" style="margin-bottom: 0; font-style: oblique;">CONDIZIONI D 'ORDINE</p>
+        <div class="signature-line" style="width: 50%; margin-top: 0; "></div>
+        <p><span class="bold">PAGAMENTO:</span> {{ order.payment ? order.payment.name : '' }}</p>
+        <p><span class="bold">RESA MERCE:</span> {{ order.shipmentCondition ? order.shipmentCondition.name : '' }}</p>
+        {% if order.agent %}
+            <p><span class="bold">VETTORE:</span> {{ order.agent.name }}</p>
+        {% endif %}
+    </div>
+
+    <table class="footer-bottom">
+        <tr>
+            <td style="width: 60%; vertical-align: top;">
+                <div class="conditions-box">
+                    <p class="bold" style="margin-top: 0;">CONDIZIONI GENERALI DI FORNITURA:</p>
+                    <p>LA MERCE VIAGGIA A RISCHIO E PERICOLO DEL COMMITTENTE ANCHE SE VENDUTA FRANCO DESTINO. NON SI
+                        ACCETTANO RECLAMI TRASCORSI 8 GG DALL'ARRIVO DELLA MERCE E NON SI ACCETTANO RESI SENZA
+                        AUTORIZZAZIONE.<br>
+                        PER NECESSITA' DI CARATTERE PRODUTTIVO E DI APPROVIGIONAMENTO, LA DATA DI CONSEGNA DEL PELLAME
+                        HA UNA TOLLERANZA AMMISSIBILE DI 15 GG DI RITARDO. LA QUANTITA' CONSEGNATA PUO' AVERE VARIAZIONI
+                        ENTRO IL 40% IN PIU' O IN MENO RISPETTO ALLA QUANTITA' ORDINATA, SALVO CONTRATTAZIONE SPECIFICA
+                        TRA IL COMMITTENTE E LA SADA.</p>
+                </div>
+            </td>
+            <td style="width: 2%;"></td>
+            <td style="width: 38%; vertical-align: top;">
+                <div class="signature-box">
+                    <p class="bold" style="margin-top: 0;">PER ACCETTAZIONE</p>
+                    <div class="signature-line"></div>
+                    <p class="bold">DATA</p>
+                    <div class="signature-line"></div>
+                    <p class="bold">TIMBRO E FIRMA</p>
+                    <div class="signature-line"></div>
+                </div>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<div class="page-break"></div>
+
+<div class="privacy-page">
+    <div class="privacy-footer">
+        <div class="privacy-title">INFORMATIVA</div>
+
+        <div class="privacy-text">
+            Art. 13 Reg. Ue 2016/679 CONCERIA TRE EMME s.r.l. a socio unico, Via Marconi 3/1 36050 Zermeghedo (VI),
+            P.IVA e Cod. Fisc. 00532550241<br>
+            è in possesso dei suoi dati per adempiere alle normali operazioni derivanti da obbligo di legge o
+            contrattuale. In qualunque<br>
+            momento potranno essere esercitati dagli interessati i diritti di cui artt. 15, 16, 17, 18, 19, 20, 21, 22
+            del Reg. UE e richiedere<br>
+            l'informativa completa scrivendo a mmarcolungo@treemmeconceria.com
+        </div>
+
+        <div class="privacy-text">
+            Art. 13 Reg. Ue 2016/679 CONCERIA TRE EMME s.r.l. a socio unico, Via Marconi 3/1 36050 Zermeghedo (VI),
+            P.IVA e Cod. Fisc. 00532550241<br>
+            uses your personal data to manage relationship with you, provide with after-sale services and comply with
+            applicable laws.<br>
+            You may at any time access your personal data (artt. 15, 16, 17, 18, 19, 20, 21, 22 del Reg. UE) and receive<br>
+            the complete statement writing to mmarcolungo@treemmeconceria.com
+        </div>
+    </div>
+</div>
+</body>
+</html>

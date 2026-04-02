@@ -42,6 +42,9 @@ class BatchComposition
     #[Groups(['batch_composition_list', 'batch_composition_detail', 'batch_detail'])]
     private ?\DateTime $date = null;
 
+    #[ORM\ManyToOne(inversedBy: 'batchCompositions')]
+    private ?BatchSelection $selection = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -115,6 +118,18 @@ class BatchComposition
     public function setDate(?\DateTime $date): static
     {
         $this->date = $date;
+
+        return $this;
+    }
+
+    public function getSelection(): ?BatchSelection
+    {
+        return $this->selection;
+    }
+
+    public function setSelection(?BatchSelection $selection): static
+    {
+        $this->selection = $selection;
 
         return $this;
     }

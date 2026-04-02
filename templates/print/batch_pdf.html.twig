@@ -5,7 +5,7 @@
     <title>Batch PDF</title>
     <style>
         body {
-            font-family: 'Segoe UI', sans-serif;
+            font-family: 'Verdana', sans-serif;
             font-size: 24px;
             line-height: 1.4;
             color: #000;
@@ -36,16 +36,6 @@
         .center {
             text-align: center;
         }
-
-        .qr-code-container {
-            position: relative;
-            margin-top: 10px;
-        }
-
-        .qr-code {
-            width: 120px;
-            height: 120px;
-        }
     </style>
 </head>
 <body>
@@ -61,10 +51,10 @@
 
     {# batch_code e pieces #}
     <tr>
-        <td colspan="2" class="bold center" style="text-align: center; font-size: 70px;">
+        <td colspan="3" class="bold center" style="text-align: center; font-size: 100px;">
             {{ batch.batchCode }}
         </td>
-        <td colspan="2" class="bold center" style="text-align: center; font-size: 70px;">
+        <td colspan="1" class="bold center" style="text-align: center; font-size: 90px;">
             {{ batch.pieces }}
         </td>
     </tr>
@@ -98,12 +88,6 @@
     <tr>
         <td colspan="4">
             <span style="font-weight: bold;">Scortico:</span> {{ (batch.leather and batch.leather.flay) ? batch.leather.flay.name : 'N/A' }}
-        </td>
-    </tr>
-    <tr>
-
-        <td colspan="4" class="qr-code-container" style="text-align: right; font-size: 18px;">
-            <img src="{{ qrCode }}" class="qr-code">
         </td>
     </tr>
 </table>
@@ -120,10 +104,10 @@
 
     {# batch_code e pieces #}
     <tr>
-        <td colspan="2" class="bold center" style="text-align: center; font-size: 70px;">
+        <td colspan="2" class="bold center" style="text-align: center; font-size: 100px;">
             {{ batch.batchCode }}
         </td>
-        <td colspan="2" class="bold center" style="text-align: center; font-size: 70px;">
+        <td colspan="2" class="bold center" style="text-align: center; font-size: 90px;">
             {{ batch.pieces }}
         </td>
     </tr>
@@ -157,11 +141,6 @@
     <tr>
         <td colspan="4">
             <span style="font-weight: bold;">Scortico:</span> {{ (batch.leather and batch.leather.flay) ? batch.leather.flay.name : 'N/A' }}
-        </td>
-    </tr>
-    <tr>
-        <td colspan="4" class="qr-code-container" style="text-align: right;">
-            <img src="{{ qrCode }}" class="qr-code">
         </td>
     </tr>
 </table>

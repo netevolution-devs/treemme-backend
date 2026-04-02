@@ -12,10 +12,12 @@ use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
 use App\Service\ValidatorOutputFormatter;
+use App\Service\PdfGeneratorService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -26,6 +28,7 @@ final class ClientOrderController extends AbstractController
     private $doResponse;
     private $groupSerializer;
     private $validatorOutputFormatter;
+    private $pdfGenerator;
 
     public function __construct(
         CreateMethodsByInput     $createMethodsByInput,
@@ -33,6 +36,7 @@ final class ClientOrderController extends AbstractController
         DoResponseService        $doResponseService,
         GroupSerializerService   $groupSerializer,
         ValidatorOutputFormatter $validatorOutputFormatter,
+        PdfGeneratorService      $pdfGenerator,
     )
     {
         $this->createMethodsByInput = $createMethodsByInput;
@@ -40,6 +44,7 @@ final class ClientOrderController extends AbstractController
         $this->doResponse = $doResponseService;
         $this->groupSerializer = $groupSerializer;
         $this->validatorOutputFormatter = $validatorOutputFormatter;
+        $this->pdfGenerator = $pdfGenerator;
     }
 
     #[Route('/client-order/{id}',
@@ -47,7 +52,7 @@ final class ClientOrderController extends AbstractController
         defaults: ['id' => null],
         requirements: ['id' => '\d*'],
         methods: ['GET', 'HEAD'])]
-    public function getClientOrder(?int $id): JsonResponse
+    public function getClientOrder(?int $id, Request $request): JsonResponse
     {
         $clientOrderRepository = $this->doctrine->getRepository(ClientOrder::class);
 
@@ -57,7 +62,35 @@ final class ClientOrderController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('ClientOrder not found', 404));
             }
         } else {
-            $clientOrder = $clientOrderRepository->findBy([], ['id' => 'DESC']);
+            $clientOrderNumber = $request->query->get('order_number');
+            $clientId = $request->query->get('client');
+
+            $qb = $clientOrderRepository->createQueryBuilder('c');
+
+            if ($clientOrderNumber) {
+                $qb->andWhere("REPLACE(c.order_number, '0', '') LIKE :order_number")
+                    ->setParameter('order_number', '%' . $clientOrderNumber . '%');
+            }
+
+            if ($clientId) {
+                $qb->andWhere('c.client = :client')
+                    ->setParameter('client', $clientId);
+            }
+
+            $clientOrder = $qb->orderBy('c.id', 'DESC')
+                ->getQuery()
+                ->getResult();
+
+            if (empty($clientOrder) && ($clientOrderNumber || $clientId)) {
+                $message = 'Nessun ordine trovato';
+                if ($clientOrderNumber) {
+                    $message .= ' contenente il numero ' . $clientOrderNumber . ' (ignorando zeri)';
+                }
+                if ($clientId) {
+                    $message .= ($clientOrderNumber ? ' e' : '') . ' per il cliente specificato';
+                }
+                return new JsonResponse($this->doResponse->doErrorResponse($message, 404));
+            }
         }
         $results = $this->groupSerializer->serializeGroup($clientOrder, $id ? 'client_order_detail' : 'client_order_list');
 
@@ -65,6 +98,29 @@ final class ClientOrderController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($results[0]));
         }
         return new JsonResponse($this->doResponse->doResponse($results));
+    }
+
+    #[Route('/client-order/{id}/pdf',
+        name: 'get_client_order_pdf',
+        requirements: ['id' => '\d+'],
+        methods: ['GET'])]
+    public function generateClientOrderPdf(int $id): Response
+    {
+        $order = $this->doctrine->getRepository(ClientOrder::class)->find($id);
+
+        if (!$order) {
+            return new JsonResponse($this->doResponse->doErrorResponse('ClientOrder not found', 404));
+        }
+
+        $pdfContent = $this->pdfGenerator->generatePdf('print/client_order_confirmation_pdf.html.twig', [
+            'order' => $order,
+            'app_root' => $this->getParameter('kernel.project_dir')
+        ], 'conferma_ordine_' . $order->getOrderNumber() . '.pdf');
+
+        return new Response($pdfContent, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="conferma_ordine_' . $order->getOrderNumber() . '.pdf"'
+        ]);
     }
 
     #[Route('/client-order',
