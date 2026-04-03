@@ -205,8 +205,8 @@ class ProductionController extends AbstractController
         $this->createMethodsByInput->createMethods($production, $data);
     }
 
-    #[Route('/production/daily-pdf', name: 'production_daily_pdf', methods: ['GET'])]
-    public function generateDailyPdf(Request $request): Response
+    #[Route('/production/daily-print', name: 'production_daily_print', methods: ['GET'])]
+    public function generateDailyPrint(Request $request): Response
     {
         $dateParam = $request->query->get('date');
         if (!$dateParam) {
