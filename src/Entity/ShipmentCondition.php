@@ -22,6 +22,7 @@ class ShipmentCondition
     private ?string $name = null;
 
     #[ORM\Column]
+    #[Groups(['shipmentCondition_detail'])]
     private ?bool $borne_by_customer = null;
 
     /**
