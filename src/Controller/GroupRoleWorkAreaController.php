@@ -40,6 +40,19 @@ final class GroupRoleWorkAreaController extends AbstractController
         $this->validatorOutputFormatter = $validatorOutputFormatter;
     }
 
+    #[Route('/group-role-work-area/work-areas',
+        name: 'get_work_area_associations',
+        methods: ['GET', 'HEAD'])]
+    public function getWorkAreaAssociations(): JsonResponse
+    {
+        $repository = $this->doctrine->getRepository(WorkArea::class);
+        $items = $repository->findAll();
+
+        $results = $this->groupSerializer->serializeGroup($items, 'work_area_list');
+
+        return new JsonResponse($this->doResponse->doResponse($results));
+    }
+
     #[Route('/group-role-work-area/{id}',
         name: 'get_group_role_work_area',
         defaults: ['id' => null],
