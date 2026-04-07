@@ -46,7 +46,7 @@ final class GroupRoleWorkAreaController extends AbstractController
     public function getWorkAreaAssociations(): JsonResponse
     {
         $repository = $this->doctrine->getRepository(WorkArea::class);
-        $items = $repository->findAll();
+        $items = $repository->findBy([], ['name' => 'ASC']);
 
         $results = $this->groupSerializer->serializeGroup($items, 'work_area_list');
 
@@ -68,7 +68,7 @@ final class GroupRoleWorkAreaController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('GroupRoleWorkArea not found', 404));
             }
         } else {
-            $item = $repository->findBy([], ['id' => 'DESC']);
+            $item = $repository->findBy([], ['id' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($item, $id ? 'group_role_work_area_detail' : 'group_role_work_area_list');
 

@@ -47,7 +47,7 @@ final class ShipmentConditionController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('ShipmentCondition not found', 404));
             }
         } else {
-            $items = $repo->findBy([], ['id' => 'DESC']);
+            $items = $repo->findBy([], ['name' => 'ASC']);
         }
 
         $results = $this->groupSerializer->serializeGroup($items, $id ? 'shipmentCondition_detail' : 'shipmentCondition_list');

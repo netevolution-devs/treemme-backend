@@ -55,7 +55,7 @@ class ContactRepository extends ServiceEntityRepository
                 ->setParameter('detailName', '%' . $detailName . '%');
         }
 
-        return $qb->orderBy('c.id', 'DESC')
+        return $qb->orderBy('c.name', 'ASC')
             ->getQuery()
             ->getResult();
     }

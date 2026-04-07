@@ -35,7 +35,7 @@ class RecipeTypeController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('RecipeType not found', 404));
             }
         } else {
-            $recipeType = $repository->findBy([], ['id' => 'DESC']);
+            $recipeType = $repository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($recipeType, $id ? 'recipe_type_detail' : 'recipe_type_list');
 

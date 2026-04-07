@@ -64,7 +64,7 @@ final class DdtRowController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($results[0]));
         }
 
-        $ddtRows = $ddtRowRepository->findBy([], ['id' => 'DESC']);
+        $ddtRows = $ddtRowRepository->findBy([], ['id' => 'ASC']);
         $results = $this->groupSerializer->serializeGroup($ddtRows, 'ddt_row_list');
         return new JsonResponse($this->doResponse->doResponse($results));
     }

@@ -52,7 +52,7 @@ final class LeatherFlayController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('LeatherFlay not found', 404));
             }
         } else {
-            $leatherFlay = $leatherFlayRepository->findBy([], ['id' => 'DESC']);
+            $leatherFlay = $leatherFlayRepository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($leatherFlay, $id ? 'leather_flay_detail' : 'leather_flay_list');
 

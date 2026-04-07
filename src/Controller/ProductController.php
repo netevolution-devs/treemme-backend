@@ -57,7 +57,7 @@ final class ProductController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('Product not found', 404));
             }
         } else {
-            $product = $repository->findBy([], ['id' => 'DESC']);
+            $product = $repository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($product, $id ? 'product_detail' : 'product_list');
 

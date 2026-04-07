@@ -52,7 +52,7 @@ final class BatchCostTypeController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('BatchCostType not found', 404));
             }
         } else {
-            $batchCostType = $batchCostTypeRepository->findBy([], ['id' => 'DESC']);
+            $batchCostType = $batchCostTypeRepository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($batchCostType, $id ? 'batch_cost_type_detail' : 'batch_cost_type_list');
 

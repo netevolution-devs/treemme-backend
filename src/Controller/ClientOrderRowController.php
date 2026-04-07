@@ -58,7 +58,7 @@ final class ClientOrderRowController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('ClientOrderRow not found', 404));
             }
         } else {
-            $clientOrderRow = $clientOrderRowRepository->findBy([], ['id' => 'DESC']);
+            $clientOrderRow = $clientOrderRowRepository->findBy([], ['id' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($clientOrderRow, $id ? 'client_order_row_detail' : 'client_order_row_list');
 

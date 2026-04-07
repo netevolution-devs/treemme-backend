@@ -51,7 +51,7 @@ class UserController extends AbstractController
     #[Route('/api/user', name: 'get_users', methods: ['GET'])]
     public function getUsers(): JsonResponse
     {
-        $users = $this->doctrine->getRepository(User::class)->findAll();
+        $users = $this->doctrine->getRepository(User::class)->findBy([], ['email' => 'ASC']);
         $userData = $this->groupSerializer->serializeGroup($users, 'user_detail');
 
         return new JsonResponse($this->doResponse->doResponse($userData));

@@ -52,7 +52,7 @@ final class LeatherProvenanceAreaController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('LeatherProvenanceArea not found', 404));
             }
         } else {
-            $leatherProvenanceArea = $leatherProvenanceAreaRepository->findBy([], ['id' => 'DESC']);
+            $leatherProvenanceArea = $leatherProvenanceAreaRepository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($leatherProvenanceArea, $id ? 'leather_provenance_area_detail' : 'leather_provenance_area_list');
 

@@ -70,7 +70,7 @@ final class DdtController extends AbstractController
         if ($subcontractorId || $clientId || $startDate || $endDate) {
             $ddts = $ddtRepository->findByFilters($subcontractorId, $clientId, $startDate, $endDate);
         } else {
-            $ddts = $ddtRepository->findBy([], ['id' => 'DESC']);
+            $ddts = $ddtRepository->findBy([], ['ddt_number' => 'ASC']);
         }
 
         $results = $this->groupSerializer->serializeGroup($ddts, 'ddt_list');

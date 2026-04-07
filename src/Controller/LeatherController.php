@@ -75,7 +75,7 @@ final class LeatherController extends AbstractController
             if (!empty($filters)) {
                 $leather = $leatherRepository->findWithFilters($filters);
             } else {
-                $leather = $leatherRepository->findBy([], ['id' => 'DESC']);
+                $leather = $leatherRepository->findBy([], ['name' => 'ASC']);
             }
         }
         $results = $this->groupSerializer->serializeGroup($leather, $id ? 'leather_detail' : 'leather_list');
