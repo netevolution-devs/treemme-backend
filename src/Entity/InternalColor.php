@@ -26,6 +26,7 @@ class InternalColor
      * @var Collection<int, Color>
      */
     #[ORM\OneToMany(mappedBy: 'internal_color', targetEntity: Color::class)]
+    #[Groups(['internal_color_detail'])]
     private Collection $colors;
 
     public function __construct()

@@ -16,11 +16,11 @@ class Color
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['color_list', 'color_detail', 'color_type_detail', 'article_list', 'article_detail'])]
+    #[Groups(['color_list', 'color_detail', 'color_type_detail', 'article_list', 'article_detail', 'internal_color_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['color_list', 'color_detail', 'color_type_detail', 'article_list', 'article_detail'])]
+    #[Groups(['color_list', 'color_detail', 'color_type_detail', 'article_list', 'article_detail', 'internal_color_detail'])]
     private ?string $color = null;
 
     #[ORM\Column(length: 255, nullable: true)]
