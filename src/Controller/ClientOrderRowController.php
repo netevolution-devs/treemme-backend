@@ -206,10 +206,10 @@ final class ClientOrderRowController extends AbstractController
     {
         $quantity = $clientOrderRow->getQuantity() ?: 0;
         $price = $clientOrderRow->getPrice() ?: 0.0;
-        $currencyExchange = $clientOrderRow->getCurrencyExchange() ?: 0.0;
+        $currencyExchange = $clientOrderRow->getCurrencyExchange() ?: 1.0;
 
         $totalPrice = $quantity * $price;
-        $currencyPrice = $price * $currencyExchange;
+        $currencyPrice = $price / $currencyExchange;
         $totalCurrencyPrice = $quantity * $currencyPrice;
 
         $clientOrderRow->setTotalPrice($totalPrice);
