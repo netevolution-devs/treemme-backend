@@ -61,7 +61,7 @@ class Color
     private Collection $articles;
 
     #[ORM\ManyToOne(inversedBy: 'colors')]
-    #[Groups(['color_detail'])]
+    #[Groups(['color_list', 'color_detail'])]
     private ?contact $client = null;
 
     #[ORM\ManyToOne(inversedBy: 'colors')]
