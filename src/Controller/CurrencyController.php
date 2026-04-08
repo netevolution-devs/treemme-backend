@@ -52,7 +52,7 @@ final class CurrencyController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('Currency not found', 404));
             }
         } else {
-            $currency = $currencyRepository->findBy([], ['id' => 'DESC']);
+            $currency = $currencyRepository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($currency, $id ? 'currency_detail' : 'currency_list');
 

@@ -53,7 +53,7 @@ final class SeaPortController extends AbstractController
             }
             $seaPorts = [$seaPort];
         } else {
-            $seaPorts = $repository->findBy([], ['id' => 'DESC']);
+            $seaPorts = $repository->findBy([], ['name' => 'ASC']);
         }
 
         $results = $this->groupSerializer->serializeGroup($seaPorts, $id ? 'sea_port_detail' : 'sea_port_list');

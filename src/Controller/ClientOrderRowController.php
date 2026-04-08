@@ -58,7 +58,7 @@ final class ClientOrderRowController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('ClientOrderRow not found', 404));
             }
         } else {
-            $clientOrderRow = $clientOrderRowRepository->findBy([], ['id' => 'DESC']);
+            $clientOrderRow = $clientOrderRowRepository->findBy([], ['id' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($clientOrderRow, $id ? 'client_order_row_detail' : 'client_order_row_list');
 
@@ -206,10 +206,10 @@ final class ClientOrderRowController extends AbstractController
     {
         $quantity = $clientOrderRow->getQuantity() ?: 0;
         $price = $clientOrderRow->getPrice() ?: 0.0;
-        $currencyExchange = $clientOrderRow->getCurrencyExchange() ?: 0.0;
+        $currencyExchange = $clientOrderRow->getCurrencyExchange() ?: 1.0;
 
         $totalPrice = $quantity * $price;
-        $currencyPrice = $price * $currencyExchange;
+        $currencyPrice = $price / $currencyExchange;
         $totalCurrencyPrice = $quantity * $currencyPrice;
 
         $clientOrderRow->setTotalPrice($totalPrice);

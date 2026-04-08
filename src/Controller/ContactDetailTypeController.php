@@ -46,7 +46,7 @@ final class ContactDetailTypeController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('ContactDetailType not found', 404));
             }
         } else {
-            $items = $repo->findBy([], ['id' => 'DESC']);
+            $items = $repo->findBy([], ['name' => 'ASC']);
         }
 
         $results = $this->groupSerializer->serializeGroup($items, $id ? 'contact_detail_type_detail' : 'contact_detail_type_list');

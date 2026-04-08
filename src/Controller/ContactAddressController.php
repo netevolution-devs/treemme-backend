@@ -55,7 +55,7 @@ final class ContactAddressController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('ContactAddress not found', 404));
             }
         } else {
-            $address = $contactAddressRepository->findBy([], ['id' => 'DESC']);
+            $address = $contactAddressRepository->findBy([], ['address_name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($address, $id ? 'contact_address_detail' : 'contact_address_list');
 

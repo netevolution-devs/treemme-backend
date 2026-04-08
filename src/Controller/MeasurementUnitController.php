@@ -52,7 +52,7 @@ final class MeasurementUnitController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('MeasurementUnit not found', 404));
             }
         } else {
-            $unit = $repository->findBy([], ['id' => 'DESC']);
+            $unit = $repository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($unit, $id ? 'measurement_unit_detail' : 'measurement_unit_list');
 

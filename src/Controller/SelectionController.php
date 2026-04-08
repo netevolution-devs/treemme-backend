@@ -53,7 +53,7 @@ final class SelectionController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('Selection not found', 404));
             }
         } else {
-            $items = $repo->findBy([], ['id' => 'DESC']);
+            $items = $repo->findBy([], ['name' => 'ASC']);
         }
 
         $results = $this->groupSerializer->serializeGroup($items, $id ? 'selection_detail' : 'selection_list');
@@ -90,7 +90,7 @@ final class SelectionController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
         }
 
-        $selections = $selectionRepository->findAll();
+        $selections = $selectionRepository->findBy([], ['name' => 'ASC']);
 
         $availableSelections = [];
         foreach ($selections as $selection) {

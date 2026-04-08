@@ -52,7 +52,7 @@ final class NationController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('Nation not found', 404));
             }
         } else {
-            $nation = $nationRepository->findBy([], ['id' => 'DESC']);
+            $nation = $nationRepository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($nation, $id ? 'nation_detail' : 'nation_list');
 

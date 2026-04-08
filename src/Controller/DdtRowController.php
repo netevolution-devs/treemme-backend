@@ -64,7 +64,7 @@ final class DdtRowController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($results[0]));
         }
 
-        $ddtRows = $ddtRowRepository->findBy([], ['id' => 'DESC']);
+        $ddtRows = $ddtRowRepository->findBy([], ['id' => 'ASC']);
         $results = $this->groupSerializer->serializeGroup($ddtRows, 'ddt_row_list');
         return new JsonResponse($this->doResponse->doResponse($results));
     }
@@ -101,7 +101,6 @@ final class DdtRowController extends AbstractController
                 continue;
             }
 
-            // Ordina i movimenti per ID per trovare il movimento di partenza e i successivi
             $movementsArray = $movements->toArray();
             usort($movementsArray, fn($a, $b) => $a->getId() <=> $b->getId());
 
@@ -141,8 +140,6 @@ final class DdtRowController extends AbstractController
                 $outPieces = abs($firstMovementOut->getPiece() ?? 0);
                 $remainingPieces = $outPieces - $returnedPieces;
 
-                // Se l'ultimo movimento è esattamente ddtReasonName, lo includiamo a prescindere dal conteggio
-                // Se invece l'ultimo movimento è il "Reso", allora scatta il calcolo dei pezzi ancora da rientrare
                 if ($lastMovementReasonName === $ddtReasonName || $remainingPieces > 0) {
                     $results = $this->groupSerializer->serializeGroup($ddtRow, 'ddt_row_list');
                     $results['stock_pieces'] = $remainingPieces;
@@ -177,7 +174,7 @@ final class DdtRowController extends AbstractController
 
         if ($ddtRow->getPrice()) {
             $ddtRow->setTotalValue($ddtRow->getPrice() * $ddtRow->getPieces());
-            $ddtRow->setCurrencyPrice($ddtRow->getPrice() * $ddtRow->getCurrencyChange());
+            $ddtRow->setCurrencyPrice($ddtRow->getPrice() / $ddtRow->getCurrencyChange());
             $ddtRow->setCurrencyTotalValue($ddtRow->getCurrencyPrice() * $ddtRow->getPieces());
         }
 

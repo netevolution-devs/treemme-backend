@@ -38,7 +38,7 @@ class ProcessingController extends AbstractController
             $results = $this->groupSerializer->serializeGroup($processing, 'processing_detail');
             return new JsonResponse($this->doResponse->doResponse($results));
         } else {
-            $processings = $repository->findBy([], ['id' => 'DESC']);
+            $processings = $repository->findBy([], ['name' => 'ASC']);
             $results = $this->groupSerializer->serializeGroup($processings, 'processing_list');
             return new JsonResponse($this->doResponse->doResponse($results));
         }

@@ -55,7 +55,7 @@ class RoleController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse($this->translator->trans('entity.error.not_found', ['%entity%' => 'Role'], 'messages')), 404);
             }
         } else {
-            $roles = $roleRepository->findBy([], ['id' => 'DESC']);
+            $roles = $roleRepository->findBy([], ['name' => 'ASC']);
 
             if (strtolower((string) $type) === 'backoffice') {
                 $roles = array_values(array_filter($roles, static function (Role $role): bool {

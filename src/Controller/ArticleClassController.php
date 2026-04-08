@@ -32,7 +32,7 @@ class ArticleClassController extends AbstractController
     public function show(?int $id): JsonResponse
     {
         if ($id === null) {
-            $classes = $this->articleClassRepository->findAll();
+            $classes = $this->articleClassRepository->findBy([], ['name' => 'ASC']);
             $results = $this->groupSerializer->serializeGroup($classes, 'article_class_list');
             return new JsonResponse($this->doResponse->doResponse($results));
         }

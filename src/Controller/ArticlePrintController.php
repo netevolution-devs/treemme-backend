@@ -32,7 +32,7 @@ class ArticlePrintController extends AbstractController
     public function show(?int $id): JsonResponse
     {
         if ($id === null) {
-            $prints = $this->articlePrintRepository->findAll();
+            $prints = $this->articlePrintRepository->findBy([], ['name' => 'ASC']);
             $results = $this->groupSerializer->serializeGroup($prints, 'article_print_list');
             return new JsonResponse($this->doResponse->doResponse($results));
         }

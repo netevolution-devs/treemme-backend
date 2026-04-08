@@ -48,7 +48,7 @@ class LeatherRepository extends ServiceEntityRepository
             }
         }
 
-        return $qb->orderBy('l.id', 'DESC')
+        return $qb->orderBy('l.name', 'ASC')
             ->getQuery()
             ->getResult();
     }

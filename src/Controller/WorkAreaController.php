@@ -51,7 +51,7 @@ class WorkAreaController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('WorkArea not found', '404'));
             }
         } else {
-            $workArea = $workAreaRepository->findBy([], ['id' => 'DESC']);
+            $workArea = $workAreaRepository->findBy([], ['name' => 'ASC']);
         }
 
         $results = $this->groupSerializer->serializeGroup($workArea, $id ? 'work_area_detail' : 'work_area_list');

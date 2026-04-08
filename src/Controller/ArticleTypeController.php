@@ -34,7 +34,7 @@ class ArticleTypeController extends AbstractController
     public function show(?int $id): JsonResponse
     {
         if ($id === null) {
-            $types = $this->articleTypeRepository->findAll();
+            $types = $this->articleTypeRepository->findBy([], ['name' => 'ASC']);
             $results = $this->groupSerializer->serializeGroup($types, 'article_type_list');
             return new JsonResponse($this->doResponse->doResponse($results));
         }

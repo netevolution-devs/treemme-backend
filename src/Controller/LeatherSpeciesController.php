@@ -52,7 +52,7 @@ final class LeatherSpeciesController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('LeatherSpecies not found', 404));
             }
         } else {
-            $leatherSpecies = $leatherSpeciesRepository->findBy([], ['id' => 'DESC']);
+            $leatherSpecies = $leatherSpeciesRepository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($leatherSpecies, $id ? 'leather_species_detail' : 'leather_species_list');
 

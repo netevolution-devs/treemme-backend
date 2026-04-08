@@ -46,7 +46,7 @@ final class ContactTitleController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('ContactTitle not found', 404));
             }
         } else {
-            $items = $repo->findBy([], ['id' => 'DESC']);
+            $items = $repo->findBy([], ['name' => 'ASC']);
         }
 
         $results = $this->groupSerializer->serializeGroup($items, $id ? 'contact_title_detail' : 'contact_title_list');

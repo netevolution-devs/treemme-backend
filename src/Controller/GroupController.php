@@ -55,7 +55,7 @@ final class GroupController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('WorkArea not found', '404'));
             }
         } else {
-            $group = $groupRepository->findBy([], ['id' => 'DESC']);
+            $group = $groupRepository->findBy([], ['name' => 'ASC']);
         }
 
         $results = $this->groupSerializer->serializeGroup($group, $id ? 'group_detail' : 'group_list');

@@ -54,7 +54,7 @@ final class WarehouseMovementReasonTypeController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($results[0]));
         }
 
-        $reasonTypes = $repository->findBy([], ['id' => 'DESC']);
+        $reasonTypes = $repository->findBy([], ['name' => 'ASC']);
         $results = $this->groupSerializer->serializeGroup($reasonTypes, 'reason_type_list');
         return new JsonResponse($this->doResponse->doResponse($results));
     }

@@ -76,16 +76,16 @@ final class ContactController extends AbstractController
                 $contact = $contactRepository->searchContacts($name, $detailName);
             } else if ($type) {
                 if ($type == 'client') {
-                    $contact = $contactRepository->findBy(['client' => true], ['id' => 'DESC']);
+                    $contact = $contactRepository->findBy(['client' => true], ['name' => 'ASC']);
                 } else if ($type == 'supplier') {
-                    $contact = $contactRepository->findBy(['supplier' => true], ['id' => 'DESC']);
+                    $contact = $contactRepository->findBy(['supplier' => true], ['name' => 'ASC']);
                 } else if ($type == 'agent') {
-                    $contact = $contactRepository->findBy(['agent' => true], ['id' => 'DESC']);
+                    $contact = $contactRepository->findBy(['agent' => true], ['name' => 'ASC']);
                 } else if ($type == 'subcontractor') {
-                    $contact = $contactRepository->findBy(['subcontractor' => true], ['id' => 'DESC']);
+                    $contact = $contactRepository->findBy(['subcontractor' => true], ['name' => 'ASC']);
                 }
             } else {
-                $contact = $contactRepository->findBy([], ['id' => 'DESC']);
+                $contact = $contactRepository->findBy([], ['name' => 'ASC']);
             }
 
         }

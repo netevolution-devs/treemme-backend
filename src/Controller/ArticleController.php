@@ -58,9 +58,9 @@ class ArticleController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('Cliente non trovato'), 404);
             }
 
-            $articles = $this->articleRepository->findBy(['client' => $client]);
+            $articles = $this->articleRepository->findBy(['client' => $client], ['name' => 'ASC']);
         } else {
-            $articles = $this->articleRepository->findAll();
+            $articles = $this->articleRepository->findBy([], ['name' => 'ASC']);
         }
 
         $results = $this->groupSerializer->serializeGroup($articles, 'article_list');

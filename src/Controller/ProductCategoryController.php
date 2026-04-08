@@ -53,7 +53,7 @@ final class ProductCategoryController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('ProductCategory not found', 404));
             }
         } else {
-            $productCategory = $repository->findBy([], ['id' => 'DESC']);
+            $productCategory = $repository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($productCategory, $id ? 'product_category_detail' : 'product_category_list');
 
