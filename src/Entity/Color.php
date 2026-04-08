@@ -64,6 +64,10 @@ class Color
     #[Groups(['color_detail'])]
     private ?contact $client = null;
 
+    #[ORM\ManyToOne(inversedBy: 'colors')]
+    #[Groups(['color_list', 'color_detail'])]
+    private ?InternalColor $internal_color = null;
+
     public function __construct()
     {
         $this->products = new ArrayCollection();
@@ -227,6 +231,18 @@ class Color
     public function setClient(?contact $client): static
     {
         $this->client = $client;
+
+        return $this;
+    }
+
+    public function getInternalColor(): ?InternalColor
+    {
+        return $this->internal_color;
+    }
+
+    public function setInternalColor(?InternalColor $internal_color): static
+    {
+        $this->internal_color = $internal_color;
 
         return $this;
     }
