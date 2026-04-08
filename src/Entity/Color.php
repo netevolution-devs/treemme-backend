@@ -16,11 +16,11 @@ class Color
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['color_list', 'color_detail', 'color_type_detail', 'article_list', 'article_detail'])]
+    #[Groups(['color_list', 'color_detail', 'color_type_detail', 'article_list', 'article_detail', 'internal_color_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['color_list', 'color_detail', 'color_type_detail', 'article_list', 'article_detail'])]
+    #[Groups(['color_list', 'color_detail', 'color_type_detail', 'article_list', 'article_detail', 'internal_color_detail'])]
     private ?string $color = null;
 
     #[ORM\Column(length: 255, nullable: true)]
@@ -63,6 +63,10 @@ class Color
     #[ORM\ManyToOne(inversedBy: 'colors')]
     #[Groups(['color_detail'])]
     private ?contact $client = null;
+
+    #[ORM\ManyToOne(inversedBy: 'colors')]
+    #[Groups(['color_list', 'color_detail'])]
+    private ?InternalColor $internal_color = null;
 
     public function __construct()
     {
@@ -227,6 +231,18 @@ class Color
     public function setClient(?contact $client): static
     {
         $this->client = $client;
+
+        return $this;
+    }
+
+    public function getInternalColor(): ?InternalColor
+    {
+        return $this->internal_color;
+    }
+
+    public function setInternalColor(?InternalColor $internal_color): static
+    {
+        $this->internal_color = $internal_color;
 
         return $this;
     }
