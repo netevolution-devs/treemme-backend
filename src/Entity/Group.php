@@ -16,11 +16,11 @@ class Group
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['group_list','group_detail', 'user_list', 'user_detail', 'group_role_work_area_list', 'group_role_work_area_detail', 'work_area_list'])]
+    #[Groups(['group_list','group_detail', 'user_list', 'user_detail', 'group_role_work_area_list', 'group_role_work_area_detail', 'work_area_list','work_area_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['group_list','group_detail', 'user_list', 'user_detail', 'group_role_work_area_list', 'group_role_work_area_detail', 'work_area_list'])]
+    #[Groups(['group_list','group_detail', 'user_list', 'user_detail', 'group_role_work_area_list', 'group_role_work_area_detail', 'work_area_list','work_area_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
