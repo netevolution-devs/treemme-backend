@@ -171,12 +171,23 @@ final class DdtRowController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse($this->validatorOutputFormatter->formatOutput($errors), 400));
         }
 
+        // Calcolo prezzi e totali partendo da currency_price (valuta estera) o price (EUR)
+        $currencyPrice = $ddtRow->getCurrencyPrice(); // Valuta estera per pezzo
+        $currencyChange = $ddtRow->getCurrencyChange() ?: 1.0; // quanta valuta estera per 1 EUR
 
-        if ($ddtRow->getPrice()) {
-            $ddtRow->setTotalValue($ddtRow->getPrice() * $ddtRow->getPieces());
-            $ddtRow->setCurrencyPrice($ddtRow->getPrice() / $ddtRow->getCurrencyChange());
-            $ddtRow->setCurrencyTotalValue($ddtRow->getCurrencyPrice() * $ddtRow->getPieces());
+        if ($currencyPrice !== null) {
+            // Calcola price in EUR da currency_price
+            $price = $currencyChange != 0 ? ($currencyPrice / $currencyChange) : 0.0;
+            $ddtRow->setPrice($price);
+        } else {
+            $price = $ddtRow->getPrice() ?: 0.0;
+            // Se manca currencyPrice ma c'è price, calcola currencyPrice per coerenza
+            $currencyPrice = $price * $currencyChange;
+            $ddtRow->setCurrencyPrice($currencyPrice);
         }
+
+        $ddtRow->setTotalValue($price * $ddtRow->getPieces());
+        $ddtRow->setCurrencyTotalValue($currencyPrice * $ddtRow->getPieces());
 
         if($ddtRow->getHalfPiece() !== null) {
             $ddtRow->setWholePiece($ddtRow->getPieces() - ($ddtRow->getHalfPiece() * 2));
@@ -249,11 +260,23 @@ final class DdtRowController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse($this->validatorOutputFormatter->formatOutput($errors), 400));
         }
 
-        if ($ddtRow->getPrice()) {
-            $ddtRow->setTotalValue($ddtRow->getPrice() * $ddtRow->getPieces());
-            $ddtRow->setCurrencyPrice($ddtRow->getPrice() * $ddtRow->getCurrencyChange());
-            $ddtRow->setCurrencyTotalValue($ddtRow->getCurrencyPrice() * $ddtRow->getPieces());
+        // Calcolo prezzi e totali partendo da currency_price (valuta estera) o price (EUR)
+        $currencyPrice = $ddtRow->getCurrencyPrice(); // Valuta estera per pezzo
+        $currencyChange = $ddtRow->getCurrencyChange() ?: 1.0; // quanta valuta estera per 1 EUR
+
+        if ($currencyPrice !== null) {
+            // Calcola price in EUR da currency_price
+            $price = $currencyChange != 0 ? ($currencyPrice / $currencyChange) : 0.0;
+            $ddtRow->setPrice($price);
+        } else {
+            $price = $ddtRow->getPrice() ?: 0.0;
+            // Se manca currencyPrice ma c'è price, calcola currencyPrice per coerenza
+            $currencyPrice = $price * $currencyChange;
+            $ddtRow->setCurrencyPrice($currencyPrice);
         }
+
+        $ddtRow->setTotalValue($price * $ddtRow->getPieces());
+        $ddtRow->setCurrencyTotalValue($currencyPrice * $ddtRow->getPieces());
 
         if($ddtRow->getHalfPiece() !== null) {
             $ddtRow->setWholePiece($ddtRow->getPieces() - ($ddtRow->getHalfPiece() * 2));
