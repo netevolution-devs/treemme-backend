@@ -205,15 +205,24 @@ final class ClientOrderRowController extends AbstractController
     private function calculatePrices(ClientOrderRow $clientOrderRow): void
     {
         $quantity = $clientOrderRow->getQuantity() ?: 0;
-        $price = $clientOrderRow->getPrice() ?: 0.0;
-        $currencyExchange = $clientOrderRow->getCurrencyExchange() ?: 1.0;
+        $currencyPrice = $clientOrderRow->getCurrencyPrice(); // Valuta estera per unità
+        $currencyExchange = $clientOrderRow->getCurrencyExchange() ?: 1.0; // quanta valuta estera per 1 EUR
 
+        // Se arriva currencyPrice, ricalcola sempre price (EUR)
+        if ($currencyPrice !== null) {
+            $price = $currencyExchange != 0 ? ($currencyPrice / $currencyExchange) : 0.0;
+            $clientOrderRow->setPrice($price);
+        } else {
+            $price = $clientOrderRow->getPrice() ?: 0.0;
+            $currencyPrice = $price * $currencyExchange;
+            $clientOrderRow->setCurrencyPrice($currencyPrice);
+        }
+
+        // Totali
         $totalPrice = $quantity * $price;
-        $currencyPrice = $price / $currencyExchange;
         $totalCurrencyPrice = $quantity * $currencyPrice;
 
         $clientOrderRow->setTotalPrice($totalPrice);
-        $clientOrderRow->setCurrencyPrice($currencyPrice);
         $clientOrderRow->setTotalCurrencyPrice($totalCurrencyPrice);
     }
 }
