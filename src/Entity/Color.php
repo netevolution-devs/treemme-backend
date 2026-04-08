@@ -35,7 +35,7 @@ class Color
     #[Groups(['color_detail'])]
     private ?string $color_note = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['color_list', 'color_detail', 'article_list', 'article_detail'])]
     private ?string $client_color = null;
 
@@ -132,7 +132,7 @@ class Color
         return $this->client_color;
     }
 
-    public function setClientColor(string $client_color): static
+    public function setClientColor(?string $client_color): static
     {
         $this->client_color = $client_color;
 
