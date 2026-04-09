@@ -52,7 +52,7 @@ final class PaymentController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('Payment not found', 404));
             }
         } else {
-            $payment = $paymentRepository->findBy([], ['id' => 'DESC']);
+            $payment = $paymentRepository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($payment, $id ? 'payment_detail' : 'payment_list');
 

@@ -110,11 +110,11 @@ final class BatchController extends AbstractController
                         ->setParameter('year', $year);
                 }
 
-                $batch = $qb->orderBy('b.id', 'DESC')
+                $batch = $qb->orderBy('b.batch_code', 'ASC')
                     ->getQuery()
                     ->getResult();
             } else {
-                $batch = $batchRepository->findBy([], ['id' => 'DESC']);
+                $batch = $batchRepository->findBy([], ['batch_code' => 'ASC']);
             }
         }
         $results = $this->groupSerializer->serializeGroup($batch, $id ? 'batch_detail' : 'batch_list');

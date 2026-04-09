@@ -57,7 +57,7 @@ final class BatchCompositionController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('BatchComposition not found', 404));
             }
         } else {
-            $batchComposition = $batchCompositionRepository->findBy([], ['id' => 'DESC']);
+            $batchComposition = $batchCompositionRepository->findBy([], ['id' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($batchComposition, $id ? 'batch_composition_detail' : 'batch_composition_list');
 

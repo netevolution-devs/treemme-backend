@@ -53,7 +53,7 @@ final class LeatherStatusController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('LeatherStatus not found', 404));
             }
         } else {
-            $leatherStatus = $leatherStatusRepository->findBy([], ['id' => 'DESC']);
+            $leatherStatus = $leatherStatusRepository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($leatherStatus, $id ? 'leather_status_detail' : 'leather_status_list');
 

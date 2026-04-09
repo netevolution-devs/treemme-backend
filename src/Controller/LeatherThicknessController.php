@@ -52,7 +52,7 @@ final class LeatherThicknessController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('LeatherThickness not found', 404));
             }
         } else {
-            $leatherThickness = $leatherThicknessRepository->findBy([], ['id' => 'DESC']);
+            $leatherThickness = $leatherThicknessRepository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($leatherThickness, $id ? 'leather_thickness_detail' : 'leather_thickness_list');
 

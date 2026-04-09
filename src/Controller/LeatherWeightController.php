@@ -52,7 +52,7 @@ final class LeatherWeightController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('LeatherWeight not found', 404));
             }
         } else {
-            $leatherWeight = $leatherWeightRepository->findBy([], ['id' => 'DESC']);
+            $leatherWeight = $leatherWeightRepository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($leatherWeight, $id ? 'leather_weight_detail' : 'leather_weight_list');
 

@@ -12,22 +12,22 @@ class GroupRoleWorkArea
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['group_role_work_area_list', 'group_role_work_area_detail', 'group_detail'])]
+    #[Groups(['group_role_work_area_list', 'group_role_work_area_detail', 'group_detail', 'work_area_list', 'work_area_detail'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['group_role_work_area_list', 'group_role_work_area_detail'])]
+    #[Groups(['group_role_work_area_list', 'group_role_work_area_detail', 'work_area_list', 'work_area_detail'])]
     private ?Group $group = null;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['group_role_work_area_list', 'group_role_work_area_detail', 'group_detail'])]
+    #[Groups(['group_role_work_area_list', 'group_role_work_area_detail', 'group_detail', 'work_area_list', 'work_area_detail'])]
     private ?Role $role = null;
 
-    #[ORM\ManyToOne]
+    #[ORM\ManyToOne(inversedBy: 'groupRoleWorkAreas')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['group_role_work_area_list', 'group_role_work_area_detail', 'group_detail'])]
+    #[Groups(['group_role_work_area_list', 'group_role_work_area_detail', 'group_detail', 'work_area_list', 'work_area_detail'])]
     private ?WorkArea $workArea = null;
 
     #[ORM\Column]
@@ -37,23 +37,23 @@ class GroupRoleWorkArea
     private ?\DateTimeImmutable $updated_at = null;
 
     #[ORM\Column(options: ["default" => true])]
-    #[Groups(['group_role_work_area_list', 'group_role_work_area_detail', 'group_detail'])]
+    #[Groups(['group_role_work_area_list', 'group_role_work_area_detail', 'group_detail', 'work_area_list', 'work_area_detail'])]
     private bool $canGet = true;
 
     #[ORM\Column(options: ["default" => false])]
-    #[Groups(['group_role_work_area_list', 'group_role_work_area_detail', 'group_detail'])]
+    #[Groups(['group_role_work_area_list', 'group_role_work_area_detail', 'group_detail', 'work_area_list', 'work_area_detail'])]
     private bool $canPost = false;
 
     #[ORM\Column(options: ["default" => false])]
-    #[Groups(['group_role_work_area_list', 'group_role_work_area_detail', 'group_detail'])]
+    #[Groups(['group_role_work_area_list', 'group_role_work_area_detail', 'group_detail', 'work_area_list', 'work_area_detail'])]
     private bool $canPut = false;
 
     #[ORM\Column(options: ["default" => false])]
-    #[Groups(['group_role_work_area_list', 'group_role_work_area_detail', 'group_detail'])]
+    #[Groups(['group_role_work_area_list', 'group_role_work_area_detail', 'group_detail', 'work_area_list', 'work_area_detail'])]
     private bool $canDelete = false;
 
     #[ORM\Column]
-    #[Groups(['group_role_work_area_list', 'group_role_work_area_detail', 'group_detail'])]
+    #[Groups(['group_role_work_area_list', 'group_role_work_area_detail', 'group_detail', 'work_area_list', 'work_area_detail'])]
     private ?bool $check_order = null;
 
     public function getId(): ?int

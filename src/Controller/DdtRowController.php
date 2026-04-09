@@ -64,7 +64,7 @@ final class DdtRowController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($results[0]));
         }
 
-        $ddtRows = $ddtRowRepository->findBy([], ['id' => 'DESC']);
+        $ddtRows = $ddtRowRepository->findBy([], ['id' => 'ASC']);
         $results = $this->groupSerializer->serializeGroup($ddtRows, 'ddt_row_list');
         return new JsonResponse($this->doResponse->doResponse($results));
     }
@@ -101,7 +101,6 @@ final class DdtRowController extends AbstractController
                 continue;
             }
 
-            // Ordina i movimenti per ID per trovare il movimento di partenza e i successivi
             $movementsArray = $movements->toArray();
             usort($movementsArray, fn($a, $b) => $a->getId() <=> $b->getId());
 
@@ -141,8 +140,6 @@ final class DdtRowController extends AbstractController
                 $outPieces = abs($firstMovementOut->getPiece() ?? 0);
                 $remainingPieces = $outPieces - $returnedPieces;
 
-                // Se l'ultimo movimento è esattamente ddtReasonName, lo includiamo a prescindere dal conteggio
-                // Se invece l'ultimo movimento è il "Reso", allora scatta il calcolo dei pezzi ancora da rientrare
                 if ($lastMovementReasonName === $ddtReasonName || $remainingPieces > 0) {
                     $results = $this->groupSerializer->serializeGroup($ddtRow, 'ddt_row_list');
                     $results['stock_pieces'] = $remainingPieces;
@@ -174,12 +171,7 @@ final class DdtRowController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse($this->validatorOutputFormatter->formatOutput($errors), 400));
         }
 
-
-        if ($ddtRow->getPrice()) {
-            $ddtRow->setTotalValue($ddtRow->getPrice() * $ddtRow->getPieces());
-            $ddtRow->setCurrencyPrice($ddtRow->getPrice() * $ddtRow->getCurrencyChange());
-            $ddtRow->setCurrencyTotalValue($ddtRow->getCurrencyPrice() * $ddtRow->getPieces());
-        }
+        $this->calculatePrices($ddtRow);
 
         if($ddtRow->getHalfPiece() !== null) {
             $ddtRow->setWholePiece($ddtRow->getPieces() - ($ddtRow->getHalfPiece() * 2));
@@ -252,11 +244,7 @@ final class DdtRowController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse($this->validatorOutputFormatter->formatOutput($errors), 400));
         }
 
-        if ($ddtRow->getPrice()) {
-            $ddtRow->setTotalValue($ddtRow->getPrice() * $ddtRow->getPieces());
-            $ddtRow->setCurrencyPrice($ddtRow->getPrice() * $ddtRow->getCurrencyChange());
-            $ddtRow->setCurrencyTotalValue($ddtRow->getCurrencyPrice() * $ddtRow->getPieces());
-        }
+        $this->calculatePrices($ddtRow);
 
         if($ddtRow->getHalfPiece() !== null) {
             $ddtRow->setWholePiece($ddtRow->getPieces() - ($ddtRow->getHalfPiece() * 2));
@@ -548,6 +536,29 @@ final class DdtRowController extends AbstractController
             }
             unset($data['processing_id']);
         }
+    }
+
+    private function calculatePrices(DdtRow $ddtRow): void
+    {
+        $quantity = $ddtRow->getQuantity() ?: 0.0;
+        $currencyPrice = $ddtRow->getCurrencyPrice(); // Valuta estera per unità
+        $currencyChange = $ddtRow->getCurrencyChange() ?: 1.0; // quanta valuta estera per 1 EUR
+
+        // Se arriva currencyPrice, ricalcola sempre price (EUR)
+        if ($currencyPrice !== null) {
+            $price = $currencyChange != 0 ? round($currencyPrice / $currencyChange, 2) : 0.0;
+            $ddtRow->setPrice($price);
+            $ddtRow->setCurrencyChange($currencyChange);
+            $ddtRow->setCurrencyPrice(round($currencyPrice, 2));
+        } else {
+            $price = $ddtRow->getPrice() ?: 0.0;
+            $currencyPrice = round($price * $currencyChange, 2);
+            $ddtRow->setCurrencyPrice($currencyPrice);
+        }
+
+        // Totali - Usiamo quantity per uniformare con le righe ordine
+        $ddtRow->setTotalValue(round($price * $quantity, 2));
+        $ddtRow->setCurrencyTotalValue(round($currencyPrice * $quantity, 2));
     }
 
     private function updateBatchSqFtAverageFound(Batch $batch): void

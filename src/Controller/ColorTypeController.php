@@ -52,7 +52,7 @@ final class ColorTypeController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('ColorType not found', 404));
             }
         } else {
-            $colorType = $colorTypeRepository->findBy([], ['id' => 'DESC']);
+            $colorType = $colorTypeRepository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($colorType, $id ? 'color_type_detail' : 'color_type_list');
 

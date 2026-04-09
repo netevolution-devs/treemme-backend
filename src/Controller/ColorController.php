@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Color;
 use App\Entity\ColorType;
 use App\Entity\Contact;
+use App\Entity\InternalColor;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -58,9 +59,9 @@ final class ColorController extends AbstractController
 
             if ($clientId) {
                 $client = $this->doctrine->getRepository(Contact::class)->find($clientId);
-                $color = $colorRepository->findBy(['client' => $client], ['id' => 'DESC']);
+                $color = $colorRepository->findBy(['client' => $client], ['color' => 'ASC']);
             } else {
-                $color = $colorRepository->findBy([], ['id' => 'DESC']);
+                $color = $colorRepository->findBy([], ['color' => 'ASC']);
             }
         }
 
@@ -169,6 +170,14 @@ final class ColorController extends AbstractController
                 $color->setClient($client);
             }
             unset($data['client_id']);
+        }
+
+        if (isset($data['internal_color_id'])) {
+            $internalColor = $this->doctrine->getRepository(InternalColor::class)->find($data['internal_color_id']);
+            if ($internalColor) {
+                $color->setInternalColor($internalColor);
+            }
+            unset($data['internal_color_id']);
         }
 
         return $color;

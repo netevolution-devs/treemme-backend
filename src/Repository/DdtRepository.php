@@ -57,8 +57,7 @@ class DdtRepository extends ServiceEntityRepository
                 ->setParameter('endDate', $endDate);
         }
 
-        return $qb->orderBy('d.ddt_date', 'DESC')
-            ->addOrderBy('d.id', 'DESC')
+        return $qb->orderBy('d.ddt_number', 'ASC')
             ->getQuery()
             ->getResult();
     }

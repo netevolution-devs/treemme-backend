@@ -56,7 +56,7 @@ final class MachineController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($results[0]));
         }
 
-        $machines = $machineRepository->findBy([], ['id' => 'DESC']);
+        $machines = $machineRepository->findBy([], ['name' => 'ASC']);
         $results = $this->groupSerializer->serializeGroup($machines, 'machine_list');
         return new JsonResponse($this->doResponse->doResponse($results));
     }

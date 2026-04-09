@@ -49,7 +49,7 @@ final class ContactTypeController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('ContactType not found', 404));
             }
         } else {
-            $contactType = $contactTypeRepository->findBy([], ['id' => 'DESC']);
+            $contactType = $contactTypeRepository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($contactType, $id ? 'contact_type_detail' : 'contact_type_list');
 

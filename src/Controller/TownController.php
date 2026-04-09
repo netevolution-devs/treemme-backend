@@ -53,7 +53,7 @@ final class TownController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('Town not found', 404));
             }
         } else {
-            $items = $repo->findBy([], ['id' => 'DESC']);
+            $items = $repo->findBy([], ['name' => 'ASC']);
         }
 
         $results = $this->groupSerializer->serializeGroup($items, $id ? 'town_detail' : 'town_list');

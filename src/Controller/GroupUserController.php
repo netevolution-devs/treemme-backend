@@ -54,7 +54,7 @@ final class GroupUserController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('GroupUser not found', 404));
             }
         } else {
-            $item = $repository->findBy([], ['id' => 'DESC']);
+            $item = $repository->findBy([], ['id' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($item, $id ? 'group_user_detail' : 'group_user_list');
 

@@ -52,7 +52,7 @@ final class ProvinceController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('Province not found', 404));
             }
         } else {
-            $items = $repo->findBy([], ['id' => 'DESC']);
+            $items = $repo->findBy([], ['name' => 'ASC']);
         }
 
         $results = $this->groupSerializer->serializeGroup($items, $id ? 'province_detail' : 'province_list');

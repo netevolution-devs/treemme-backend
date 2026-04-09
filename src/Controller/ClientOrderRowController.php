@@ -58,7 +58,7 @@ final class ClientOrderRowController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('ClientOrderRow not found', 404));
             }
         } else {
-            $clientOrderRow = $clientOrderRowRepository->findBy([], ['id' => 'DESC']);
+            $clientOrderRow = $clientOrderRowRepository->findBy([], ['id' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($clientOrderRow, $id ? 'client_order_row_detail' : 'client_order_row_list');
 
@@ -204,16 +204,28 @@ final class ClientOrderRowController extends AbstractController
 
     private function calculatePrices(ClientOrderRow $clientOrderRow): void
     {
-        $quantity = $clientOrderRow->getQuantity() ?: 0;
-        $price = $clientOrderRow->getPrice() ?: 0.0;
-        $currencyExchange = $clientOrderRow->getCurrencyExchange() ?: 0.0;
 
-        $totalPrice = $quantity * $price;
-        $currencyPrice = $price * $currencyExchange;
-        $totalCurrencyPrice = $quantity * $currencyPrice;
+        $quantity = $clientOrderRow->getQuantity() ?: 0;
+        $currencyPrice = $clientOrderRow->getCurrencyPrice(); // Valuta estera per unità
+        $currencyExchange = $clientOrderRow->getCurrencyExchange() ?: 1.0; // quanta valuta estera per 1 EUR
+
+        // Se arriva currencyPrice, ricalcola sempre price (EUR)
+        if ($currencyPrice !== null) {
+            $price = $currencyExchange != 0 ? round($currencyPrice / $currencyExchange, 2) : 0.0;
+            $clientOrderRow->setPrice($price);
+            $clientOrderRow->setCurrencyExchange($currencyExchange);
+            $clientOrderRow->setCurrencyPrice(round($currencyPrice, 2));
+        } else {
+            $price = $clientOrderRow->getPrice() ?: 0.0;
+            $currencyPrice = round($price * $currencyExchange, 2);
+            $clientOrderRow->setCurrencyPrice($currencyPrice);
+        }
+
+        // Totali
+        $totalPrice = round($quantity * $price, 2);
+        $totalCurrencyPrice = round($quantity * $currencyPrice, 2);
 
         $clientOrderRow->setTotalPrice($totalPrice);
-        $clientOrderRow->setCurrencyPrice($currencyPrice);
         $clientOrderRow->setTotalCurrencyPrice($totalCurrencyPrice);
     }
 }

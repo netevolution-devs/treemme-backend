@@ -77,7 +77,7 @@ final class ClientOrderController extends AbstractController
                     ->setParameter('client', $clientId);
             }
 
-            $clientOrder = $qb->orderBy('c.id', 'DESC')
+            $clientOrder = $qb->orderBy('c.order_number', 'ASC')
                 ->getQuery()
                 ->getResult();
 

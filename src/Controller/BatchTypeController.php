@@ -52,7 +52,7 @@ final class BatchTypeController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('BatchType not found', 404));
             }
         } else {
-            $batchType = $batchTypeRepository->findBy([], ['id' => 'DESC']);
+            $batchType = $batchTypeRepository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($batchType, $id ? 'batch_type_detail' : 'batch_type_list');
 
