@@ -171,23 +171,7 @@ final class DdtRowController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse($this->validatorOutputFormatter->formatOutput($errors), 400));
         }
 
-        // Calcolo prezzi e totali partendo da currency_price (valuta estera) o price (EUR)
-        $currencyPrice = $ddtRow->getCurrencyPrice(); // Valuta estera per pezzo
-        $currencyChange = $ddtRow->getCurrencyChange() ?: 1.0; // quanta valuta estera per 1 EUR
-
-        if ($currencyPrice !== null) {
-            // Calcola price in EUR da currency_price
-            $price = $currencyChange != 0 ? ($currencyPrice / $currencyChange) : 0.0;
-            $ddtRow->setPrice($price);
-        } else {
-            $price = $ddtRow->getPrice() ?: 0.0;
-            // Se manca currencyPrice ma c'è price, calcola currencyPrice per coerenza
-            $currencyPrice = $price * $currencyChange;
-            $ddtRow->setCurrencyPrice($currencyPrice);
-        }
-
-        $ddtRow->setTotalValue($price * $ddtRow->getPieces());
-        $ddtRow->setCurrencyTotalValue($currencyPrice * $ddtRow->getPieces());
+        $this->calculatePrices($ddtRow);
 
         if($ddtRow->getHalfPiece() !== null) {
             $ddtRow->setWholePiece($ddtRow->getPieces() - ($ddtRow->getHalfPiece() * 2));
@@ -260,23 +244,7 @@ final class DdtRowController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorResponse($this->validatorOutputFormatter->formatOutput($errors), 400));
         }
 
-        // Calcolo prezzi e totali partendo da currency_price (valuta estera) o price (EUR)
-        $currencyPrice = $ddtRow->getCurrencyPrice(); // Valuta estera per pezzo
-        $currencyChange = $ddtRow->getCurrencyChange() ?: 1.0; // quanta valuta estera per 1 EUR
-
-        if ($currencyPrice !== null) {
-            // Calcola price in EUR da currency_price
-            $price = $currencyChange != 0 ? ($currencyPrice / $currencyChange) : 0.0;
-            $ddtRow->setPrice($price);
-        } else {
-            $price = $ddtRow->getPrice() ?: 0.0;
-            // Se manca currencyPrice ma c'è price, calcola currencyPrice per coerenza
-            $currencyPrice = $price * $currencyChange;
-            $ddtRow->setCurrencyPrice($currencyPrice);
-        }
-
-        $ddtRow->setTotalValue($price * $ddtRow->getPieces());
-        $ddtRow->setCurrencyTotalValue($currencyPrice * $ddtRow->getPieces());
+        $this->calculatePrices($ddtRow);
 
         if($ddtRow->getHalfPiece() !== null) {
             $ddtRow->setWholePiece($ddtRow->getPieces() - ($ddtRow->getHalfPiece() * 2));
@@ -568,6 +536,29 @@ final class DdtRowController extends AbstractController
             }
             unset($data['processing_id']);
         }
+    }
+
+    private function calculatePrices(DdtRow $ddtRow): void
+    {
+        $quantity = $ddtRow->getQuantity() ?: 0.0;
+        $currencyPrice = $ddtRow->getCurrencyPrice(); // Valuta estera per unità
+        $currencyChange = $ddtRow->getCurrencyChange() ?: 1.0; // quanta valuta estera per 1 EUR
+
+        // Se arriva currencyPrice, ricalcola sempre price (EUR)
+        if ($currencyPrice !== null) {
+            $price = $currencyChange != 0 ? round($currencyPrice / $currencyChange, 2) : 0.0;
+            $ddtRow->setPrice($price);
+            $ddtRow->setCurrencyChange($currencyChange);
+            $ddtRow->setCurrencyPrice(round($currencyPrice, 2));
+        } else {
+            $price = $ddtRow->getPrice() ?: 0.0;
+            $currencyPrice = round($price * $currencyChange, 2);
+            $ddtRow->setCurrencyPrice($currencyPrice);
+        }
+
+        // Totali - Usiamo quantity per uniformare con le righe ordine
+        $ddtRow->setTotalValue(round($price * $quantity, 2));
+        $ddtRow->setCurrencyTotalValue(round($currencyPrice * $quantity, 2));
     }
 
     private function updateBatchSqFtAverageFound(Batch $batch): void
