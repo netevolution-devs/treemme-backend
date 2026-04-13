@@ -6,6 +6,8 @@ use App\Entity\BatchData;
 use App\Entity\SeaPort;
 use App\Entity\Pallet;
 use App\Entity\Batch;
+use App\Entity\ShipmentCondition;
+use App\Entity\Contact;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -176,6 +178,22 @@ final class BatchDataController extends AbstractController
                 $batchData->setBatch($batch);
             }
             unset($data['batch_id']);
+        }
+
+        if (isset($data['shipment_condition_id'])) {
+            $shipmentCondition = $this->doctrine->getRepository(ShipmentCondition::class)->find($data['shipment_condition_id']);
+            if ($shipmentCondition) {
+                $batchData->setShipmentCondition($shipmentCondition);
+            }
+            unset($data['shipment_condition_id']);
+        }
+
+        if (isset($data['shipment_subcontractor_id'])) {
+            $shipmentSubcontractor = $this->doctrine->getRepository(Contact::class)->find($data['shipment_subcontractor_id']);
+            if ($shipmentSubcontractor) {
+                $batchData->setShipmentSubcontractor($shipmentSubcontractor);
+            }
+            unset($data['shipment_subcontractor_id']);
         }
 
         return $batchData;

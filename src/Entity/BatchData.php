@@ -88,6 +88,12 @@ class BatchData
     #[Groups(['batch_data_list', 'batch_data_detail'])]
     private ?Batch $batch = null;
 
+    #[ORM\ManyToOne(inversedBy: 'batchData')]
+    private ?ShipmentCondition $shipmentCondition = null;
+
+    #[ORM\ManyToOne]
+    private ?Contact $shipment_subcontractor = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -305,6 +311,30 @@ class BatchData
     public function setBatch(?Batch $batch): static
     {
         $this->batch = $batch;
+
+        return $this;
+    }
+
+    public function getShipmentCondition(): ?ShipmentCondition
+    {
+        return $this->shipmentCondition;
+    }
+
+    public function setShipmentCondition(?ShipmentCondition $shipmentCondition): static
+    {
+        $this->shipmentCondition = $shipmentCondition;
+
+        return $this;
+    }
+
+    public function getShipmentSubcontractor(): ?Contact
+    {
+        return $this->shipment_subcontractor;
+    }
+
+    public function setShipmentSubcontractor(?Contact $shipment_subcontractor): static
+    {
+        $this->shipment_subcontractor = $shipment_subcontractor;
 
         return $this;
     }
