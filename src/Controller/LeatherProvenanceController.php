@@ -55,7 +55,7 @@ final class LeatherProvenanceController extends AbstractController
                 return new JsonResponse($this->doResponse->doErrorResponse('LeatherProvenance not found', 404));
             }
         } else {
-            $leatherProvenance = $leatherProvenanceRepository->findBy([], ['name' => 'ASC']);
+            $leatherProvenance = $leatherProvenanceRepository->findBy([], ['code' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($leatherProvenance, $id ? 'leather_provenance_detail' : 'leather_provenance_list');
 

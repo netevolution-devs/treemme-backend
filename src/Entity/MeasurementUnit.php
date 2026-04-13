@@ -90,6 +90,12 @@ class MeasurementUnit
     #[ORM\OneToMany(mappedBy: 'measurement_unit', targetEntity: DdtRow::class)]
     private Collection $ddtRows;
 
+    /**
+     * @var Collection<int, Pallet>
+     */
+    #[ORM\OneToMany(mappedBy: 'measurement_unit', targetEntity: Pallet::class)]
+    private Collection $pallets;
+
     public function __construct()
     {
         $this->batches = new ArrayCollection();
@@ -101,6 +107,7 @@ class MeasurementUnit
         $this->MeasurementUnitCoefficients = new ArrayCollection();
         $this->EndMeasurementUnitCoefficients = new ArrayCollection();
         $this->ddtRows = new ArrayCollection();
+        $this->pallets = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -420,6 +427,36 @@ class MeasurementUnit
             // set the owning side to null (unless already changed)
             if ($ddtRow->getMeasurementUnit() === $this) {
                 $ddtRow->setMeasurementUnit(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Pallet>
+     */
+    public function getPallets(): Collection
+    {
+        return $this->pallets;
+    }
+
+    public function addPallet(Pallet $pallet): static
+    {
+        if (!$this->pallets->contains($pallet)) {
+            $this->pallets->add($pallet);
+            $pallet->setMeasurementUnit($this);
+        }
+
+        return $this;
+    }
+
+    public function removePallet(Pallet $pallet): static
+    {
+        if ($this->pallets->removeElement($pallet)) {
+            // set the owning side to null (unless already changed)
+            if ($pallet->getMeasurementUnit() === $this) {
+                $pallet->setMeasurementUnit(null);
             }
         }
 
