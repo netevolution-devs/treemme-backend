@@ -164,6 +164,12 @@ class Batch
     #[ORM\OneToMany(mappedBy: 'batch', targetEntity: DdtRow::class)]
     private Collection $ddtRows;
 
+    /**
+     * @var Collection<int, BatchData>
+     */
+    #[ORM\OneToMany(mappedBy: 'batch', targetEntity: BatchData::class, orphanRemoval: true)]
+    private Collection $batchData;
+
     public function __construct()
     {
         $this->batchCosts = new ArrayCollection();
@@ -174,6 +180,7 @@ class Batch
         $this->batchOrders = new ArrayCollection();
         $this->productions = new ArrayCollection();
         $this->ddtRows = new ArrayCollection();
+        $this->batchData = new ArrayCollection();
     }
 
     #[VirtualProperty]
@@ -704,6 +711,36 @@ class Batch
             // set the owning side to null (unless already changed)
             if ($ddtRow->getBatch() === $this) {
                 $ddtRow->setBatch(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, BatchData>
+     */
+    public function getBatchData(): Collection
+    {
+        return $this->batchData;
+    }
+
+    public function addBatchData(BatchData $batchData): static
+    {
+        if (!$this->batchData->contains($batchData)) {
+            $this->batchData->add($batchData);
+            $batchData->setBatch($this);
+        }
+
+        return $this;
+    }
+
+    public function removeBatchData(BatchData $batchData): static
+    {
+        if ($this->batchData->removeElement($batchData)) {
+            // set the owning side to null (unless already changed)
+            if ($batchData->getBatch() === $this) {
+                $batchData->setBatch(null);
             }
         }
 
