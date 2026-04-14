@@ -22,7 +22,7 @@ class Leather
     private ?string $code = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['leather_list', 'leather_detail', 'batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['leather_list', 'leather_detail', 'batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'batch_data_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(nullable: true)]
@@ -148,7 +148,11 @@ class Leather
 
     public function generateName(): string
     {
+        $supplierName = strtoupper(trim((string) $this->getSupplier()?->getName()));
+        $supplierPrefix = mb_substr($supplierName, 0, 3);
+
         $nameParts = [
+            $supplierPrefix,
             $this->getSpecies()?->getName(),
             $this->getProvenance()?->getNation()?->getName(),
             $this->getType()?->getName(),
@@ -160,7 +164,7 @@ class Leather
 
         return implode(' ', array_filter(
             $nameParts,
-            static fn (?string $value): bool => $value !== null && trim($value) !== ''
+            static fn (?string $value): bool => $value !== null && trim((string)$value) !== ''
         ));
     }
 
