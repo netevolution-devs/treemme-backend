@@ -874,6 +874,13 @@ final class BatchController extends AbstractController
 
             $this->doctrine->persist($batch);
 
+            if ($batch->getBatchType() && ($batch->getBatchType()->getName() === 'Partita' || $batch->getBatchType()->getName() === 'Lotto')) {
+                $batchData = new BatchData();
+                $batchData->setBatch($batch);
+                $batchData->setAmount(0.0);
+                $this->doctrine->persist($batchData);
+            }
+
             $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
             $inReason = $reasonRepo->findOneBy(['name' => 'Carico']);
 
