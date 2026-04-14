@@ -37,15 +37,15 @@ class BatchData
 
     #[ORM\Column(nullable: true)]
     #[Groups(['batch_data_list', 'batch_data_detail', 'batch_list', 'batch_detail'])]
-    private ?float $declered_gross_weight = null;
+    private ?float $declared_gross_weight = null;
 
     #[ORM\Column(nullable: true)]
     #[Groups(['batch_data_list', 'batch_data_detail', 'batch_list', 'batch_detail'])]
-    private ?float $declered_net_weight = null;
+    private ?float $declared_net_weight = null;
 
     #[ORM\Column(nullable: true)]
     #[Groups(['batch_data_list', 'batch_data_detail', 'batch_list', 'batch_detail'])]
-    private ?float $declered_average_weight = null;
+    private ?float $declared_average_weight = null;
 
     #[ORM\Column(nullable: true)]
     #[Groups(['batch_data_list', 'batch_data_detail', 'batch_list', 'batch_detail'])]
@@ -159,38 +159,38 @@ class BatchData
         return $this;
     }
 
-    public function getDecleredGrossWeight(): ?float
+    public function getDeclaredGrossWeight(): ?float
     {
-        return $this->declered_gross_weight;
+        return $this->declared_gross_weight;
     }
 
-    public function setDecleredGrossWeight(?float $declered_gross_weight): static
+    public function setDeclaredGrossWeight(?float $declared_gross_weight): static
     {
-        $this->declered_gross_weight = $declered_gross_weight;
+        $this->declared_gross_weight = $declared_gross_weight;
 
         return $this;
     }
 
-    public function getDecleredNetWeight(): ?float
+    public function getDeclaredNetWeight(): ?float
     {
-        return $this->declered_net_weight;
+        return $this->declared_net_weight;
     }
 
-    public function setDecleredNetWeight(?float $declered_net_weight): static
+    public function setDeclaredNetWeight(?float $declared_net_weight): static
     {
-        $this->declered_net_weight = $declered_net_weight;
+        $this->declared_net_weight = $declared_net_weight;
 
         return $this;
     }
 
-    public function getDecleredAverageWeight(): ?float
+    public function getDeclaredAverageWeight(): ?float
     {
-        return $this->declered_average_weight;
+        return $this->declared_average_weight;
     }
 
-    public function setDecleredAverageWeight(?float $declered_average_weight): static
+    public function setDeclaredAverageWeight(?float $declared_average_weight): static
     {
-        $this->declered_average_weight = $declered_average_weight;
+        $this->declared_average_weight = $declared_average_weight;
 
         return $this;
     }
