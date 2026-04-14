@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\BatchData;
 use App\Entity\LeatherType;
 use App\Entity\MeasurementUnitCoefficient;
 use App\Entity\Production;
