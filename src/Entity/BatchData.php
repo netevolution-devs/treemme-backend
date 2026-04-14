@@ -12,7 +12,7 @@ class BatchData
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['batch_data_list', 'batch_data_detail', 'batch_list', 'batch_detail'])]
+    #[Groups(['batch_data_list', 'batch_data_detail', 'batch_list', 'batch_detail', 'batch_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(nullable: true)]
