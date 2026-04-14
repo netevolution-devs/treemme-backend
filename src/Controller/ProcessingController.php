@@ -33,7 +33,7 @@ class ProcessingController extends AbstractController
         if ($id) {
             $processing = $repository->find($id);
             if (!$processing) {
-                return new JsonResponse($this->doResponse->doErrorResponse('Lavorazione non trovata', status_code: 404));
+                return $this->doResponse->doErrorJsonResponse('Lavorazione non trovata', status_code: 404);
             }
             $results = $this->groupSerializer->serializeGroup($processing, 'processing_detail');
             return new JsonResponse($this->doResponse->doResponse($results));
@@ -53,13 +53,13 @@ class ProcessingController extends AbstractController
         try {
             $this->mapDataToEntity($processing, $data);
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
 
         $errors = $validator->validate($processing);
         if (count($errors) > 0) {
             $formattedErrors = $this->validatorOutputFormatter->formatOutput($errors);
-            return new JsonResponse($this->doResponse->doErrorResponse($formattedErrors));
+            return $this->doResponse->doErrorJsonResponse($formattedErrors);
         }
 
         $this->doctrine->persist($processing);
@@ -75,7 +75,7 @@ class ProcessingController extends AbstractController
         $processing = $this->doctrine->getRepository(Processing::class)->find($id);
 
         if (!$processing) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Lavorazione non trovata', status_code: 404));
+            return $this->doResponse->doErrorJsonResponse('Lavorazione non trovata', status_code: 404);
         }
 
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
@@ -83,13 +83,13 @@ class ProcessingController extends AbstractController
         try {
             $this->mapDataToEntity($processing, $data);
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
 
         $errors = $validator->validate($processing);
         if (count($errors) > 0) {
             $formattedErrors = $this->validatorOutputFormatter->formatOutput($errors);
-            return new JsonResponse($this->doResponse->doErrorResponse($formattedErrors));
+            return $this->doResponse->doErrorJsonResponse($formattedErrors);
         }
 
         $this->doctrine->flush();
@@ -103,7 +103,7 @@ class ProcessingController extends AbstractController
     {
         $processing = $this->doctrine->getRepository(Processing::class)->find($id);
         if (!$processing) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Lavorazione non trovata', status_code: 404));
+            return $this->doResponse->doErrorJsonResponse('Lavorazione non trovata', status_code: 404);
         }
 
         $this->doctrine->remove($processing);
@@ -121,3 +121,4 @@ class ProcessingController extends AbstractController
         $this->createMethodsByInput->createMethods($processing, $data);
     }
 }
+

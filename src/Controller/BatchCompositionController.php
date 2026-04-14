@@ -54,7 +54,7 @@ final class BatchCompositionController extends AbstractController
         if ($id) {
             $batchComposition = [$batchCompositionRepository->find($id)];
             if (!$batchComposition[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('BatchComposition not found', 404));
+                return $this->doResponse->doErrorJsonResponse('BatchComposition not found', 404);
             }
         } else {
             $batchComposition = $batchCompositionRepository->findBy([], ['id' => 'ASC']);
@@ -77,7 +77,7 @@ final class BatchCompositionController extends AbstractController
         $batch = $this->doctrine->getRepository(Batch::class)->find($batch_id);
 
         if (!$batch) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Batch not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Batch not found', 404);
         }
 
         $batchComposition = $this->doctrine->getRepository(BatchComposition::class)->findBy(['batch' => $batch]);
@@ -177,7 +177,7 @@ final class BatchCompositionController extends AbstractController
             $errors = $validator->validate($batchComposition);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             if ($fatherBatch) {
@@ -202,7 +202,7 @@ final class BatchCompositionController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -219,7 +219,7 @@ final class BatchCompositionController extends AbstractController
         $batchComposition = $this->doctrine->getRepository(BatchComposition::class)->find($id);
 
         if (!$batchComposition) {
-            return new JsonResponse($this->doResponse->doErrorResponse('BatchComposition not found', 404));
+            return $this->doResponse->doErrorJsonResponse('BatchComposition not found', 404);
         }
 
         try {
@@ -229,7 +229,7 @@ final class BatchCompositionController extends AbstractController
             $errors = $validator->validate($batchComposition);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->deleteExistingMovements($batchComposition);
@@ -241,7 +241,7 @@ final class BatchCompositionController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($batchComposition, 'batch_composition_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -252,7 +252,7 @@ final class BatchCompositionController extends AbstractController
     {
         $batchComposition = $this->doctrine->getRepository(BatchComposition::class)->find($id);
         if (!$batchComposition) {
-            return new JsonResponse($this->doResponse->doErrorResponse('BatchComposition not found', 404));
+            return $this->doResponse->doErrorJsonResponse('BatchComposition not found', 404);
         }
 
         $this->deleteExistingMovements($batchComposition);
@@ -359,3 +359,4 @@ final class BatchCompositionController extends AbstractController
         return $batchComposition;
     }
 }
+

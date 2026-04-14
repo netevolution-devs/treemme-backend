@@ -49,7 +49,7 @@ final class SeaPortController extends AbstractController
         if ($id) {
             $seaPort = $repository->find($id);
             if (!$seaPort) {
-                return new JsonResponse($this->doResponse->doErrorResponse('SeaPort not found', 404));
+                return $this->doResponse->doErrorJsonResponse('SeaPort not found', 404);
             }
             $seaPorts = [$seaPort];
         } else {
@@ -81,7 +81,7 @@ final class SeaPortController extends AbstractController
             $errors = $validator->validate($seaPort);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($seaPort);
@@ -91,7 +91,7 @@ final class SeaPortController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -108,7 +108,7 @@ final class SeaPortController extends AbstractController
         $seaPort = $this->doctrine->getRepository(SeaPort::class)->find($id);
 
         if (!$seaPort) {
-            return new JsonResponse($this->doResponse->doErrorResponse('SeaPort not found', 404));
+            return $this->doResponse->doErrorJsonResponse('SeaPort not found', 404);
         }
 
         try {
@@ -117,7 +117,7 @@ final class SeaPortController extends AbstractController
             $errors = $validator->validate($seaPort);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($seaPort);
@@ -126,7 +126,7 @@ final class SeaPortController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($seaPort, 'sea_port_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -137,7 +137,7 @@ final class SeaPortController extends AbstractController
     {
         $seaPort = $this->doctrine->getRepository(SeaPort::class)->find($id);
         if (!$seaPort) {
-            return new JsonResponse($this->doResponse->doErrorResponse('SeaPort not found', 404));
+            return $this->doResponse->doErrorJsonResponse('SeaPort not found', 404);
         }
 
         $this->doctrine->remove($seaPort);
@@ -146,3 +146,4 @@ final class SeaPortController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
     }
 }
+

@@ -50,7 +50,7 @@ final class LeatherTypeController extends AbstractController
         if ($id) {
             $leatherType = [$leatherTypeRepository->find($id)];
             if (!$leatherType[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('LeatherType not found', 404));
+                return $this->doResponse->doErrorJsonResponse('LeatherType not found', 404);
             }
         } else {
             $leatherType = $leatherTypeRepository->findBy([], ['name' => 'ASC']);
@@ -81,7 +81,7 @@ final class LeatherTypeController extends AbstractController
             $errors = $validator->validate($leatherType);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $em = $this->doctrine;
@@ -92,7 +92,7 @@ final class LeatherTypeController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -109,7 +109,7 @@ final class LeatherTypeController extends AbstractController
         $leatherType = $this->doctrine->getRepository(LeatherType::class)->find($id);
 
         if (!$leatherType) {
-            return new JsonResponse($this->doResponse->doErrorResponse('LeatherType not found', 404));
+            return $this->doResponse->doErrorJsonResponse('LeatherType not found', 404);
         }
 
         try {
@@ -119,7 +119,7 @@ final class LeatherTypeController extends AbstractController
             $errors = $validator->validate($leatherType);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($leatherType);
@@ -128,7 +128,7 @@ final class LeatherTypeController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($leatherType, 'leather_type_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -139,7 +139,7 @@ final class LeatherTypeController extends AbstractController
     {
         $leatherType = $this->doctrine->getRepository(LeatherType::class)->find($id);
         if (!$leatherType) {
-            return new JsonResponse($this->doResponse->doErrorResponse('LeatherType not found', 404));
+            return $this->doResponse->doErrorJsonResponse('LeatherType not found', 404);
         }
 
         $this->doctrine->remove($leatherType);
@@ -161,3 +161,4 @@ final class LeatherTypeController extends AbstractController
         return $leatherType;
     }
 }
+

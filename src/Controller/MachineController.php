@@ -50,7 +50,7 @@ final class MachineController extends AbstractController
         if ($id) {
             $machine = $machineRepository->find($id);
             if (!$machine) {
-                return new JsonResponse($this->doResponse->doErrorResponse('Machine not found', 404));
+                return $this->doResponse->doErrorJsonResponse('Machine not found', 404);
             }
             $results = $this->groupSerializer->serializeGroup([$machine], 'machine_detail');
             return new JsonResponse($this->doResponse->doResponse($results[0]));
@@ -78,7 +78,7 @@ final class MachineController extends AbstractController
 
             $errors = $validator->validate($machine);
             if (count($errors) > 0) {
-                return new JsonResponse($this->doResponse->doErrorResponse($this->validatorOutputFormatter->format($errors), 400));
+                return $this->doResponse->doErrorJsonResponse($this->validatorOutputFormatter->format($errors), 400);
             }
 
             $this->doctrine->persist($machine);
@@ -86,7 +86,7 @@ final class MachineController extends AbstractController
 
             return new JsonResponse($this->doResponse->doResponse('created_successfully'));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage(), 400));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage(), 400);
         }
     }
 
@@ -101,7 +101,7 @@ final class MachineController extends AbstractController
     {
         $machine = $this->doctrine->getRepository(Machine::class)->find($id);
         if (!$machine) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Machine not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Machine not found', 404);
         }
 
         $data = $request->request->all();
@@ -112,14 +112,14 @@ final class MachineController extends AbstractController
 
             $errors = $validator->validate($machine);
             if (count($errors) > 0) {
-                return new JsonResponse($this->doResponse->doErrorResponse($this->validatorOutputFormatter->format($errors), 400));
+                return $this->doResponse->doErrorJsonResponse($this->validatorOutputFormatter->format($errors), 400);
             }
 
             $this->doctrine->flush();
 
             return new JsonResponse($this->doResponse->doResponse('updated_successfully'));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage(), 400));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage(), 400);
         }
     }
 
@@ -130,7 +130,7 @@ final class MachineController extends AbstractController
     {
         $machine = $this->doctrine->getRepository(Machine::class)->find($id);
         if (!$machine) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Machine not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Machine not found', 404);
         }
 
         $this->doctrine->remove($machine);
@@ -152,3 +152,4 @@ final class MachineController extends AbstractController
         return $machine;
     }
 }
+

@@ -50,7 +50,7 @@ final class SelectionController extends AbstractController
         if ($id) {
             $items = [$repo->find($id)];
             if (!$items[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('Selection not found', 404));
+                return $this->doResponse->doErrorJsonResponse('Selection not found', 404);
             }
         } else {
             $items = $repo->findBy([], ['name' => 'ASC']);
@@ -76,7 +76,7 @@ final class SelectionController extends AbstractController
         if ($id) {
             $selection = $selectionRepository->find($id);
             if (!$selection) {
-                return new JsonResponse($this->doResponse->doErrorResponse('Selection not found', 404));
+                return $this->doResponse->doErrorJsonResponse('Selection not found', 404);
             }
 
             $availableBatches = [];
@@ -124,7 +124,7 @@ final class SelectionController extends AbstractController
             $errors = $validator->validate($selection);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($selection);
@@ -133,7 +133,7 @@ final class SelectionController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($selection, 'selection_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -147,7 +147,7 @@ final class SelectionController extends AbstractController
         $data = $request->toArray();
         $selection = $this->doctrine->getRepository(Selection::class)->find($id);
         if (!$selection) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Selection not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Selection not found', 404);
         }
 
         try {
@@ -156,7 +156,7 @@ final class SelectionController extends AbstractController
             $errors = $validator->validate($selection);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($selection);
@@ -165,7 +165,7 @@ final class SelectionController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($selection, 'selection_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -174,7 +174,7 @@ final class SelectionController extends AbstractController
     {
         $selection = $this->doctrine->getRepository(Selection::class)->find($id);
         if (!$selection) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Selection not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Selection not found', 404);
         }
 
         $this->doctrine->remove($selection);
@@ -183,3 +183,4 @@ final class SelectionController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
     }
 }
+

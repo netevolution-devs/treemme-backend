@@ -69,7 +69,7 @@ final class BatchDataController extends AbstractController
         if ($id) {
             $batchData = [$batchDataRepository->find($id)];
             if (!$batchData[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('BatchData not found', 404));
+                return $this->doResponse->doErrorJsonResponse('BatchData not found', 404);
             }
         } else {
             $batchData = $batchDataRepository->findAll();
@@ -103,7 +103,7 @@ final class BatchDataController extends AbstractController
             $errors = $validator->validate($batchData);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $em = $this->doctrine;
@@ -114,7 +114,7 @@ final class BatchDataController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -131,7 +131,7 @@ final class BatchDataController extends AbstractController
         $batchData = $this->doctrine->getRepository(BatchData::class)->find($id);
 
         if (!$batchData) {
-            return new JsonResponse($this->doResponse->doErrorResponse('BatchData not found', 404));
+            return $this->doResponse->doErrorJsonResponse('BatchData not found', 404);
         }
 
         try {
@@ -145,7 +145,7 @@ final class BatchDataController extends AbstractController
             $errors = $validator->validate($batchData);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($batchData);
@@ -154,7 +154,7 @@ final class BatchDataController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($batchData, 'batch_data_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -165,7 +165,7 @@ final class BatchDataController extends AbstractController
     {
         $batchData = $this->doctrine->getRepository(BatchData::class)->find($id);
         if (!$batchData) {
-            return new JsonResponse($this->doResponse->doErrorResponse('BatchData not found', 404));
+            return $this->doResponse->doErrorJsonResponse('BatchData not found', 404);
         }
 
         $this->doctrine->remove($batchData);
@@ -304,3 +304,4 @@ final class BatchDataController extends AbstractController
         return $batchData;
     }
 }
+

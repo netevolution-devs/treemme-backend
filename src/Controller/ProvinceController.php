@@ -49,7 +49,7 @@ final class ProvinceController extends AbstractController
         if ($id) {
             $items = [$repo->find($id)];
             if (!$items[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('Province not found', 404));
+                return $this->doResponse->doErrorJsonResponse('Province not found', 404);
             }
         } else {
             $items = $repo->findBy([], ['name' => 'ASC']);
@@ -78,7 +78,7 @@ final class ProvinceController extends AbstractController
             $errors = $validator->validate($province);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($province);
@@ -87,7 +87,7 @@ final class ProvinceController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($province, 'province_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -101,7 +101,7 @@ final class ProvinceController extends AbstractController
         $data = $request->toArray();
         $province = $this->doctrine->getRepository(Province::class)->find($id);
         if (!$province) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Province not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Province not found', 404);
         }
 
         try {
@@ -110,7 +110,7 @@ final class ProvinceController extends AbstractController
             $errors = $validator->validate($province);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($province);
@@ -119,7 +119,7 @@ final class ProvinceController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($province, 'province_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -128,7 +128,7 @@ final class ProvinceController extends AbstractController
     {
         $province = $this->doctrine->getRepository(Province::class)->find($id);
         if (!$province) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Province not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Province not found', 404);
         }
 
         $this->doctrine->remove($province);
@@ -137,3 +137,4 @@ final class ProvinceController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
     }
 }
+

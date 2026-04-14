@@ -58,7 +58,7 @@ final class DdtRowController extends AbstractController
         if ($id) {
             $ddtRow = $ddtRowRepository->find($id);
             if (!$ddtRow) {
-                return new JsonResponse($this->doResponse->doErrorResponse('Riga DDT non trovata', 404));
+                return $this->doResponse->doErrorJsonResponse('Riga DDT non trovata', 404);
             }
             $results = $this->groupSerializer->serializeGroup([$ddtRow], 'ddt_row_detail');
             return new JsonResponse($this->doResponse->doResponse($results[0]));
@@ -163,12 +163,12 @@ final class DdtRowController extends AbstractController
             $this->handleRelations($ddtRow, $data);
             $this->createMethodsByInput->createMethods($ddtRow, $data);
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage(), 400));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage(), 400);
         }
 
         $errors = $validator->validate($ddtRow);
         if (count($errors) > 0) {
-            return new JsonResponse($this->doResponse->doErrorResponse($this->validatorOutputFormatter->formatOutput($errors), 400));
+            return $this->doResponse->doErrorJsonResponse($this->validatorOutputFormatter->formatOutput($errors), 400);
         }
 
         $this->calculatePrices($ddtRow);
@@ -223,7 +223,7 @@ final class DdtRowController extends AbstractController
     {
         $ddtRow = $this->doctrine->getRepository(DdtRow::class)->find($id);
         if (!$ddtRow) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Riga DDT non trovata', 404));
+            return $this->doResponse->doErrorJsonResponse('Riga DDT non trovata', 404);
         }
 
         $oldPieces = $ddtRow->getPieces();
@@ -236,12 +236,12 @@ final class DdtRowController extends AbstractController
             $this->handleRelations($ddtRow, $data);
             $this->createMethodsByInput->createMethods($ddtRow, $data);
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage(), 400));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage(), 400);
         }
 
         $errors = $validator->validate($ddtRow);
         if (count($errors) > 0) {
-            return new JsonResponse($this->doResponse->doErrorResponse($this->validatorOutputFormatter->formatOutput($errors), 400));
+            return $this->doResponse->doErrorJsonResponse($this->validatorOutputFormatter->formatOutput($errors), 400);
         }
 
         $this->calculatePrices($ddtRow);
@@ -305,7 +305,7 @@ final class DdtRowController extends AbstractController
     {
         $ddtRow = $this->doctrine->getRepository(DdtRow::class)->find($id);
         if (!$ddtRow) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Riga DDT non trovata', 404));
+            return $this->doResponse->doErrorJsonResponse('Riga DDT non trovata', 404);
         }
 
         $batch = $ddtRow->getBatch();
@@ -338,12 +338,12 @@ final class DdtRowController extends AbstractController
     {
         $ddtRow = $this->doctrine->getRepository(DdtRow::class)->find($id);
         if (!$ddtRow) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Riga DDT non trovata', 404));
+            return $this->doResponse->doErrorJsonResponse('Riga DDT non trovata', 404);
         }
 
         $batch = $ddtRow->getBatch();
         if (!$batch) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Lotto non trovato per questa riga', 404));
+            return $this->doResponse->doErrorJsonResponse('Lotto non trovato per questa riga', 404);
         }
 
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
@@ -360,7 +360,7 @@ final class DdtRowController extends AbstractController
             }
         }
         if (!$reason) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Causale di magazzino "Carico" non trovata', 400));
+            return $this->doResponse->doErrorJsonResponse('Causale di magazzino "Carico" non trovata', 400);
         }
 
         $warehouseMovement = new WarehouseMovement();
@@ -448,12 +448,12 @@ final class DdtRowController extends AbstractController
     {
         $ddtRow = $this->doctrine->getRepository(DdtRow::class)->find($id);
         if (!$ddtRow) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Riga DDT non trovata', 404));
+            return $this->doResponse->doErrorJsonResponse('Riga DDT non trovata', 404);
         }
 
         $batch = $ddtRow->getBatch();
         if (!$batch) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Lotto non trovato per questa riga', 404));
+            return $this->doResponse->doErrorJsonResponse('Lotto non trovato per questa riga', 404);
         }
 
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
@@ -471,7 +471,7 @@ final class DdtRowController extends AbstractController
         }
 
         if (!$reasonTransfer) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Causale di magazzino "Carico" non trovata', 400));
+            return $this->doResponse->doErrorJsonResponse('Causale di magazzino "Carico" non trovata', 400);
         }
 
         $warehouseMovement = new WarehouseMovement();
@@ -583,3 +583,4 @@ final class DdtRowController extends AbstractController
         }
     }
 }
+

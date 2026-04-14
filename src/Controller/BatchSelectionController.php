@@ -93,7 +93,7 @@ class BatchSelectionController extends AbstractController
             $errors = $validator->validate($batchSelection);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($batchSelection);
@@ -103,7 +103,7 @@ class BatchSelectionController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -128,3 +128,4 @@ class BatchSelectionController extends AbstractController
         return $batchSelection;
     }
 }
+

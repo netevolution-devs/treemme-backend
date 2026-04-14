@@ -50,7 +50,7 @@ final class MaterialBillController extends AbstractController
         if ($id) {
             $bill = [$repository->find($id)];
             if (!$bill[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('MaterialBill not found', 404));
+                return $this->doResponse->doErrorJsonResponse('MaterialBill not found', 404);
             }
         } else {
             $bill = $repository->findBy([], ['id' => 'DESC']);
@@ -85,7 +85,7 @@ final class MaterialBillController extends AbstractController
             $errors = $validator->validate($bill);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($bill);
@@ -95,7 +95,7 @@ final class MaterialBillController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -112,7 +112,7 @@ final class MaterialBillController extends AbstractController
         $bill = $this->doctrine->getRepository(MaterialBill::class)->find($id);
 
         if (!$bill) {
-            return new JsonResponse($this->doResponse->doErrorResponse('MaterialBill not found', 404));
+            return $this->doResponse->doErrorJsonResponse('MaterialBill not found', 404);
         }
 
         try {
@@ -123,7 +123,7 @@ final class MaterialBillController extends AbstractController
             $errors = $validator->validate($bill);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($bill);
@@ -132,7 +132,7 @@ final class MaterialBillController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($bill, 'material_bill_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -143,7 +143,7 @@ final class MaterialBillController extends AbstractController
     {
         $bill = $this->doctrine->getRepository(MaterialBill::class)->find($id);
         if (!$bill) {
-            return new JsonResponse($this->doResponse->doErrorResponse('MaterialBill not found', 404));
+            return $this->doResponse->doErrorJsonResponse('MaterialBill not found', 404);
         }
 
         $this->doctrine->remove($bill);
@@ -165,3 +165,4 @@ final class MaterialBillController extends AbstractController
         return $bill;
     }
 }
+

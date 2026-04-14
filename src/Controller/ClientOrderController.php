@@ -59,7 +59,7 @@ final class ClientOrderController extends AbstractController
         if ($id) {
             $clientOrder = [$clientOrderRepository->find($id)];
             if (!$clientOrder[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('ClientOrder not found', 404));
+                return $this->doResponse->doErrorJsonResponse('ClientOrder not found', 404);
             }
         } else {
             $clientOrderNumber = $request->query->get('order_number');
@@ -89,7 +89,7 @@ final class ClientOrderController extends AbstractController
                 if ($clientId) {
                     $message .= ($clientOrderNumber ? ' e' : '') . ' per il cliente specificato';
                 }
-                return new JsonResponse($this->doResponse->doErrorResponse($message, 404));
+                return $this->doResponse->doErrorJsonResponse($message, 404);
             }
         }
         $results = $this->groupSerializer->serializeGroup($clientOrder, $id ? 'client_order_detail' : 'client_order_list');
@@ -109,7 +109,7 @@ final class ClientOrderController extends AbstractController
         $order = $this->doctrine->getRepository(ClientOrder::class)->find($id);
 
         if (!$order) {
-            return new JsonResponse($this->doResponse->doErrorResponse('ClientOrder not found', 404));
+            return $this->doResponse->doErrorJsonResponse('ClientOrder not found', 404);
         }
 
         $pdfContent = $this->pdfGenerator->generatePdf('print/client_order_confirmation_pdf.html.twig', [
@@ -145,7 +145,7 @@ final class ClientOrderController extends AbstractController
             $errors = $validator->validate($clientOrder);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $em = $this->doctrine;
@@ -156,7 +156,7 @@ final class ClientOrderController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -173,7 +173,7 @@ final class ClientOrderController extends AbstractController
         $clientOrder = $this->doctrine->getRepository(ClientOrder::class)->find($id);
 
         if (!$clientOrder) {
-            return new JsonResponse($this->doResponse->doErrorResponse('ClientOrder not found', 404));
+            return $this->doResponse->doErrorJsonResponse('ClientOrder not found', 404);
         }
 
         try {
@@ -183,7 +183,7 @@ final class ClientOrderController extends AbstractController
             $errors = $validator->validate($clientOrder);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($clientOrder);
@@ -192,7 +192,7 @@ final class ClientOrderController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($clientOrder, 'client_order_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -203,7 +203,7 @@ final class ClientOrderController extends AbstractController
     {
         $clientOrder = $this->doctrine->getRepository(ClientOrder::class)->find($id);
         if (!$clientOrder) {
-            return new JsonResponse($this->doResponse->doErrorResponse('ClientOrder not found', 404));
+            return $this->doResponse->doErrorJsonResponse('ClientOrder not found', 404);
         }
 
         $this->doctrine->remove($clientOrder);
@@ -264,3 +264,4 @@ final class ClientOrderController extends AbstractController
         return $clientOrder;
     }
 }
+
