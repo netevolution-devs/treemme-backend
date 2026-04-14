@@ -147,29 +147,6 @@ final class BatchController extends AbstractController
         ]);
     }
 
-    #[Route('/batch/{id}/batch-data',
-        name: 'get_batch_batch_data',
-        requirements: ['id' => '\d+'],
-        methods: ['GET'])]
-    public function getBatchData(int $id): JsonResponse
-    {
-        $batch = $this->doctrine->getRepository(Batch::class)->find($id);
-
-        if (!$batch) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Batch not found', 404));
-        }
-
-        $batchData = $batch->getBatchData()->first() ?? null;
-
-        if (!$batchData) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Batch data not found', 404));
-        }
-
-        $results = $this->groupSerializer->serializeGroup($batchData, 'batch_data_detail');
-
-        return new JsonResponse($this->doResponse->doResponse($results));
-    }
-
     #[Route('/batch/{id}/subcontractor-pdf',
         name: 'get_batch_subcontractor_pdf',
         requirements: ['id' => '\d+'],

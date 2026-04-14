@@ -169,6 +169,7 @@ class Batch
      * @var Collection<int, BatchData>
      */
     #[ORM\OneToMany(mappedBy: 'batch', targetEntity: BatchData::class, orphanRemoval: true)]
+    #[Groups(['batch_detail'])]
     private Collection $batchData;
 
     public function __construct()
