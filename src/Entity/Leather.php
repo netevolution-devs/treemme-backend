@@ -22,7 +22,7 @@ class Leather
     private ?string $code = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['leather_list', 'leather_detail', 'batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['leather_list', 'leather_detail', 'batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'batch_data_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(nullable: true)]

@@ -85,7 +85,7 @@ class BatchData
 
     #[ORM\ManyToOne(inversedBy: 'batchData')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['batch_data_list', 'batch_data_detail'])]
+    #[Groups(['batch_data_detail'])]
     private ?Batch $batch = null;
 
     #[ORM\ManyToOne(inversedBy: 'batchData')]

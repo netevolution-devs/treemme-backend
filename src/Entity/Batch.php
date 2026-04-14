@@ -17,11 +17,11 @@ class Batch
     #[ORM\GeneratedValue]
     #[ORM\Column]
     #[Groups(['batch_list', 'batch_detail', 'batch_type_detail', 'batch_composition_list', 'measurement_unit_detail',
-        'user_detail', 'production_list', 'production_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+        'user_detail', 'production_list', 'production_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'batch_data_detail'])]
     private ?int $id = null;
 
     #[ORM\Column]
-    #[Groups(['batch_list', 'batch_detail'])]
+    #[Groups(['batch_list', 'batch_detail',])]
     private ?bool $completed = null;
 
     #[ORM\Column]
@@ -33,7 +33,8 @@ class Batch
     private ?BatchType $batch_type = null;
 
     #[ORM\Column(length: 50)]
-    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'batch_composition_list'])]
+    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'ddt_detail', 'ddt_row_list',
+        'ddt_row_detail', 'batch_composition_list', 'batch_data_detail'])]
     private ?string $batch_code = null;
 
     #[ORM\Column(nullable: true)]
@@ -41,15 +42,15 @@ class Batch
     private ?\DateTime $batch_date = null;
 
     #[ORM\Column]
-    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail'])]
+    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'batch_data_detail'])]
     private ?int $pieces = null;
 
     #[ORM\ManyToOne(inversedBy: 'batches')]
-    #[Groups(['batch_list', 'batch_detail'])]
+    #[Groups(['batch_list', 'batch_detail', 'batch_data_detail'])]
     private ?MeasurementUnit $measurement_unit = null;
 
     #[ORM\Column]
-    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail'])]
+    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'batch_data_detail'])]
     private ?float $quantity = null;
 
     #[ORM\Column]
@@ -124,7 +125,7 @@ class Batch
 
     #[ORM\ManyToOne(inversedBy: 'batches')]
     #[ORM\JoinColumn(nullable: true)]
-    #[Groups(['batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'batch_data_detail'])]
     private ?Leather $leather = null;
 
     /**
