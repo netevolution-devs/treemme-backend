@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\KernelInterface;
 
@@ -108,6 +109,12 @@ class DoResponseService
         }
 
         return $result;
+    }
+
+    public function doErrorJsonResponse(
+        string|array $error_message, int $status_code = 400, string $error_file = "", string $status = 'ko'): JsonResponse
+    {
+        return new JsonResponse($this->doErrorResponse($error_message, $error_file, $status, $status_code), $status_code);
     }
 
 }

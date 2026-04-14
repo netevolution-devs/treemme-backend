@@ -50,7 +50,7 @@ final class ProductCategoryController extends AbstractController
         if ($id) {
             $productCategory = [$repository->find($id)];
             if (!$productCategory[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('ProductCategory not found', 404));
+                return $this->doResponse->doErrorJsonResponse('ProductCategory not found', 404);
             }
         } else {
             $productCategory = $repository->findBy([], ['name' => 'ASC']);
@@ -80,7 +80,7 @@ final class ProductCategoryController extends AbstractController
             $errors = $validator->validate($productCategory);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($productCategory);
@@ -90,7 +90,7 @@ final class ProductCategoryController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -107,7 +107,7 @@ final class ProductCategoryController extends AbstractController
         $productCategory = $this->doctrine->getRepository(ProductCategory::class)->find($id);
 
         if (!$productCategory) {
-            return new JsonResponse($this->doResponse->doErrorResponse('ProductCategory not found', 404));
+            return $this->doResponse->doErrorJsonResponse('ProductCategory not found', 404);
         }
 
         try {
@@ -116,7 +116,7 @@ final class ProductCategoryController extends AbstractController
             $errors = $validator->validate($productCategory);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($productCategory);
@@ -125,7 +125,7 @@ final class ProductCategoryController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($productCategory, 'product_category_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -136,7 +136,7 @@ final class ProductCategoryController extends AbstractController
     {
         $productCategory = $this->doctrine->getRepository(ProductCategory::class)->find($id);
         if (!$productCategory) {
-            return new JsonResponse($this->doResponse->doErrorResponse('ProductCategory not found', 404));
+            return $this->doResponse->doErrorJsonResponse('ProductCategory not found', 404);
         }
 
         $this->doctrine->remove($productCategory);
@@ -145,3 +145,4 @@ final class ProductCategoryController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
     }
 }
+

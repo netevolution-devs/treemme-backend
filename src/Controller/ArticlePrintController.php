@@ -40,7 +40,7 @@ class ArticlePrintController extends AbstractController
         $print = $this->articlePrintRepository->find($id);
 
         if (!$print) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Stampa articolo non trovata', status_code: 404));
+            return $this->doResponse->doErrorJsonResponse('Stampa articolo non trovata', status_code: 404);
         }
 
         $results = $this->groupSerializer->serializeGroup($print, 'article_print_detail');
@@ -58,13 +58,13 @@ class ArticlePrintController extends AbstractController
         try {
             $this->mapDataToEntity($print, $data);
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
 
         $errors = $validator->validate($print);
         if (count($errors) > 0) {
             $formattedErrors = $this->validatorOutputFormatter->formatErrors($errors);
-            return new JsonResponse($this->doResponse->doErrorResponse($formattedErrors));
+            return $this->doResponse->doErrorJsonResponse($formattedErrors);
         }
 
         $this->entityManager->persist($print);
@@ -80,7 +80,7 @@ class ArticlePrintController extends AbstractController
         $print = $this->articlePrintRepository->find($id);
 
         if (!$print) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Stampa articolo non trovata', status_code: 404));
+            return $this->doResponse->doErrorJsonResponse('Stampa articolo non trovata', status_code: 404);
         }
 
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
@@ -88,13 +88,13 @@ class ArticlePrintController extends AbstractController
         try {
             $this->mapDataToEntity($print, $data);
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
 
         $errors = $validator->validate($print);
         if (count($errors) > 0) {
             $formattedErrors = $this->validatorOutputFormatter->formatErrors($errors);
-            return new JsonResponse($this->doResponse->doErrorResponse($formattedErrors));
+            return $this->doResponse->doErrorJsonResponse($formattedErrors);
         }
 
         $this->entityManager->flush();
@@ -109,7 +109,7 @@ class ArticlePrintController extends AbstractController
         $print = $this->articlePrintRepository->find($id);
 
         if (!$print) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Stampa articolo non trovata', status_code: 404));
+            return $this->doResponse->doErrorJsonResponse('Stampa articolo non trovata', status_code: 404);
         }
 
         $this->entityManager->remove($print);
@@ -127,3 +127,4 @@ class ArticlePrintController extends AbstractController
         $this->createMethodsByInput->createMethods($print, $data);
     }
 }
+

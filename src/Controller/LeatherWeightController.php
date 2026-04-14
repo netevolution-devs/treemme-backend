@@ -49,7 +49,7 @@ final class LeatherWeightController extends AbstractController
         if ($id) {
             $leatherWeight = [$leatherWeightRepository->find($id)];
             if (!$leatherWeight[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('LeatherWeight not found', 404));
+                return $this->doResponse->doErrorJsonResponse('LeatherWeight not found', 404);
             }
         } else {
             $leatherWeight = $leatherWeightRepository->findBy([], ['name' => 'ASC']);
@@ -79,7 +79,7 @@ final class LeatherWeightController extends AbstractController
             $errors = $validator->validate($leatherWeight);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $em = $this->doctrine;
@@ -90,7 +90,7 @@ final class LeatherWeightController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -107,7 +107,7 @@ final class LeatherWeightController extends AbstractController
         $leatherWeight = $this->doctrine->getRepository(LeatherWeight::class)->find($id);
 
         if (!$leatherWeight) {
-            return new JsonResponse($this->doResponse->doErrorResponse('LeatherWeight not found', 404));
+            return $this->doResponse->doErrorJsonResponse('LeatherWeight not found', 404);
         }
 
         try {
@@ -116,7 +116,7 @@ final class LeatherWeightController extends AbstractController
             $errors = $validator->validate($leatherWeight);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($leatherWeight);
@@ -125,7 +125,7 @@ final class LeatherWeightController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($leatherWeight, 'leather_weight_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -136,7 +136,7 @@ final class LeatherWeightController extends AbstractController
     {
         $leatherWeight = $this->doctrine->getRepository(LeatherWeight::class)->find($id);
         if (!$leatherWeight) {
-            return new JsonResponse($this->doResponse->doErrorResponse('LeatherWeight not found', 404));
+            return $this->doResponse->doErrorJsonResponse('LeatherWeight not found', 404);
         }
 
         $this->doctrine->remove($leatherWeight);
@@ -145,3 +145,4 @@ final class LeatherWeightController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
     }
 }
+

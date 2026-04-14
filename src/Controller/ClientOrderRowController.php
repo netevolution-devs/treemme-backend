@@ -55,7 +55,7 @@ final class ClientOrderRowController extends AbstractController
         if ($id) {
             $clientOrderRow = [$clientOrderRowRepository->find($id)];
             if (!$clientOrderRow[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('ClientOrderRow not found', 404));
+                return $this->doResponse->doErrorJsonResponse('ClientOrderRow not found', 404);
             }
         } else {
             $clientOrderRow = $clientOrderRowRepository->findBy([], ['id' => 'ASC']);
@@ -88,7 +88,7 @@ final class ClientOrderRowController extends AbstractController
             $errors = $validator->validate($clientOrderRow);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $em = $this->doctrine;
@@ -99,7 +99,7 @@ final class ClientOrderRowController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -116,7 +116,7 @@ final class ClientOrderRowController extends AbstractController
         $clientOrderRow = $this->doctrine->getRepository(ClientOrderRow::class)->find($id);
 
         if (!$clientOrderRow) {
-            return new JsonResponse($this->doResponse->doErrorResponse('ClientOrderRow not found', 404));
+            return $this->doResponse->doErrorJsonResponse('ClientOrderRow not found', 404);
         }
 
         try {
@@ -128,7 +128,7 @@ final class ClientOrderRowController extends AbstractController
             $errors = $validator->validate($clientOrderRow);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($clientOrderRow);
@@ -137,7 +137,7 @@ final class ClientOrderRowController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($clientOrderRow, 'client_order_row_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -148,7 +148,7 @@ final class ClientOrderRowController extends AbstractController
     {
         $clientOrderRow = $this->doctrine->getRepository(ClientOrderRow::class)->find($id);
         if (!$clientOrderRow) {
-            return new JsonResponse($this->doResponse->doErrorResponse('ClientOrderRow not found', 404));
+            return $this->doResponse->doErrorJsonResponse('ClientOrderRow not found', 404);
         }
 
         $this->doctrine->remove($clientOrderRow);
@@ -229,3 +229,4 @@ final class ClientOrderRowController extends AbstractController
         $clientOrderRow->setTotalCurrencyPrice($totalCurrencyPrice);
     }
 }
+

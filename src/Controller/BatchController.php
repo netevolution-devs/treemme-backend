@@ -76,7 +76,7 @@ final class BatchController extends AbstractController
         if ($id) {
             $batch = [$batchRepository->find($id)];
             if (!$batch[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('Batch not found', 404));
+                return $this->doResponse->doErrorJsonResponse('Batch not found', 404);
             }
         } else {
             $code = $request->query->get('code');
@@ -90,7 +90,7 @@ final class BatchController extends AbstractController
                     ->getQuery()
                     ->getResult();
                 if (empty($batch)) {
-                    return new JsonResponse($this->doResponse->doErrorResponse('Nessun batch trovato contenente il codice ' . $code . ' (ignorando zeri)', 404));
+                    return $this->doResponse->doErrorJsonResponse('Nessun batch trovato contenente il codice ' . $code . ' (ignorando zeri)', 404);
                 }
             } else if ($request->query->get('type') || $request->query->get('year')) {
                 $type = $request->query->get('type');
@@ -135,7 +135,7 @@ final class BatchController extends AbstractController
         $batch = $this->doctrine->getRepository(Batch::class)->find($id);
 
         if (!$batch) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Batch not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Batch not found', 404);
         }
 
         $pdfContent = $this->pdfGenerator->generatePdf('print/batch_pdf.html.twig', [
@@ -157,7 +157,7 @@ final class BatchController extends AbstractController
         $batch = $this->doctrine->getRepository(Batch::class)->find($id);
 
         if (!$batch) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Batch not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Batch not found', 404);
         }
 
         $full = $request->query->get('full', 0);
@@ -248,11 +248,11 @@ final class BatchController extends AbstractController
         }
 
         if (!isset($data['client_order_row_id'])) {
-            return new JsonResponse($this->doResponse->doErrorResponse('ID riga ordine mancante', 400));
+            return $this->doResponse->doErrorJsonResponse('ID riga ordine mancante', 400);
         }
 
         if (!isset($data['quantity']) || (float)$data['quantity'] <= 0) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Quantità non valida', 400));
+            return $this->doResponse->doErrorJsonResponse('Quantità non valida', 400);
         }
 
         try {
@@ -270,7 +270,7 @@ final class BatchController extends AbstractController
             $currentStock = (float)$orderRow->getQuantity();
 
             if ($currentStock < $requestedQuantity) {
-                return new JsonResponse($this->doResponse->doErrorResponse('Giacenza insufficiente sulla riga ordine. Disponibile: ' . $currentStock), 400);
+                return $this->doResponse->doErrorJsonResponse('Giacenza insufficiente sulla riga ordine. Disponibile: ' . $currentStock, 400);
             }
 
             $article = $orderRow->getArticle();
@@ -322,7 +322,7 @@ final class BatchController extends AbstractController
             $errors = $validator->validate($newBatch);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($newBatch);
@@ -397,7 +397,7 @@ final class BatchController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -411,23 +411,23 @@ final class BatchController extends AbstractController
         $piecesToRework = isset($data['pieces']) ? (int)$data['pieces'] : null;
 
         if ($piecesToRework === null || $piecesToRework <= 0) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Numero di pelli non valido'), 400);
+            return $this->doResponse->doErrorJsonResponse('Numero di pelli non valido', 400);
         }
 
         $batchRepository = $this->doctrine->getRepository(Batch::class);
         $fatherBatch = $batchRepository->findOneBy(['batch_code' => $batchCode]);
 
         if (!$fatherBatch) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Batch not found', 404), 404);
+            return $this->doResponse->doErrorJsonResponse('Batch not found', 404, 404);
         }
 
         if (!$fatherBatch->getBatchType() || ($fatherBatch->getBatchType()->getName() !== 'Partita' && $fatherBatch->getBatchType()->getName() !== 'Lotto')) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Solo i lotti di tipo Partita o Lotto possono essere rinverditi'), 400);
+            return $this->doResponse->doErrorJsonResponse('Solo i lotti di tipo Partita o Lotto possono essere rinverditi', 400);
         }
 
         $fatherBatchCode = $fatherBatch->getBatchCode();
         if (str_starts_with($fatherBatchCode, 'SF') || str_starts_with($fatherBatchCode, 'SC')) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Un lotto spaccato (SF/SC) non può essere rinverdito'));
+            return $this->doResponse->doErrorJsonResponse('Un lotto spaccato (SF/SC) non può essere rinverdito');
         }
 
         $availablePieces = (float)($fatherBatch->getStockItems() ?? 0);
@@ -436,7 +436,7 @@ final class BatchController extends AbstractController
         $newQuantity = ($fatherBatch->getQuantity() / $fatherBatch->getPieces()) * $piecesToRework;
 
         if ($piecesToRework > $availablePieces) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Numero di pezzi superiore alla disponibilità (' . $availablePieces . ')'), 400);
+            return $this->doResponse->doErrorJsonResponse('Numero di pezzi superiore alla disponibilità (' . $availablePieces . ')', 400);
         }
 
         $newBatch = $batchRepository->findOneBy(['batch_code' => 'R' . $batchCode]);
@@ -539,13 +539,13 @@ final class BatchController extends AbstractController
 
         $pieces = isset($data['pieces']) ? (float)$data['pieces'] : null;
         if ($pieces === null || $pieces <= 0) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Numero di pezzi non valido'), 400);
+            return $this->doResponse->doErrorJsonResponse('Numero di pezzi non valido', 400);
         }
 
         $batchRepository = $this->doctrine->getRepository(Batch::class);
         $reworkedBatch = $batchRepository->findOneBy(['batch_code' => $batchCode]);
         if (!$reworkedBatch) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Lotto non trovato', 404), 404);
+            return $this->doResponse->doErrorJsonResponse('Lotto non trovato', 404, 404);
         }
 
         $baseCode = (strlen($batchCode) > 1 && $batchCode[0] === 'R') ? substr($batchCode, 1) : $batchCode;
@@ -558,7 +558,7 @@ final class BatchController extends AbstractController
         $calculatedQuantity = ($reworkedBatch->getQuantity() / $reworkedBatch->getPieces()) * $pieces ;
 
         if ($pieces > $availablePieces) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Numero di pezzi superiore alla disponibilità (' . $availablePieces . ')'), 400);
+            return $this->doResponse->doErrorJsonResponse('Numero di pezzi superiore alla disponibilità (' . $availablePieces . ')', 400);
         }
 
         $reworkedBatch->setStockItems($availablePieces - $pieces);
@@ -677,7 +677,7 @@ final class BatchController extends AbstractController
             ->getQuery()
             ->getOneOrNullResult();
         if (!$inReason) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Causale "Carico" non trovata'), 400);
+            return $this->doResponse->doErrorJsonResponse('Causale "Carico" non trovata', 400);
         }
 
         $note = 'Spaccatura lotto ' . $batchCode;
@@ -847,7 +847,7 @@ final class BatchController extends AbstractController
             $errors = $validator->validate($batch);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($batch);
@@ -863,7 +863,7 @@ final class BatchController extends AbstractController
             $inReason = $reasonRepo->findOneBy(['name' => 'Carico']);
 
             if(!$inReason) {
-                return new JsonResponse($this->doResponse->doErrorResponse('Causale "Carico" non trovata'), 400);
+                return $this->doResponse->doErrorJsonResponse('Causale "Carico" non trovata', 400);
             }
 
             if ($inReason) {
@@ -887,7 +887,7 @@ final class BatchController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -904,7 +904,7 @@ final class BatchController extends AbstractController
         $batch = $this->doctrine->getRepository(Batch::class)->find($id);
 
         if (!$batch) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Batch not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Batch not found', 404);
         }
 
         try {
@@ -972,7 +972,7 @@ final class BatchController extends AbstractController
             $errors = $validator->validate($batch);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($batch);
@@ -1035,7 +1035,7 @@ final class BatchController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($batch, 'batch_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -1046,7 +1046,7 @@ final class BatchController extends AbstractController
     {
         $batch = $this->doctrine->getRepository(Batch::class)->find($id);
         if (!$batch) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Batch not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Batch not found', 404);
         }
 
         $this->doctrine->remove($batch);
@@ -1242,3 +1242,5 @@ final class BatchController extends AbstractController
         return $newLeather;
     }
 }
+
+

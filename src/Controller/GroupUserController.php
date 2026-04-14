@@ -51,7 +51,7 @@ final class GroupUserController extends AbstractController
         if ($id) {
             $item = [$repository->find($id)];
             if (!$item[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('GroupUser not found', 404));
+                return $this->doResponse->doErrorJsonResponse('GroupUser not found', 404);
             }
         } else {
             $item = $repository->findBy([], ['id' => 'ASC']);
@@ -86,7 +86,7 @@ final class GroupUserController extends AbstractController
             $errors = $validator->validate($item);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($item);
@@ -96,7 +96,7 @@ final class GroupUserController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -113,7 +113,7 @@ final class GroupUserController extends AbstractController
         $item = $this->doctrine->getRepository(GroupUser::class)->find($id);
 
         if (!$item) {
-            return new JsonResponse($this->doResponse->doErrorResponse('GroupUser not found', 404));
+            return $this->doResponse->doErrorJsonResponse('GroupUser not found', 404);
         }
 
         try {
@@ -124,7 +124,7 @@ final class GroupUserController extends AbstractController
             $errors = $validator->validate($item);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($item);
@@ -133,7 +133,7 @@ final class GroupUserController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($item, 'group_user_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -144,7 +144,7 @@ final class GroupUserController extends AbstractController
     {
         $item = $this->doctrine->getRepository(GroupUser::class)->find($id);
         if (!$item) {
-            return new JsonResponse($this->doResponse->doErrorResponse('GroupUser not found', 404));
+            return $this->doResponse->doErrorJsonResponse('GroupUser not found', 404);
         }
 
         $this->doctrine->remove($item);
@@ -174,3 +174,4 @@ final class GroupUserController extends AbstractController
         return $item;
     }
 }
+

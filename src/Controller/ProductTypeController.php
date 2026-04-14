@@ -49,7 +49,7 @@ final class ProductTypeController extends AbstractController
         if ($id) {
             $type = [$repository->find($id)];
             if (!$type[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('ProductType not found', 404));
+                return $this->doResponse->doErrorJsonResponse('ProductType not found', 404);
             }
         } else {
             $type = $repository->findBy([], ['name' => 'ASC']);
@@ -83,7 +83,7 @@ final class ProductTypeController extends AbstractController
             $errors = $validator->validate($type);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($type);
@@ -93,7 +93,7 @@ final class ProductTypeController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -110,7 +110,7 @@ final class ProductTypeController extends AbstractController
         $type = $this->doctrine->getRepository(ProductType::class)->find($id);
 
         if (!$type) {
-            return new JsonResponse($this->doResponse->doErrorResponse('ProductType not found', 404));
+            return $this->doResponse->doErrorJsonResponse('ProductType not found', 404);
         }
 
         try {
@@ -120,7 +120,7 @@ final class ProductTypeController extends AbstractController
             $errors = $validator->validate($type);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($type);
@@ -129,7 +129,7 @@ final class ProductTypeController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($type, 'product_type_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -140,7 +140,7 @@ final class ProductTypeController extends AbstractController
     {
         $type = $this->doctrine->getRepository(ProductType::class)->find($id);
         if (!$type) {
-            return new JsonResponse($this->doResponse->doErrorResponse('ProductType not found', 404));
+            return $this->doResponse->doErrorJsonResponse('ProductType not found', 404);
         }
 
         $this->doctrine->remove($type);
@@ -149,3 +149,4 @@ final class ProductTypeController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
     }
 }
+

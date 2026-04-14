@@ -40,7 +40,7 @@ class ArticleClassController extends AbstractController
         $class = $this->articleClassRepository->find($id);
 
         if (!$class) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Classe articolo non trovata', status_code: 404));
+            return $this->doResponse->doErrorJsonResponse('Classe articolo non trovata', status_code: 404);
         }
 
         $results = $this->groupSerializer->serializeGroup($class, 'article_class_detail');
@@ -58,13 +58,13 @@ class ArticleClassController extends AbstractController
         try {
             $this->mapDataToEntity($class, $data);
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
 
         $errors = $validator->validate($class);
         if (count($errors) > 0) {
             $formattedErrors = $this->validatorOutputFormatter->formatErrors($errors);
-            return new JsonResponse($this->doResponse->doErrorResponse($formattedErrors));
+            return $this->doResponse->doErrorJsonResponse($formattedErrors);
         }
 
         $this->entityManager->persist($class);
@@ -80,7 +80,7 @@ class ArticleClassController extends AbstractController
         $class = $this->articleClassRepository->find($id);
 
         if (!$class) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Classe articolo non trovata', status_code: 404));
+            return $this->doResponse->doErrorJsonResponse('Classe articolo non trovata', status_code: 404);
         }
 
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
@@ -88,13 +88,13 @@ class ArticleClassController extends AbstractController
         try {
             $this->mapDataToEntity($class, $data);
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
 
         $errors = $validator->validate($class);
         if (count($errors) > 0) {
             $formattedErrors = $this->validatorOutputFormatter->formatErrors($errors);
-            return new JsonResponse($this->doResponse->doErrorResponse($formattedErrors));
+            return $this->doResponse->doErrorJsonResponse($formattedErrors);
         }
 
         $this->entityManager->flush();
@@ -109,7 +109,7 @@ class ArticleClassController extends AbstractController
         $class = $this->articleClassRepository->find($id);
 
         if (!$class) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Classe articolo non trovata', status_code: 404));
+            return $this->doResponse->doErrorJsonResponse('Classe articolo non trovata', status_code: 404);
         }
 
         $this->entityManager->remove($class);
@@ -127,3 +127,4 @@ class ArticleClassController extends AbstractController
         $this->createMethodsByInput->createMethods($class, $data);
     }
 }
+
