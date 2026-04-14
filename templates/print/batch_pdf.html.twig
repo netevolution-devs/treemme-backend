@@ -90,6 +90,23 @@
             <span style="font-weight: bold;">Scortico:</span> {{ (batch.leather and batch.leather.flay) ? batch.leather.flay.name : 'N/A' }}
         </td>
     </tr>
+    {# Dati BatchData (KG LORDI, Pallets, Tara, KG NETTI) #}
+    {% set firstBatchData = batch.batchData|first %}
+    <tr style="font-size: 14px;">
+        <td colspan="4" style="padding: 0;">
+            <table style="width: 100%; border-collapse: collapse; border: none;">
+                <tr>
+                    <td style="border: none; border-right: 1px solid #000; padding: 3px; width: 25%;"><span class="bold">KG LORDI</span> {{ firstBatchData ? firstBatchData.foundedGrossWeight|number_format(2, ',', '.') : '' }}</td>
+                    <td style="border: none; border-right: 1px solid #000; padding: 3px; width: 25%;"><span class="bold">Pallets</span> {{ firstBatchData ? firstBatchData.palletNumber : '' }}</td>
+                    <td style="border: none; border-right: 1px solid #000; padding: 3px; width: 20%;"><span class="bold">Tara</span> {{ firstBatchData ? firstBatchData.palletWeight|number_format(2, ',', '.') : '' }}</td>
+                    <td style="border: none; padding: 3px; width: 30%;">
+                        <span class="bold">KG NETTI</span>
+                        <span style="float: right;" class="bold">{{ firstBatchData ? firstBatchData.foundedNetWeight|number_format(2, ',', '.') : '' }}</span>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
 </table>
 <br><br><br>
 <table class="info-table">
@@ -141,6 +158,23 @@
     <tr>
         <td colspan="4">
             <span style="font-weight: bold;">Scortico:</span> {{ (batch.leather and batch.leather.flay) ? batch.leather.flay.name : 'N/A' }}
+        </td>
+    </tr>
+    {# Dati BatchData (KG LORDI, Pallets, Tara, KG NETTI) #}
+    {% set firstBatchData = batch.batchData|first %}
+    <tr style="font-size: 14px;">
+        <td colspan="4" style="padding: 0;">
+            <table style="width: 100%; border-collapse: collapse; border: none;">
+                <tr>
+                    <td style="border: none; border-right: 1px solid #000; padding: 3px; width: 25%;"><span class="bold">KG LORDI</span> {{ firstBatchData ? firstBatchData.foundedGrossWeight|number_format(2, ',', '.') : '' }}</td>
+                    <td style="border: none; border-right: 1px solid #000; padding: 3px; width: 25%;"><span class="bold">Pallets</span> {{ firstBatchData ? firstBatchData.palletNumber : '' }}</td>
+                    <td style="border: none; border-right: 1px solid #000; padding: 3px; width: 20%;"><span class="bold">Tara</span> {{ firstBatchData ? firstBatchData.palletWeight|number_format(2, ',', '.') : '' }}</td>
+                    <td style="border: none; padding: 3px; width: 30%;">
+                        <span class="bold">KG NETTI</span>
+                        <span style="float: right;" class="bold">{{ firstBatchData ? firstBatchData.foundedNetWeight|number_format(2, ',', '.') : '' }}</span>
+                    </td>
+                </tr>
+            </table>
         </td>
     </tr>
 </table>
