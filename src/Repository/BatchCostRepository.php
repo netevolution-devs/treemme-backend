@@ -2,6 +2,7 @@
 
 namespace App\Repository;
 
+use App\Entity\Batch;
 use App\Entity\BatchCost;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -31,13 +32,16 @@ class BatchCostRepository extends ServiceEntityRepository
     //        ;
     //    }
 
-    //    public function findOneBySomeField($value): ?BatchCost
-    //    {
-    //        return $this->createQueryBuilder('b')
-    //            ->andWhere('b.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+    public function hasCostWithType(Batch $batch, string $typeName): bool
+    {
+        return $this->createQueryBuilder('bc')
+            ->select('COUNT(bc.id)')
+            ->join('bc.batch_cost_type', 'bct')
+            ->where('bc.batch = :batch')
+            ->andWhere('bct.name = :typeName')
+            ->setParameter('batch', $batch)
+            ->setParameter('typeName', $typeName)
+            ->getQuery()
+            ->getSingleScalarResult() > 0;
+    }
 }

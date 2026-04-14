@@ -37,10 +37,17 @@ class ShipmentCondition
     #[ORM\OneToMany(mappedBy: 'shipment_condition', targetEntity: Contact::class)]
     private Collection $contacts;
 
+    /**
+     * @var Collection<int, BatchData>
+     */
+    #[ORM\OneToMany(mappedBy: 'shipmentCondition', targetEntity: BatchData::class)]
+    private Collection $batchData;
+
     public function __construct()
     {
         $this->clientOrders = new ArrayCollection();
         $this->contacts = new ArrayCollection();
+        $this->batchData = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -126,6 +133,36 @@ class ShipmentCondition
             // set the owning side to null (unless already changed)
             if ($contact->getShipmentCondition() === $this) {
                 $contact->setShipmentCondition(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, BatchData>
+     */
+    public function getBatchData(): Collection
+    {
+        return $this->batchData;
+    }
+
+    public function addBatchData(BatchData $batchData): static
+    {
+        if (!$this->batchData->contains($batchData)) {
+            $this->batchData->add($batchData);
+            $batchData->setShipmentCondition($this);
+        }
+
+        return $this;
+    }
+
+    public function removeBatchData(BatchData $batchData): static
+    {
+        if ($this->batchData->removeElement($batchData)) {
+            // set the owning side to null (unless already changed)
+            if ($batchData->getShipmentCondition() === $this) {
+                $batchData->setShipmentCondition(null);
             }
         }
 

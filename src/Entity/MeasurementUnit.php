@@ -15,17 +15,20 @@ class MeasurementUnit
     #[ORM\GeneratedValue]
     #[ORM\Column]
     #[Groups(['measurement_unit_list', 'measurement_unit_detail', 'batch_list', 'batch_detail',
-        'product_list', 'product_detail', 'client_order_row_detail', 'client_order_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+        'product_list', 'product_detail', 'client_order_row_detail', 'client_order_detail',
+        'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'pallet_list', 'pallet_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
     #[Groups(['measurement_unit_list', 'measurement_unit_detail', 'batch_list', 'batch_detail',
-        'product_list', 'product_detail', 'client_order_row_detail', 'client_order_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+        'product_list', 'product_detail', 'client_order_row_detail', 'client_order_detail',
+        'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'pallet_list', 'pallet_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 10, nullable: true)]
     #[Groups(['measurement_unit_list', 'measurement_unit_detail', 'batch_list', 'batch_detail',
-        'product_list', 'product_detail', 'client_order_row_detail', 'client_order_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+        'product_list', 'product_detail', 'client_order_row_detail', 'client_order_detail',
+        'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'pallet_list', 'pallet_detail'])]
     private ?string $prefix = null;
 
     /**
@@ -90,6 +93,12 @@ class MeasurementUnit
     #[ORM\OneToMany(mappedBy: 'measurement_unit', targetEntity: DdtRow::class)]
     private Collection $ddtRows;
 
+    /**
+     * @var Collection<int, Pallet>
+     */
+    #[ORM\OneToMany(mappedBy: 'measurement_unit', targetEntity: Pallet::class)]
+    private Collection $pallets;
+
     public function __construct()
     {
         $this->batches = new ArrayCollection();
@@ -101,6 +110,7 @@ class MeasurementUnit
         $this->MeasurementUnitCoefficients = new ArrayCollection();
         $this->EndMeasurementUnitCoefficients = new ArrayCollection();
         $this->ddtRows = new ArrayCollection();
+        $this->pallets = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -420,6 +430,36 @@ class MeasurementUnit
             // set the owning side to null (unless already changed)
             if ($ddtRow->getMeasurementUnit() === $this) {
                 $ddtRow->setMeasurementUnit(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Pallet>
+     */
+    public function getPallets(): Collection
+    {
+        return $this->pallets;
+    }
+
+    public function addPallet(Pallet $pallet): static
+    {
+        if (!$this->pallets->contains($pallet)) {
+            $this->pallets->add($pallet);
+            $pallet->setMeasurementUnit($this);
+        }
+
+        return $this;
+    }
+
+    public function removePallet(Pallet $pallet): static
+    {
+        if ($this->pallets->removeElement($pallet)) {
+            // set the owning side to null (unless already changed)
+            if ($pallet->getMeasurementUnit() === $this) {
+                $pallet->setMeasurementUnit(null);
             }
         }
 
