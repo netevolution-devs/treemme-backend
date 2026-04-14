@@ -148,7 +148,11 @@ class Leather
 
     public function generateName(): string
     {
+        $supplierName = strtoupper(trim((string) $this->getSupplier()?->getName()));
+        $supplierPrefix = mb_substr($supplierName, 0, 3);
+
         $nameParts = [
+            $supplierPrefix,
             $this->getSpecies()?->getName(),
             $this->getProvenance()?->getNation()?->getName(),
             $this->getType()?->getName(),
@@ -160,7 +164,7 @@ class Leather
 
         return implode(' ', array_filter(
             $nameParts,
-            static fn (?string $value): bool => $value !== null && trim($value) !== ''
+            static fn (?string $value): bool => $value !== null && trim((string)$value) !== ''
         ));
     }
 

@@ -102,6 +102,9 @@ final class LeatherController extends AbstractController
             $leather = $this->createMethodsByInput->createMethods($leather, $data);
 
             $leather->setName($leather->generateName());
+            
+            $supplierName = strtoupper(trim((string) $leather->getSupplier()?->getName()));
+            $supplierCode = mb_substr(str_replace(' ', '', $supplierName), 0, 3);
 
             $typeCode = strtoupper(trim((string) $leather->getType()?->getCode()));
             $typeCode = $typeCode === '' ? '' : (mb_strlen($typeCode) === 1 ? $typeCode . $typeCode : mb_substr($typeCode, 0, 2));
@@ -122,7 +125,7 @@ final class LeatherController extends AbstractController
 
             $flayCode = strtoupper(trim((string) $leather->getFlay()?->getCode()));
 
-            $code = $typeCode . $speciesCode . $nationCode . $weightCode . $thicknessCode . $flayCode;
+            $code = $supplierCode . $typeCode . $speciesCode . $nationCode . $weightCode . $thicknessCode . $flayCode;
 
             $code = preg_replace('/[^A-Za-z0-9]/', '', $code);
             $leather->setCode($code);
@@ -166,6 +169,33 @@ final class LeatherController extends AbstractController
             $leather = $this->createMethodsByInput->createMethods($leather, $data);
 
             $leather->setName($leather->generateName());
+
+            $supplierName = strtoupper(trim((string) $leather->getSupplier()?->getName()));
+            $supplierCode = mb_substr(str_replace(' ', '', $supplierName), 0, 3);
+
+            $typeCode = strtoupper(trim((string) $leather->getType()?->getCode()));
+            $typeCode = $typeCode === '' ? '' : (mb_strlen($typeCode) === 1 ? $typeCode . $typeCode : mb_substr($typeCode, 0, 2));
+
+            $speciesCode = strtoupper(trim((string) $leather->getSpecies()?->getCode()));
+            $speciesCode = mb_substr($speciesCode, 0, 3);
+
+            $nationCode = strtoupper(trim((string) $leather->getProvenance()?->getNation()?->getName()));
+            $nationCode = mb_substr(str_replace(' ', '', $nationCode), 0, 3);
+
+            $weightCode = strtoupper(trim((string) $leather->getWeight()?->getName()));
+
+            $thicknessValue = (string) (method_exists($leather, 'getThicknessMm') ? $leather->getThicknessMm() : '');
+            $thicknessCode = preg_replace('/[^\d]/', '', $thicknessValue) ?? '';
+            if ($thicknessCode === '' || (int) $thicknessCode === 0) {
+                $thicknessCode = strtoupper(trim((string) $leather->getThickness()?->getName()));
+            }
+
+            $flayCode = strtoupper(trim((string) $leather->getFlay()?->getCode()));
+
+            $code = $supplierCode . $typeCode . $speciesCode . $nationCode . $weightCode . $thicknessCode . $flayCode;
+
+            $code = preg_replace('/[^A-Za-z0-9]/', '', $code);
+            $leather->setCode($code);
 
             $errors = $validator->validate($leather);
             if (count($errors) > 0) {
