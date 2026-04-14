@@ -216,6 +216,14 @@ final class BatchDataController extends AbstractController
             unset($data['shipment_subcontractor_id']);
         }
 
+        if (isset($data['currency_id'])) {
+            $currency = $this->doctrine->getRepository(Currency::class)->find($data['currency_id']);
+            if ($currency) {
+                $batchData->setCurrency($currency);
+            }
+            unset($data['currency_id']);
+        }
+
         return $batchData;
     }
 

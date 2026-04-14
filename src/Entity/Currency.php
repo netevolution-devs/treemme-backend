@@ -60,12 +60,19 @@ class Currency
     #[ORM\OneToMany(mappedBy: 'currency', targetEntity: CurrencyChange::class, orphanRemoval: true)]
     private Collection $currencyChanges;
 
+    /**
+     * @var Collection<int, BatchData>
+     */
+    #[ORM\OneToMany(mappedBy: 'currency', targetEntity: BatchData::class)]
+    private Collection $batchData;
+
     public function __construct()
     {
         $this->batchCosts = new ArrayCollection();
         $this->clientOrderRows = new ArrayCollection();
         $this->ddtRows = new ArrayCollection();
         $this->currencyChanges = new ArrayCollection();
+        $this->batchData = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -260,5 +267,35 @@ class Currency
         });
 
         return $changes[0];
+    }
+
+    /**
+     * @return Collection<int, BatchData>
+     */
+    public function getBatchData(): Collection
+    {
+        return $this->batchData;
+    }
+
+    public function addBatchData(BatchData $batchData): static
+    {
+        if (!$this->batchData->contains($batchData)) {
+            $this->batchData->add($batchData);
+            $batchData->setCurrency($this);
+        }
+
+        return $this;
+    }
+
+    public function removeBatchData(BatchData $batchData): static
+    {
+        if ($this->batchData->removeElement($batchData)) {
+            // set the owning side to null (unless already changed)
+            if ($batchData->getCurrency() === $this) {
+                $batchData->setCurrency(null);
+            }
+        }
+
+        return $this;
     }
 }

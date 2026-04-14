@@ -96,6 +96,10 @@ class BatchData
     #[Groups(['batch_data_detail'])]
     private ?Contact $shipment_subcontractor = null;
 
+    #[ORM\ManyToOne(inversedBy: 'batchData')]
+    #[Groups(['batch_data_detail'])]
+    private ?Currency $currency = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -337,6 +341,18 @@ class BatchData
     public function setShipmentSubcontractor(?Contact $shipment_subcontractor): static
     {
         $this->shipment_subcontractor = $shipment_subcontractor;
+
+        return $this;
+    }
+
+    public function getCurrency(): ?Currency
+    {
+        return $this->currency;
+    }
+
+    public function setCurrency(?Currency $currency): static
+    {
+        $this->currency = $currency;
 
         return $this;
     }
