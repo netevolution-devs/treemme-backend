@@ -227,48 +227,46 @@ final class BatchDataController extends AbstractController
         }
 
         $amount = $batchData->getAmount();
-        $isAmountNew = $amount > 0;
-
-        if ($amount > 0 && $isAmountNew) {
-            $this->createCostIfNotExists($batchData, 'Acquisto', $amount);
+        if ($amount > 0) {
+            $this->updateOrCreateCost($batchData, 'Acquisto', $amount);
         }
 
         $shippingCost = $batchData->getShippingCost();
-        $isShippingNew = $shippingCost > 0;
-
-
-        if ($shippingCost > 0 && $isShippingNew) {
-            $this->createCostIfNotExists($batchData, 'Spese Portuali', $shippingCost);
+        if ($shippingCost > 0) {
+            $this->updateOrCreateCost($batchData, 'Spese Portuali', $shippingCost);
         }
     }
 
-    private function createCostIfNotExists(BatchData $batchData, string $typeName, float $amount): void
+    private function updateOrCreateCost(BatchData $batchData, string $typeName, float $amount): void
     {
         $batch = $batchData->getBatch();
-        if ($this->batchCostRepository->hasCostWithType($batch, $typeName)) {
-            throw new \Exception(sprintf('Il lotto ha già una voce di costo di tipo "%s".', $typeName));
-        }
-
         $type = $this->batchCostTypeRepository->findOneBy(['name' => $typeName]);
         if (!$type) {
             throw new \Exception(sprintf('Tipo di costo "%s" non trovato.', $typeName));
         }
 
-        $euro = $this->currencyRepository->findOneBy(['abbreviation' => 'EUR']);
-        if (!$euro) {
-            $euro = $this->currencyRepository->findOneBy(['name' => 'Euro']);
+        $batchCost = $this->batchCostRepository->findOneBy([
+            'batch' => $batch,
+            'batch_cost_type' => $type
+        ]);
+
+        if (!$batchCost) {
+            $euro = $this->currencyRepository->findOneBy(['abbreviation' => 'EUR']);
+            if (!$euro) {
+                $euro = $this->currencyRepository->findOneBy(['name' => 'Euro']);
+            }
+
+            $batchCost = new BatchCost();
+            $batchCost->setBatch($batch);
+            $batchCost->setBatchCostType($type);
+            $batchCost->setCurrencyExchange(1.0);
+            if ($euro) {
+                $batchCost->setCurrency($euro);
+            }
         }
 
-        $batchCost = new BatchCost();
-        $batchCost->setBatch($batch);
-        $batchCost->setBatchCostType($type);
         $batchCost->setCost($amount);
-        $batchCost->setCurrencyExchange(1.0);
         $batchCost->setDate($batchData->getDeliveryDate() ?? new \DateTime());
-
-        if ($euro) {
-            $batchCost->setCurrency($euro);
-        }
 
         $this->doctrine->persist($batchCost);
     }
