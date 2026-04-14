@@ -14,11 +14,11 @@ class ShipmentCondition
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['shipmentCondition_detail',  'shipmentCondition_list', 'client_order_detail', 'contact_list', 'contact_detail'])]
+    #[Groups(['shipmentCondition_detail',  'shipmentCondition_list', 'client_order_detail', 'contact_list', 'contact_detail', 'batch_data_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['shipmentCondition_detail',  'shipmentCondition_list', 'client_order_detail', 'contact_list', 'contact_detail'])]
+    #[Groups(['shipmentCondition_detail',  'shipmentCondition_list', 'client_order_detail', 'contact_list', 'contact_detail', 'batch_data_detail'])]
     private ?string $name = null;
 
     #[ORM\Column]

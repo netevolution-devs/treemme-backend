@@ -64,7 +64,7 @@ class BatchData
     private ?string $container_code = null;
 
     #[ORM\ManyToOne(inversedBy: 'batchData')]
-    #[Groups(['batch_data_list', 'batch_data_detail'])]
+    #[Groups(['batch_data_detail'])]
     private ?SeaPort $sea_port = null;
 
     #[ORM\Column(nullable: true)]
@@ -89,9 +89,11 @@ class BatchData
     private ?Batch $batch = null;
 
     #[ORM\ManyToOne(inversedBy: 'batchData')]
+    #[Groups(['batch_data_detail'])]
     private ?ShipmentCondition $shipmentCondition = null;
 
     #[ORM\ManyToOne]
+    #[Groups(['batch_data_detail'])]
     private ?Contact $shipment_subcontractor = null;
 
     public function getId(): ?int
