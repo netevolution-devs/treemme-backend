@@ -3,11 +3,17 @@
 namespace App\Controller;
 
 use App\Entity\BatchData;
+use App\Entity\BatchCost;
+use App\Entity\BatchCostType;
+use App\Entity\Currency;
 use App\Entity\SeaPort;
 use App\Entity\Pallet;
 use App\Entity\Batch;
 use App\Entity\ShipmentCondition;
 use App\Entity\Contact;
+use App\Repository\BatchCostRepository;
+use App\Repository\BatchCostTypeRepository;
+use App\Repository\CurrencyRepository;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -26,6 +32,9 @@ final class BatchDataController extends AbstractController
     private $doResponse;
     private $groupSerializer;
     private $validatorOutputFormatter;
+    private $batchCostRepository;
+    private $batchCostTypeRepository;
+    private $currencyRepository;
 
     public function __construct(
         CreateMethodsByInput     $createMethodsByInput,
@@ -33,6 +42,9 @@ final class BatchDataController extends AbstractController
         DoResponseService        $doResponseService,
         GroupSerializerService   $groupSerializer,
         ValidatorOutputFormatter $validatorOutputFormatter,
+        BatchCostRepository      $batchCostRepository,
+        BatchCostTypeRepository  $batchCostTypeRepository,
+        CurrencyRepository       $currencyRepository
     )
     {
         $this->createMethodsByInput = $createMethodsByInput;
@@ -40,6 +52,9 @@ final class BatchDataController extends AbstractController
         $this->doResponse = $doResponseService;
         $this->groupSerializer = $groupSerializer;
         $this->validatorOutputFormatter = $validatorOutputFormatter;
+        $this->batchCostRepository = $batchCostRepository;
+        $this->batchCostTypeRepository = $batchCostTypeRepository;
+        $this->currencyRepository = $currencyRepository;
     }
 
     #[Route('/batch-data/{id}',
@@ -75,13 +90,15 @@ final class BatchDataController extends AbstractController
         ValidatorInterface $validator,
     ): JsonResponse
     {
-        $data = $request->request->all();
+        $data = $request->toArray();
         $batchData = new BatchData();
 
         try {
             $batchData = $this->handleRelations($batchData, $data);
             $batchData = $this->createMethodsByInput->createMethods($batchData, $data);
             $batchData = $this->calculateWeights($batchData);
+
+            $this->handleCostCreation($batchData);
 
             $errors = $validator->validate($batchData);
             if (count($errors) > 0) {
@@ -118,9 +135,12 @@ final class BatchDataController extends AbstractController
         }
 
         try {
+
             $batchData = $this->handleRelations($batchData, $data);
             $batchData = $this->createMethodsByInput->createMethods($batchData, $data);
             $batchData = $this->calculateWeights($batchData);
+
+            $this->handleCostCreation($batchData);
 
             $errors = $validator->validate($batchData);
             if (count($errors) > 0) {
@@ -197,6 +217,60 @@ final class BatchDataController extends AbstractController
         }
 
         return $batchData;
+    }
+
+    private function handleCostCreation(BatchData $batchData): void
+    {
+        $batch = $batchData->getBatch();
+        if (!$batch) {
+            return;
+        }
+
+        $amount = $batchData->getAmount();
+        $isAmountNew = $amount > 0;
+
+        if ($amount > 0 && $isAmountNew) {
+            $this->createCostIfNotExists($batchData, 'Acquisto', $amount);
+        }
+
+        $shippingCost = $batchData->getShippingCost();
+        $isShippingNew = $shippingCost > 0;
+
+
+        if ($shippingCost > 0 && $isShippingNew) {
+            $this->createCostIfNotExists($batchData, 'Spese Portuali', $shippingCost);
+        }
+    }
+
+    private function createCostIfNotExists(BatchData $batchData, string $typeName, float $amount): void
+    {
+        $batch = $batchData->getBatch();
+        if ($this->batchCostRepository->hasCostWithType($batch, $typeName)) {
+            throw new \Exception(sprintf('Il lotto ha già una voce di costo di tipo "%s".', $typeName));
+        }
+
+        $type = $this->batchCostTypeRepository->findOneBy(['name' => $typeName]);
+        if (!$type) {
+            throw new \Exception(sprintf('Tipo di costo "%s" non trovato.', $typeName));
+        }
+
+        $euro = $this->currencyRepository->findOneBy(['abbreviation' => 'EUR']);
+        if (!$euro) {
+            $euro = $this->currencyRepository->findOneBy(['name' => 'Euro']);
+        }
+
+        $batchCost = new BatchCost();
+        $batchCost->setBatch($batch);
+        $batchCost->setBatchCostType($type);
+        $batchCost->setCost($amount);
+        $batchCost->setCurrencyExchange(1.0);
+        $batchCost->setDate($batchData->getDeliveryDate() ?? new \DateTime());
+
+        if ($euro) {
+            $batchCost->setCurrency($euro);
+        }
+
+        $this->doctrine->persist($batchCost);
     }
 
     private function calculateWeights(BatchData $batchData): BatchData
