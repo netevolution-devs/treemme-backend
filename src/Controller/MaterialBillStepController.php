@@ -35,7 +35,7 @@ class MaterialBillStepController extends AbstractController
         if ($id) {
             $step = $repository->find($id);
             if (!$step) {
-                return new JsonResponse($this->doResponse->doErrorResponse('MaterialBillStep not found', 404));
+                return $this->doResponse->doErrorJsonResponse('MaterialBillStep not found', 404);
             }
         } else {
             $step = $repository->findBy([], ['id' => 'DESC']);
@@ -61,7 +61,7 @@ class MaterialBillStepController extends AbstractController
             $errors = $validator->validate($step);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($step);
@@ -71,7 +71,7 @@ class MaterialBillStepController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -82,7 +82,7 @@ class MaterialBillStepController extends AbstractController
         $step = $this->doctrine->getRepository(MaterialBillStep::class)->find($id);
 
         if (!$step) {
-            return new JsonResponse($this->doResponse->doErrorResponse('MaterialBillStep not found', 404));
+            return $this->doResponse->doErrorJsonResponse('MaterialBillStep not found', 404);
         }
 
         try {
@@ -92,7 +92,7 @@ class MaterialBillStepController extends AbstractController
             $errors = $validator->validate($step);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($step);
@@ -101,7 +101,7 @@ class MaterialBillStepController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($step, 'material_bill_step_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -110,7 +110,7 @@ class MaterialBillStepController extends AbstractController
     {
         $step = $this->doctrine->getRepository(MaterialBillStep::class)->find($id);
         if (!$step) {
-            return new JsonResponse($this->doResponse->doErrorResponse('MaterialBillStep not found', 404));
+            return $this->doResponse->doErrorJsonResponse('MaterialBillStep not found', 404);
         }
 
         $this->doctrine->remove($step);
@@ -148,3 +148,4 @@ class MaterialBillStepController extends AbstractController
         return $step;
     }
 }
+

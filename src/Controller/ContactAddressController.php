@@ -52,7 +52,7 @@ final class ContactAddressController extends AbstractController
         if ($id) {
             $address = [$contactAddressRepository->find($id)];
             if (!$address[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('ContactAddress not found', 404));
+                return $this->doResponse->doErrorJsonResponse('ContactAddress not found', 404);
             }
         } else {
             $address = $contactAddressRepository->findBy([], ['address_name' => 'ASC']);
@@ -87,7 +87,7 @@ final class ContactAddressController extends AbstractController
             $errors = $validator->validate($address);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($address);
@@ -97,7 +97,7 @@ final class ContactAddressController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -114,7 +114,7 @@ final class ContactAddressController extends AbstractController
         $address = $this->doctrine->getRepository(ContactAddress::class)->find($id);
 
         if (!$address) {
-            return new JsonResponse($this->doResponse->doErrorResponse('ContactAddress not found', 404));
+            return $this->doResponse->doErrorJsonResponse('ContactAddress not found', 404);
         }
 
         try {
@@ -125,7 +125,7 @@ final class ContactAddressController extends AbstractController
             $errors = $validator->validate($address);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($address);
@@ -134,7 +134,7 @@ final class ContactAddressController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($address, 'contact_address_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -145,7 +145,7 @@ final class ContactAddressController extends AbstractController
     {
         $address = $this->doctrine->getRepository(ContactAddress::class)->find($id);
         if (!$address) {
-            return new JsonResponse($this->doResponse->doErrorResponse('ContactAddress not found', 404));
+            return $this->doResponse->doErrorJsonResponse('ContactAddress not found', 404);
         }
 
         $this->doctrine->remove($address);
@@ -183,3 +183,4 @@ final class ContactAddressController extends AbstractController
         return $address;
     }
 }
+

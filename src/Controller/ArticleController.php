@@ -41,7 +41,7 @@ class ArticleController extends AbstractController
             $article = $this->articleRepository->find($id);
 
             if (!$article) {
-                return new JsonResponse($this->doResponse->doErrorResponse('Articolo non trovato', status_code: 404));
+                return $this->doResponse->doErrorJsonResponse('Articolo non trovato', status_code: 404);
             }
 
             $results = $this->groupSerializer->serializeGroup($article, 'article_detail');
@@ -55,7 +55,7 @@ class ArticleController extends AbstractController
             $client = $this->entityManager->getRepository(Contact::class)->find($clientId);
 
             if (!$client) {
-                return new JsonResponse($this->doResponse->doErrorResponse('Cliente non trovato'), 404);
+                return $this->doResponse->doErrorJsonResponse('Cliente non trovato', 404);
             }
 
             $articles = $this->articleRepository->findBy(['client' => $client], ['name' => 'ASC']);
@@ -90,13 +90,13 @@ class ArticleController extends AbstractController
                 $article->setCode($prefix . str_pad((string)$nextNumber, 6, '0', STR_PAD_LEFT));
             }
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
 
         $errors = $validator->validate($article);
         if (count($errors) > 0) {
             $formattedErrors = $this->validatorOutputFormatter->formatOutput($errors);
-            return new JsonResponse($this->doResponse->doErrorResponse($formattedErrors));
+            return $this->doResponse->doErrorJsonResponse($formattedErrors);
         }
 
         $this->entityManager->persist($article);
@@ -112,7 +112,7 @@ class ArticleController extends AbstractController
         $article = $this->articleRepository->find($id);
 
         if (!$article) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Articolo non trovato', status_code: 404));
+            return $this->doResponse->doErrorJsonResponse('Articolo non trovato', status_code: 404);
         }
 
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
@@ -120,13 +120,13 @@ class ArticleController extends AbstractController
         try {
             $this->mapDataToEntity($article, $data);
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
 
         $errors = $validator->validate($article);
         if (count($errors) > 0) {
             $formattedErrors = $this->validatorOutputFormatter->formatOutput($errors);
-            return new JsonResponse($this->doResponse->doErrorResponse($formattedErrors));
+            return $this->doResponse->doErrorJsonResponse($formattedErrors);
         }
 
         $this->entityManager->flush();
@@ -141,7 +141,7 @@ class ArticleController extends AbstractController
         $article = $this->articleRepository->find($id);
 
         if (!$article) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Articolo non trovato', status_code: 404));
+            return $this->doResponse->doErrorJsonResponse('Articolo non trovato', status_code: 404);
         }
 
         $this->entityManager->remove($article);
@@ -237,3 +237,5 @@ class ArticleController extends AbstractController
         return strtoupper(substr($string, 0, 3));
     }
 }
+
+

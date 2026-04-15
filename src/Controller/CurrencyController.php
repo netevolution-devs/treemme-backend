@@ -49,7 +49,7 @@ final class CurrencyController extends AbstractController
         if ($id) {
             $currency = [$currencyRepository->find($id)];
             if (!$currency[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('Currency not found', 404));
+                return $this->doResponse->doErrorJsonResponse('Currency not found', 404);
             }
         } else {
             $currency = $currencyRepository->findBy([], ['name' => 'ASC']);
@@ -79,7 +79,7 @@ final class CurrencyController extends AbstractController
             $errors = $validator->validate($currency);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $em = $this->doctrine;
@@ -90,7 +90,7 @@ final class CurrencyController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -107,7 +107,7 @@ final class CurrencyController extends AbstractController
         $currency = $this->doctrine->getRepository(Currency::class)->find($id);
 
         if (!$currency) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Currency not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Currency not found', 404);
         }
 
         try {
@@ -116,7 +116,7 @@ final class CurrencyController extends AbstractController
             $errors = $validator->validate($currency);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($currency);
@@ -125,7 +125,7 @@ final class CurrencyController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($currency, 'currency_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -136,7 +136,7 @@ final class CurrencyController extends AbstractController
     {
         $currency = $this->doctrine->getRepository(Currency::class)->find($id);
         if (!$currency) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Currency not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Currency not found', 404);
         }
 
         $this->doctrine->remove($currency);
@@ -145,3 +145,4 @@ final class CurrencyController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
     }
 }
+

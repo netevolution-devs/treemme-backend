@@ -12,87 +12,93 @@ class BatchData
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['batch_data_list', 'batch_data_detail', 'batch_list', 'batch_detail'])]
+    #[Groups(['batch_data_list', 'batch_data_detail', 'batch_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_data_list', 'batch_data_detail', 'batch_list', 'batch_detail'])]
+    #[Groups(['batch_data_list', 'batch_data_detail'])]
     private ?\DateTime $delivery_date = null;
 
     #[ORM\Column]
-    #[Groups(['batch_data_list', 'batch_data_detail', 'batch_list', 'batch_detail'])]
+    #[Groups(['batch_data_list', 'batch_data_detail'])]
     private ?float $amount = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_data_list', 'batch_data_detail', 'batch_list', 'batch_detail'])]
+    #[Groups(['batch_data_list', 'batch_data_detail'])]
     private ?float $currency_exchange = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_data_list', 'batch_data_detail', 'batch_list', 'batch_detail'])]
+    #[Groups(['batch_data_list', 'batch_data_detail'])]
     private ?\DateTime $payment_date = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_data_list', 'batch_data_detail', 'batch_list', 'batch_detail'])]
+    #[Groups(['batch_data_list', 'batch_data_detail'])]
     private ?\DateTime $sea_port_date = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_data_list', 'batch_data_detail', 'batch_list', 'batch_detail'])]
+    #[Groups(['batch_data_list', 'batch_data_detail',])]
     private ?float $declared_gross_weight = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_data_list', 'batch_data_detail', 'batch_list', 'batch_detail'])]
+    #[Groups(['batch_data_list', 'batch_data_detail'])]
     private ?float $declared_net_weight = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_data_list', 'batch_data_detail', 'batch_list', 'batch_detail'])]
+    #[Groups(['batch_data_list', 'batch_data_detail'])]
     private ?float $declared_average_weight = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_data_list', 'batch_data_detail', 'batch_list', 'batch_detail'])]
+    #[Groups(['batch_data_list', 'batch_data_detail'])]
     private ?float $founded_gross_weight = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_data_list', 'batch_data_detail', 'batch_list', 'batch_detail'])]
+    #[Groups(['batch_data_list', 'batch_data_detail'])]
     private ?float $founded_net_weight = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_data_list', 'batch_data_detail', 'batch_list', 'batch_detail'])]
+    #[Groups(['batch_data_list', 'batch_data_detail'])]
     private ?float $founded_average_weight = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['batch_data_list', 'batch_data_detail', 'batch_list', 'batch_detail'])]
+    #[Groups(['batch_data_list', 'batch_data_detail'])]
     private ?string $container_code = null;
 
     #[ORM\ManyToOne(inversedBy: 'batchData')]
-    #[Groups(['batch_data_list', 'batch_data_detail', 'batch_list', 'batch_detail'])]
+    #[Groups(['batch_data_detail'])]
     private ?SeaPort $sea_port = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_data_list', 'batch_data_detail', 'batch_list', 'batch_detail'])]
+    #[Groups(['batch_data_list', 'batch_data_detail'])]
     private ?float $shipping_cost = null;
 
     #[ORM\ManyToOne(inversedBy: 'batchData')]
-    #[Groups(['batch_data_list', 'batch_data_detail', 'batch_list', 'batch_detail'])]
+    #[Groups(['batch_data_list', 'batch_data_detail'])]
     private ?Pallet $pallet = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_data_list', 'batch_data_detail', 'batch_list', 'batch_detail'])]
+    #[Groups(['batch_data_list', 'batch_data_detail'])]
     private ?int $pallet_number = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_data_list', 'batch_data_detail', 'batch_list', 'batch_detail'])]
+    #[Groups(['batch_data_list', 'batch_data_detail'])]
     private ?float $pallet_weight = null;
 
     #[ORM\ManyToOne(inversedBy: 'batchData')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['batch_data_list', 'batch_data_detail'])]
+    #[Groups(['batch_data_detail'])]
     private ?Batch $batch = null;
 
     #[ORM\ManyToOne(inversedBy: 'batchData')]
+    #[Groups(['batch_data_detail'])]
     private ?ShipmentCondition $shipmentCondition = null;
 
     #[ORM\ManyToOne]
+    #[Groups(['batch_data_detail'])]
     private ?Contact $shipment_subcontractor = null;
+
+    #[ORM\ManyToOne(inversedBy: 'batchData')]
+    #[Groups(['batch_data_detail'])]
+    private ?Currency $currency = null;
 
     public function getId(): ?int
     {
@@ -335,6 +341,18 @@ class BatchData
     public function setShipmentSubcontractor(?Contact $shipment_subcontractor): static
     {
         $this->shipment_subcontractor = $shipment_subcontractor;
+
+        return $this;
+    }
+
+    public function getCurrency(): ?Currency
+    {
+        return $this->currency;
+    }
+
+    public function setCurrency(?Currency $currency): static
+    {
+        $this->currency = $currency;
 
         return $this;
     }

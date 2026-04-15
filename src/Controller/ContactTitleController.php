@@ -43,7 +43,7 @@ final class ContactTitleController extends AbstractController
         if ($id) {
             $items = [$repo->find($id)];
             if (!$items[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('ContactTitle not found', 404));
+                return $this->doResponse->doErrorJsonResponse('ContactTitle not found', 404);
             }
         } else {
             $items = $repo->findBy([], ['name' => 'ASC']);
@@ -65,7 +65,7 @@ final class ContactTitleController extends AbstractController
             $errors = $validator->validate($entity);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($entity);
@@ -74,7 +74,7 @@ final class ContactTitleController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($entity, 'contact_title_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -84,7 +84,7 @@ final class ContactTitleController extends AbstractController
         $data = $request->toArray();
         $entity = $this->doctrine->getRepository(ContactTitle::class)->find($id);
         if (!$entity) {
-            return new JsonResponse($this->doResponse->doErrorResponse('ContactTitle not found', 404));
+            return $this->doResponse->doErrorJsonResponse('ContactTitle not found', 404);
         }
 
         $entity = $this->createMethodsByInput->createMethods($entity, $data);
@@ -92,7 +92,7 @@ final class ContactTitleController extends AbstractController
         $errors = $validator->validate($entity);
         if (count($errors) > 0) {
             $errors = $this->validatorOutputFormatter->formatOutput($errors);
-            return new JsonResponse($this->doResponse->doErrorResponse($errors));
+            return $this->doResponse->doErrorJsonResponse($errors);
         }
         $this->doctrine->persist($entity);
         $this->doctrine->flush();
@@ -106,7 +106,7 @@ final class ContactTitleController extends AbstractController
     {
         $entity = $this->doctrine->getRepository(ContactTitle::class)->find($id);
         if (!$entity) {
-            return new JsonResponse($this->doResponse->doErrorResponse('ContactTitle not found', 404));
+            return $this->doResponse->doErrorJsonResponse('ContactTitle not found', 404);
         }
 
         $this->doctrine->remove($entity);
@@ -115,3 +115,4 @@ final class ContactTitleController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
     }
 }
+

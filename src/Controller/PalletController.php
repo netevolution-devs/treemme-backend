@@ -50,7 +50,7 @@ final class PalletController extends AbstractController
         if ($id) {
             $pallet = [$palletRepository->find($id)];
             if (!$pallet[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('Pallet not found', 404));
+                return $this->doResponse->doErrorJsonResponse('Pallet not found', 404);
             }
         } else {
             $pallet = $palletRepository->findBy([], ['name' => 'ASC']);
@@ -81,7 +81,7 @@ final class PalletController extends AbstractController
             $errors = $validator->validate($pallet);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $em = $this->doctrine;
@@ -92,7 +92,7 @@ final class PalletController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -109,7 +109,7 @@ final class PalletController extends AbstractController
         $pallet = $this->doctrine->getRepository(Pallet::class)->find($id);
 
         if (!$pallet) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Pallet not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Pallet not found', 404);
         }
 
         try {
@@ -119,7 +119,7 @@ final class PalletController extends AbstractController
             $errors = $validator->validate($pallet);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($pallet);
@@ -128,7 +128,7 @@ final class PalletController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($pallet, 'pallet_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -139,7 +139,7 @@ final class PalletController extends AbstractController
     {
         $pallet = $this->doctrine->getRepository(Pallet::class)->find($id);
         if (!$pallet) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Pallet not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Pallet not found', 404);
         }
 
         $this->doctrine->remove($pallet);
@@ -161,3 +161,4 @@ final class PalletController extends AbstractController
         return $pallet;
     }
 }
+

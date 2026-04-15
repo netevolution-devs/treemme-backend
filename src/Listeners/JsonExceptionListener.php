@@ -93,6 +93,7 @@ class JsonExceptionListener
         $message = $this->generateErrorMessage($exception, $code);
 
         $response = new Response();
+        $response->setStatusCode($code);
         if($exception instanceof HttpExceptionInterface) {
             $response->headers->replace($exception->getHeaders());
         }

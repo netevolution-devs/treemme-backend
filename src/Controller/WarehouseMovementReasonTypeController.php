@@ -48,7 +48,7 @@ final class WarehouseMovementReasonTypeController extends AbstractController
         if ($id) {
             $reasonType = $repository->find($id);
             if (!$reasonType) {
-                return new JsonResponse($this->doResponse->doErrorResponse('Tipo causale magazzino non trovato', 404));
+                return $this->doResponse->doErrorJsonResponse('Tipo causale magazzino non trovato', 404);
             }
             $results = $this->groupSerializer->serializeGroup([$reasonType], 'reason_type_detail');
             return new JsonResponse($this->doResponse->doResponse($results[0]));
@@ -71,12 +71,12 @@ final class WarehouseMovementReasonTypeController extends AbstractController
             $this->handleRelations($reasonType, $data);
             $reasonType = $this->createMethodsByInput->createMethods($reasonType, $data);
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage(), 400));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage(), 400);
         }
 
         $errors = $validator->validate($reasonType);
         if (count($errors) > 0) {
-            return new JsonResponse($this->doResponse->doErrorResponse($this->validatorOutputFormatter->formatOutput($errors), 400));
+            return $this->doResponse->doErrorJsonResponse($this->validatorOutputFormatter->formatOutput($errors), 400);
         }
 
         $this->doctrine->persist($reasonType);
@@ -94,7 +94,7 @@ final class WarehouseMovementReasonTypeController extends AbstractController
     {
         $reasonType = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->find($id);
         if (!$reasonType) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Tipo causale magazzino non trovato', 404));
+            return $this->doResponse->doErrorJsonResponse('Tipo causale magazzino non trovato', 404);
         }
 
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
@@ -103,12 +103,12 @@ final class WarehouseMovementReasonTypeController extends AbstractController
             $this->handleRelations($reasonType, $data);
             $this->createMethodsByInput->createMethods($reasonType, $data);
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage(), 400));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage(), 400);
         }
 
         $errors = $validator->validate($reasonType);
         if (count($errors) > 0) {
-            return new JsonResponse($this->doResponse->doErrorResponse($this->validatorOutputFormatter->formatOutput($errors), 400));
+            return $this->doResponse->doErrorJsonResponse($this->validatorOutputFormatter->formatOutput($errors), 400);
         }
 
         $this->doctrine->flush();
@@ -125,7 +125,7 @@ final class WarehouseMovementReasonTypeController extends AbstractController
     {
         $reasonType = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->find($id);
         if (!$reasonType) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Tipo causale magazzino non trovato', 404));
+            return $this->doResponse->doErrorJsonResponse('Tipo causale magazzino non trovato', 404);
         }
 
         $this->doctrine->remove($reasonType);
@@ -138,3 +138,4 @@ final class WarehouseMovementReasonTypeController extends AbstractController
     {
     }
 }
+

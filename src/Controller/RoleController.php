@@ -52,7 +52,7 @@ class RoleController extends AbstractController
         if ($id) {
             $roles = [$roleRepository->find($id)];
             if (!$roles[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse($this->translator->trans('entity.error.not_found', ['%entity%' => 'Role'], 'messages')), 404);
+                return $this->doResponse->doErrorJsonResponse($this->translator->trans('entity.error.not_found', ['%entity%' => 'Role'], 'messages'), 404);
             }
         } else {
             $roles = $roleRepository->findBy([], ['name' => 'ASC']);
@@ -96,7 +96,7 @@ class RoleController extends AbstractController
             $errors = $validator->validate($role);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $em = $this->doctrine;
@@ -106,7 +106,7 @@ class RoleController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($role, 'detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -116,7 +116,7 @@ class RoleController extends AbstractController
         $data = $request->toArray();
         $role = $this->doctrine->getRepository(Role::class)->find($id);
         if (!$role) {
-            return new JsonResponse($this->doResponse->doErrorResponse($this->translator->trans('entity.error.not_found', ['%entity%' => 'Role'], 'messages')), 404);
+            return $this->doResponse->doErrorJsonResponse($this->translator->trans('entity.error.not_found', ['%entity%' => 'Role'], 'messages'), 404);
         }
 
         $role = $this->createMethodsByInput->createMethods($role, $data);
@@ -129,7 +129,7 @@ class RoleController extends AbstractController
         $errors = $validator->validate($role);
         if (count($errors) > 0) {
             $errors = $this->validatorOutputFormatter->formatOutput($errors);
-            return new JsonResponse($this->doResponse->doErrorResponse($errors));
+            return $this->doResponse->doErrorJsonResponse($errors);
         }
 
         $em = $this->doctrine;
@@ -145,7 +145,7 @@ class RoleController extends AbstractController
     {
         $role = $this->doctrine->getRepository(Role::class)->find($id);
         if (!$role) {
-            return new JsonResponse($this->doResponse->doErrorResponse($this->translator->trans('entity.error.not_found', ['%entity%' => 'Role'], 'messages')), 404);
+            return $this->doResponse->doErrorJsonResponse($this->translator->trans('entity.error.not_found', ['%entity%' => 'Role'], 'messages'), 404);
         }
 
         $em = $this->doctrine;
@@ -155,3 +155,4 @@ class RoleController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
     }
 }
+

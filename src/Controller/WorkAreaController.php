@@ -48,7 +48,7 @@ class WorkAreaController extends AbstractController
         if ($id) {
             $workArea = [$workAreaRepository->find($id)];
             if (!$workArea[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('WorkArea not found', '404'));
+                return $this->doResponse->doErrorJsonResponse('WorkArea not found', '404');
             }
         } else {
             $workArea = $workAreaRepository->findBy([], ['name' => 'ASC']);
@@ -89,7 +89,7 @@ class WorkAreaController extends AbstractController
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
 
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $em = $this->doctrine;
@@ -101,7 +101,7 @@ class WorkAreaController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
     #[Route('/work/area/{id}',
@@ -118,7 +118,7 @@ class WorkAreaController extends AbstractController
         $workArea = $this->doctrine->getRepository(WorkArea::class)->find($id);
 
         if (!$workArea) {
-            return new JsonResponse($this->doResponse->doErrorResponse('WorkArea not found', 404));
+            return $this->doResponse->doErrorJsonResponse('WorkArea not found', 404);
         }
 
         $workArea = $this->createMethodsByInput->createMethods($workArea, $data);
@@ -130,7 +130,7 @@ class WorkAreaController extends AbstractController
         $errors = $validator->validate($workArea);
         if (count($errors) > 0) {
             $errors = $this->validatorOutputFormatter->formatOutput($errors);
-            return new JsonResponse($this->doResponse->doErrorResponse($errors));
+            return $this->doResponse->doErrorJsonResponse($errors);
         }
 
         $em = $this->doctrine;
@@ -151,7 +151,7 @@ class WorkAreaController extends AbstractController
         $workArea = $this->doctrine->getRepository(WorkArea::class)->find($id);
 
         if (!$workArea) {
-            return new JsonResponse($this->doResponse->doErrorResponse('WorkArea not found', 404));
+            return $this->doResponse->doErrorJsonResponse('WorkArea not found', 404);
         }
 
         $em = $this->doctrine;
@@ -161,3 +161,4 @@ class WorkAreaController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
     }
 }
+

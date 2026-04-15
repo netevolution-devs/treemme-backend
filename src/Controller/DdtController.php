@@ -50,7 +50,7 @@ final class DdtController extends AbstractController
         if ($id) {
             $ddt = $ddtRepository->find($id);
             if (!$ddt) {
-                return new JsonResponse($this->doResponse->doErrorResponse('DDT non trovato', 404));
+                return $this->doResponse->doErrorJsonResponse('DDT non trovato', 404);
             }
             $results = $this->groupSerializer->serializeGroup([$ddt], 'ddt_detail');
             return new JsonResponse($this->doResponse->doResponse($results[0]));
@@ -89,12 +89,12 @@ final class DdtController extends AbstractController
             $this->handleRelations($ddt, $data);
             $ddt = $this->createMethodsByInput->createMethods($ddt, $data);
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage(), 400));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage(), 400);
         }
 
         $errors = $validator->validate($ddt);
         if (count($errors) > 0) {
-            return new JsonResponse($this->doResponse->doErrorResponse($this->validatorOutputFormatter->formatOutput($errors), 400));
+            return $this->doResponse->doErrorJsonResponse($this->validatorOutputFormatter->formatOutput($errors), 400);
         }
 
         $this->doctrine->persist($ddt);
@@ -112,7 +112,7 @@ final class DdtController extends AbstractController
     {
         $ddt = $this->doctrine->getRepository(Ddt::class)->find($id);
         if (!$ddt) {
-            return new JsonResponse($this->doResponse->doErrorResponse('DDT non trovato', 404));
+            return $this->doResponse->doErrorJsonResponse('DDT non trovato', 404);
         }
 
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
@@ -121,12 +121,12 @@ final class DdtController extends AbstractController
             $this->handleRelations($ddt, $data);
             $this->createMethodsByInput->createMethods($ddt, $data);
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage(), 400));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage(), 400);
         }
 
         $errors = $validator->validate($ddt);
         if (count($errors) > 0) {
-            return new JsonResponse($this->doResponse->doErrorResponse($this->validatorOutputFormatter->formatOutput($errors), 400));
+            return $this->doResponse->doErrorJsonResponse($this->validatorOutputFormatter->formatOutput($errors), 400);
         }
 
         $this->doctrine->flush();
@@ -143,7 +143,7 @@ final class DdtController extends AbstractController
     {
         $ddt = $this->doctrine->getRepository(Ddt::class)->find($id);
         if (!$ddt) {
-            return new JsonResponse($this->doResponse->doErrorResponse('DDT non trovato', 404));
+            return $this->doResponse->doErrorJsonResponse('DDT non trovato', 404);
         }
 
         if($ddt->getDdtRows()->count() != 0){
@@ -188,3 +188,4 @@ final class DdtController extends AbstractController
         }
     }
 }
+

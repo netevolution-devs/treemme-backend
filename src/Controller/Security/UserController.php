@@ -63,7 +63,7 @@ class UserController extends AbstractController
         $user = $this->doctrine->getRepository(User::class)->find($id);
 
         if (!$user) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Utente non trovato'), 404);
+            return $this->doResponse->doErrorJsonResponse('Utente non trovato', 404);
         }
 
         $userData = $this->groupSerializer->serializeGroup($user, 'user_detail');
@@ -86,7 +86,7 @@ class UserController extends AbstractController
         $password = $data['password'] ?? null;
 
         if (!$email || !$password) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Email e password obbligatori'), 400);
+            return $this->doResponse->doErrorJsonResponse('Email e password obbligatori', 400);
         }
 
         $role = $data['role'] ?? 'ROLE_USER';
@@ -122,7 +122,7 @@ class UserController extends AbstractController
             $this->doctrine->flush();
         } catch (Exception $e) {
 
-            return new JsonResponse($this->doResponse->doErrorResponse('indirizzo email già esistente',$e->getFile()));
+            return $this->doResponse->doErrorJsonResponse('indirizzo email già esistente',$e->getFile());
         }
 
         $actionLoggerService->logAction('add_new_user', $this->groupSerializer->serializeGroup($user, 'user_detail'));
@@ -143,7 +143,7 @@ class UserController extends AbstractController
         $user = $this->doctrine->getRepository(User::class)->find($id);
 
         if (!$user) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Utente non trovato'), 404);
+            return $this->doResponse->doErrorJsonResponse('Utente non trovato', 404);
         }
 
         $data = $this->request->getCurrentRequest()->request->all();
@@ -166,7 +166,7 @@ class UserController extends AbstractController
         try {
             $createMethodsByInput->createMethods($user, $data);
         } catch (Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()), 400);
+            return $this->doResponse->doErrorJsonResponse($e->getMessage(), 400);
         }
 
         $errors = $validator->validate($user);
@@ -178,7 +178,7 @@ class UserController extends AbstractController
         try {
             $this->doctrine->flush();
         } catch (Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Errore durante il salvataggio o email già esistente', $e->getFile()));
+            return $this->doResponse->doErrorJsonResponse('Errore durante il salvataggio o email già esistente', $e->getFile());
         }
 
         $actionLoggerService->logAction('edit_user', $this->groupSerializer->serializeGroup($user, 'user_detail'));
@@ -209,7 +209,7 @@ class UserController extends AbstractController
         $user = $this->doctrine->getRepository(User::class)->find($id);
 
         if (!$user) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Utente non trovato'), 404);
+            return $this->doResponse->doErrorJsonResponse('Utente non trovato', 404);
         }
 
         $userData = $this->groupSerializer->serializeGroup($user, 'user_detail');
@@ -218,7 +218,7 @@ class UserController extends AbstractController
         try {
             $this->doctrine->flush();
         } catch (Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Errore durante la cancellazione', $e->getFile()));
+            return $this->doResponse->doErrorJsonResponse('Errore durante la cancellazione', $e->getFile());
         }
 
         $actionLoggerService->logAction('delete_user', $userData);
@@ -296,3 +296,4 @@ class UserController extends AbstractController
         return $response;
     }
 }
+
