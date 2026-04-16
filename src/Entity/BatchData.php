@@ -172,7 +172,7 @@ class BatchData
 
     public function setDeclaredGrossWeight(?float $declared_gross_weight): static
     {
-        $this->declared_gross_weight = $declared_gross_weight;
+        $this->declared_gross_weight = $declared_gross_weight !== null ? round($declared_gross_weight, 2) : null;
 
         return $this;
     }
@@ -184,7 +184,7 @@ class BatchData
 
     public function setDeclaredNetWeight(?float $declared_net_weight): static
     {
-        $this->declared_net_weight = $declared_net_weight;
+        $this->declared_net_weight = $declared_net_weight !== null ? round($declared_net_weight, 2) : null;
 
         return $this;
     }
@@ -196,7 +196,7 @@ class BatchData
 
     public function setDeclaredAverageWeight(?float $declared_average_weight): static
     {
-        $this->declared_average_weight = $declared_average_weight;
+        $this->declared_average_weight = $declared_average_weight !== null ? round($declared_average_weight, 2) : null;
 
         return $this;
     }
@@ -208,7 +208,7 @@ class BatchData
 
     public function setFoundedGrossWeight(?float $founded_gross_weight): static
     {
-        $this->founded_gross_weight = $founded_gross_weight;
+        $this->founded_gross_weight = $founded_gross_weight !== null ? round($founded_gross_weight, 2) : null;
 
         return $this;
     }
@@ -220,7 +220,7 @@ class BatchData
 
     public function setFoundedNetWeight(?float $founded_net_weight): static
     {
-        $this->founded_net_weight = $founded_net_weight;
+        $this->founded_net_weight = $founded_net_weight !== null ? round($founded_net_weight, 2) : null;
 
         return $this;
     }
@@ -232,7 +232,7 @@ class BatchData
 
     public function setFoundedAverageWeight(?float $founded_average_weight): static
     {
-        $this->founded_average_weight = $founded_average_weight;
+        $this->founded_average_weight = $founded_average_weight !== null ? round($founded_average_weight, 2) : null;
 
         return $this;
     }
@@ -304,7 +304,7 @@ class BatchData
 
     public function setPalletWeight(?float $pallet_weight): static
     {
-        $this->pallet_weight = $pallet_weight;
+        $this->pallet_weight = $pallet_weight !== null ? round($pallet_weight, 2) : null;
 
         return $this;
     }
