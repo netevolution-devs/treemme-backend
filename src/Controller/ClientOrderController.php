@@ -13,6 +13,7 @@ use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
 use App\Service\ValidatorOutputFormatter;
 use App\Service\PdfGeneratorService;
+use App\Service\ActionLoggerService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -29,6 +30,7 @@ final class ClientOrderController extends AbstractController
     private $groupSerializer;
     private $validatorOutputFormatter;
     private $pdfGenerator;
+    private $actionLogger;
 
     public function __construct(
         CreateMethodsByInput     $createMethodsByInput,
@@ -37,6 +39,7 @@ final class ClientOrderController extends AbstractController
         GroupSerializerService   $groupSerializer,
         ValidatorOutputFormatter $validatorOutputFormatter,
         PdfGeneratorService      $pdfGenerator,
+        ActionLoggerService      $actionLogger,
     )
     {
         $this->createMethodsByInput = $createMethodsByInput;
@@ -45,6 +48,7 @@ final class ClientOrderController extends AbstractController
         $this->groupSerializer = $groupSerializer;
         $this->validatorOutputFormatter = $validatorOutputFormatter;
         $this->pdfGenerator = $pdfGenerator;
+        $this->actionLogger = $actionLogger;
     }
 
     #[Route('/client-order/{id}',
@@ -176,6 +180,10 @@ final class ClientOrderController extends AbstractController
             return $this->doResponse->doErrorJsonResponse('ClientOrder not found', 404);
         }
 
+        if ($clientOrder->isChecked()) {
+            return $this->doResponse->doErrorJsonResponse('Non è possibile modificare un ordine già controllato', 403);
+        }
+
         try {
             $clientOrder = $this->handleRelations($clientOrder, $data);
             $clientOrder = $this->createMethodsByInput->createMethods($clientOrder, $data);
@@ -188,6 +196,43 @@ final class ClientOrderController extends AbstractController
 
             $this->doctrine->persist($clientOrder);
             $this->doctrine->flush();
+
+            $result = $this->groupSerializer->serializeGroup($clientOrder, 'client_order_detail');
+            return new JsonResponse($this->doResponse->doResponse($result));
+        } catch (\Exception $e) {
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
+        }
+    }
+
+    #[Route('/client-order/{id}/check',
+        name: 'put_client_order_check',
+        methods: ['PUT'])]
+    public function checkClientOrder(int $id): JsonResponse
+    {
+        $clientOrder = $this->doctrine->getRepository(ClientOrder::class)->find($id);
+
+        if (!$clientOrder) {
+            return $this->doResponse->doErrorJsonResponse('ClientOrder not found', 404);
+        }
+
+        try {
+            $newStatus = !$clientOrder->isChecked();
+            $clientOrder->setChecked($newStatus);
+
+            if ($newStatus) {
+                $clientOrder->setCheckDate(new \DateTime());
+            } else {
+                $clientOrder->setCheckDate(null);
+            }
+
+            $this->doctrine->persist($clientOrder);
+            $this->doctrine->flush();
+
+            $this->actionLogger->logAction('check_client_order', [
+                'id' => $clientOrder->getId(),
+                'order_number' => $clientOrder->getOrderNumber(),
+                'checked' => $newStatus
+            ]);
 
             $result = $this->groupSerializer->serializeGroup($clientOrder, 'client_order_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
