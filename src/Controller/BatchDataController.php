@@ -236,7 +236,7 @@ final class BatchDataController extends AbstractController
 
         $amount = $batchData->getAmount();
         if ($amount > 0) {
-            $this->updateOrCreateCost($batchData, 'Acquisto', $amount);
+            $this->updateOrCreateCost($batchData, 'Acquisto', $amount, $batchData->getCurrency());
         }
 
         $shippingCost = $batchData->getShippingCost();
@@ -245,7 +245,7 @@ final class BatchDataController extends AbstractController
         }
     }
 
-    private function updateOrCreateCost(BatchData $batchData, string $typeName, float $amount): void
+    private function updateOrCreateCost(BatchData $batchData, string $typeName, float $amount, ?Currency $currency = null): void
     {
         $batch = $batchData->getBatch();
         $type = $this->batchCostTypeRepository->findOneBy(['name' => $typeName]);
@@ -259,15 +259,19 @@ final class BatchDataController extends AbstractController
         ]);
 
         if (!$batchCost) {
-            $euro = $this->currencyRepository->findOneBy(['abbreviation' => 'EUR']);
-            if (!$euro) {
-                $euro = $this->currencyRepository->findOneBy(['name' => 'Euro']);
-            }
-
             $batchCost = new BatchCost();
             $batchCost->setBatch($batch);
             $batchCost->setBatchCostType($type);
             $batchCost->setCurrencyExchange(1.0);
+        }
+
+        if ($currency) {
+            $batchCost->setCurrency($currency);
+        } else {
+            $euro = $this->currencyRepository->findOneBy(['abbreviation' => 'EUR']);
+            if (!$euro) {
+                $euro = $this->currencyRepository->findOneBy(['name' => 'Euro']);
+            }
             if ($euro) {
                 $batchCost->setCurrency($euro);
             }

@@ -65,6 +65,22 @@ final class BatchCostController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse($results));
     }
 
+    #[Route('/batch/{id}/cost',
+        name: 'get_batch_costs_by_batch',
+        methods: ['GET'])]
+    public function getBatchCostsByBatch(int $id): JsonResponse
+    {
+        $batch = $this->doctrine->getRepository(Batch::class)->find($id);
+        if (!$batch) {
+            return $this->doResponse->doErrorJsonResponse('Batch not found', 404);
+        }
+
+        $batchCosts = $this->doctrine->getRepository(BatchCost::class)->findBy(['batch' => $batch], ['date' => 'DESC']);
+        $results = $this->groupSerializer->serializeGroup($batchCosts, 'batch_cost_list');
+
+        return new JsonResponse($this->doResponse->doResponse($results));
+    }
+
     #[Route('/batch-cost',
         name: 'post_batch_cost',
         methods: ['POST'])]
