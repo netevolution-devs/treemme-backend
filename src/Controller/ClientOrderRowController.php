@@ -13,6 +13,7 @@ use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
 use App\Service\ValidatorOutputFormatter;
+use App\Service\ActionLoggerService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -27,6 +28,7 @@ final class ClientOrderRowController extends AbstractController
     private $doResponse;
     private $groupSerializer;
     private $validatorOutputFormatter;
+    private $actionLogger;
 
     public function __construct(
         CreateMethodsByInput     $createMethodsByInput,
@@ -34,6 +36,7 @@ final class ClientOrderRowController extends AbstractController
         DoResponseService        $doResponseService,
         GroupSerializerService   $groupSerializer,
         ValidatorOutputFormatter $validatorOutputFormatter,
+        ActionLoggerService      $actionLogger,
     )
     {
         $this->createMethodsByInput = $createMethodsByInput;
@@ -41,6 +44,7 @@ final class ClientOrderRowController extends AbstractController
         $this->doResponse = $doResponseService;
         $this->groupSerializer = $groupSerializer;
         $this->validatorOutputFormatter = $validatorOutputFormatter;
+        $this->actionLogger = $actionLogger;
     }
 
     #[Route('/client-order-row/{id}',
@@ -117,6 +121,10 @@ final class ClientOrderRowController extends AbstractController
 
         if (!$clientOrderRow) {
             return $this->doResponse->doErrorJsonResponse('ClientOrderRow not found', 404);
+        }
+
+        if ($clientOrderRow->getClientOrder() && $clientOrderRow->getClientOrder()->isChecked()) {
+            return $this->doResponse->doErrorJsonResponse('Non è possibile modificare una riga di un ordine già controllato', 403);
         }
 
         try {
