@@ -61,7 +61,7 @@ class DdtRow
 
     #[ORM\Column(nullable: true)]
     #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
-    private ?float $currency_change = null;
+    private ?float $currency_exchange = null;
 
     #[ORM\Column(nullable: true)]
     #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
@@ -217,14 +217,14 @@ class DdtRow
         return $this;
     }
 
-    public function getCurrencyChange(): ?float
+    public function getCurrencyExchange(): ?float
     {
-        return $this->currency_change;
+        return $this->currency_exchange;
     }
 
-    public function setCurrencyChange(?float $currency_change): static
+    public function setCurrencyExchange(?float $currency_exchange): static
     {
-        $this->currency_change = $currency_change;
+        $this->currency_exchange = $currency_exchange;
 
         return $this;
     }
