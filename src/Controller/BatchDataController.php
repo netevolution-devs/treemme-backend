@@ -288,15 +288,27 @@ final class BatchDataController extends AbstractController
             $palletWeight = $pallet->getWeight() * $palletNumber;
             $batchData->setPalletWeight($palletWeight);
 
-            $grossWeight = $batchData->getFoundedGrossWeight();
-            if ($grossWeight !== null) {
-                $netWeight = $grossWeight - $palletWeight;
-                $batchData->setFoundedNetWeight($netWeight);
+            $grossFoundedWeight = $batchData->getFoundedGrossWeight();
+            if ($grossFoundedWeight !== null) {
+                $netFoundedWeight = $grossFoundedWeight - $palletWeight;
+                $batchData->setFoundedNetWeight($netFoundedWeight);
 
                 $batch = $batchData->getBatch();
                 if ($batch && $batch->getPieces() > 0) {
-                    $averageWeight = $netWeight / $batch->getPieces();
-                    $batchData->setFoundedAverageWeight($averageWeight);
+                    $averageFoundedWeight = $netFoundedWeight / $batch->getPieces();
+                    $batchData->setFoundedAverageWeight($averageFoundedWeight);
+                }
+            }
+
+            $grossDeclaredWeight = $batchData->getDeclaredAverageWeight();
+            if ($grossDeclaredWeight !== null) {
+                $netDeclaredWeight = $grossDeclaredWeight - $palletWeight;
+                $batchData->setDeclaredNetWeight($netDeclaredWeight);
+
+                $batch = $batchData->getBatch();
+                if ($batch && $batch->getPieces() > 0) {
+                    $averageDeclaredWeight = $netDeclaredWeight / $batch->getPieces();
+                    $batchData->setDeclaredAverageWeight($averageDeclaredWeight);
                 }
             }
         }
