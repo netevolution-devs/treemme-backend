@@ -94,7 +94,7 @@ final class LeatherController extends AbstractController
         ValidatorInterface $validator,
     ): JsonResponse
     {
-        $data = $request->toArray();
+        $data = $request->request->all();
         $leather = new Leather();
 
         try {
