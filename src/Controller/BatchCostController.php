@@ -55,7 +55,7 @@ final class BatchCostController extends AbstractController
                 return $this->doResponse->doErrorJsonResponse('BatchCost not found', 404);
             }
         } else {
-            $batchCost = $batchCostRepository->findBy([], ['name' => 'ASC']);
+            $batchCost = $batchCostRepository->findBy([], ['date' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($batchCost, $id ? 'batch_cost_detail' : 'batch_cost_list');
 
