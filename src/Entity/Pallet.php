@@ -65,7 +65,7 @@ class Pallet
 
     public function setWeight(float $weight): static
     {
-        $this->weight = $weight;
+        $this->weight = round($weight, 2);
 
         return $this;
     }
