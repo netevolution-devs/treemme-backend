@@ -542,13 +542,13 @@ final class DdtRowController extends AbstractController
     {
         $quantity = $ddtRow->getQuantity() ?: 0.0;
         $currencyPrice = $ddtRow->getCurrencyPrice(); // Valuta estera per unità
-        $currencyChange = $ddtRow->getCurrencyChange() ?: 1.0; // quanta valuta estera per 1 EUR
+        $currencyChange = $ddtRow->getCurrencyExchange() ?: 1.0; // quanta valuta estera per 1 EUR
 
         // Se arriva currencyPrice, ricalcola sempre price (EUR)
         if ($currencyPrice !== null) {
             $price = $currencyChange != 0 ? round($currencyPrice / $currencyChange, 2) : 0.0;
             $ddtRow->setPrice($price);
-            $ddtRow->setCurrencyChange($currencyChange);
+            $ddtRow->setCurrencyExchange($currencyChange);
             $ddtRow->setCurrencyPrice(round($currencyPrice, 2));
         } else {
             $price = $ddtRow->getPrice() ?: 0.0;
