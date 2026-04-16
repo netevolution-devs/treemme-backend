@@ -281,6 +281,7 @@ final class BatchDataController extends AbstractController
 
     private function calculateWeights(BatchData $batchData): BatchData
     {
+
         $pallet = $batchData->getPallet();
         $palletNumber = $batchData->getPalletNumber();
 
@@ -300,7 +301,7 @@ final class BatchDataController extends AbstractController
                 }
             }
 
-            $grossDeclaredWeight = $batchData->getDeclaredAverageWeight();
+            $grossDeclaredWeight = $batchData->getDeclaredGrossWeight();
             if ($grossDeclaredWeight !== null) {
                 $netDeclaredWeight = $grossDeclaredWeight - $palletWeight;
                 $batchData->setDeclaredNetWeight($netDeclaredWeight);
