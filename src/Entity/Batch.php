@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\BatchRepository;
+use App\Service\GroupSerializerService;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
