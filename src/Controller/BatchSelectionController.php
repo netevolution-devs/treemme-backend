@@ -56,6 +56,7 @@ class BatchSelectionController extends AbstractController
         try {
             $batchSelection->setPieces($data['pieces']);
             $batchSelection->setStockPieces($data['pieces']);
+            $batchSelection->setNote($data['note'] ?? null);
 
             if (isset($data['batch_id'])) {
                 $fatherBatch = $this->doctrine->getRepository(Batch::class)->find($data['batch_id']);
