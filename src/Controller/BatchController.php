@@ -121,7 +121,40 @@ final class BatchController extends AbstractController
         $results = $this->groupSerializer->serializeGroup($batch, $id ? 'batch_detail' : 'batch_list');
 
         if ($id) {
-            return new JsonResponse($this->doResponse->doResponse($results[0]));
+            $batchData = $results[0];
+            if (isset($batchData['son_batches']) && is_array($batchData['son_batches'])) {
+
+                $groupedSonBatches = [];
+                foreach ($batchData['son_batches'] as $composition) {
+                    $sonBatch = $composition['batch'] ?? null;
+                    if (!$sonBatch) {
+                        continue;
+                    }
+
+                    $sonBatchId = $sonBatch['id'];
+                    if (!isset($groupedSonBatches[$sonBatchId])) {
+                        $groupedSonBatches[$sonBatchId] = [
+                            'batch' => $sonBatch,
+                            'details' => []
+                        ];
+                    }
+
+                    $groupedSonBatches[$sonBatchId]['details'][] = [
+                        'father_batch_pieces' => $composition['father_batch_piece'] ?? null,
+                        'date' => $composition['date'] ?? null,
+                    ];
+                }
+
+                $finalSonBatches = [];
+                foreach ($groupedSonBatches as $item) {
+                    $finalSonBatches[] = [
+                        'batch' => $item['batch'],
+                        $item['details']
+                    ];
+                }
+                $batchData['sonBatches'] = $finalSonBatches;
+            }
+            return new JsonResponse($this->doResponse->doResponse($batchData));
         }
         return new JsonResponse($this->doResponse->doResponse($results));
     }
