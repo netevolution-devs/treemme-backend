@@ -98,6 +98,23 @@ final class GroupController extends AbstractController
 
             $em = $this->doctrine;
             $em->persist($group);
+
+            $workAreas = $em->getRepository(WorkArea::class)->findAll();
+            $role = $em->getRepository(Role::class)->findOneBy(['name' => 'USER']) ?? $em->getRepository(Role::class)->findOneBy([]);
+
+            if ($role) {
+                foreach ($workAreas as $workArea) {
+                    $groupRoleWorkArea = new GroupRoleWorkArea();
+                    $groupRoleWorkArea->setGroup($group);
+                    $groupRoleWorkArea->setWorkArea($workArea);
+                    $groupRoleWorkArea->setRole($role);
+                    $groupRoleWorkArea->setCanGet(true);
+                    $groupRoleWorkArea->setCreatedAt($now);
+                    $groupRoleWorkArea->setUpdatedAt($now);
+                    $em->persist($groupRoleWorkArea);
+                }
+            }
+
             $em->flush();
 
             $result = $this->groupSerializer->serializeGroup($group, 'group_detail');
