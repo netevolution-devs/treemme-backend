@@ -155,7 +155,7 @@ final class BatchController extends AbstractController
                     ];
                 }
 
-                $batchData['sonBatches'] = $finalSonBatches;
+                $batchData['son_batches'] = $finalSonBatches;
             }
 
             return new JsonResponse($this->doResponse->doResponse($batchData));
