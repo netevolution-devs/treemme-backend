@@ -122,25 +122,27 @@ final class BatchController extends AbstractController
 
         if ($id) {
             $batchData = $results[0];
-            if (isset($batchData['son_batches']) && is_array($batchData['son_batches'])) {
 
+            if (isset($batchData['son_batches']) && is_array($batchData['son_batches'])) {
                 $groupedSonBatches = [];
+
                 foreach ($batchData['son_batches'] as $composition) {
                     $sonBatch = $composition['batch'] ?? null;
-                    if (!$sonBatch) {
+                    if (!$sonBatch || !isset($sonBatch['id'])) {
                         continue;
                     }
 
                     $sonBatchId = $sonBatch['id'];
+
                     if (!isset($groupedSonBatches[$sonBatchId])) {
                         $groupedSonBatches[$sonBatchId] = [
                             'batch' => $sonBatch,
-                            'details' => []
+                            'details' => [],
                         ];
                     }
 
                     $groupedSonBatches[$sonBatchId]['details'][] = [
-                        'father_batch_pieces' => $composition['father_batch_piece'] ?? null,
+                        'father_batch_pieces' => $composition['father_batch_pieces'] ?? $composition['father_batch_piece'] ?? null,
                         'date' => $composition['date'] ?? null,
                     ];
                 }
@@ -149,11 +151,13 @@ final class BatchController extends AbstractController
                 foreach ($groupedSonBatches as $item) {
                     $finalSonBatches[] = [
                         'batch' => $item['batch'],
-                        $item['details']
+                        'details' => $item['details'],
                     ];
                 }
+
                 $batchData['sonBatches'] = $finalSonBatches;
             }
+
             return new JsonResponse($this->doResponse->doResponse($batchData));
         }
         return new JsonResponse($this->doResponse->doResponse($results));
