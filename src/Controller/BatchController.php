@@ -122,45 +122,55 @@ final class BatchController extends AbstractController
 
         if ($id) {
             $batchData = $results[0];
-
-            if (isset($batchData['son_batches']) && is_array($batchData['son_batches'])) {
-                $groupedSonBatches = [];
-
-                foreach ($batchData['son_batches'] as $composition) {
-                    $sonBatch = $composition['batch'] ?? null;
-                    if (!$sonBatch || !isset($sonBatch['id'])) {
-                        continue;
-                    }
-
-                    $sonBatchId = $sonBatch['id'];
-
-                    if (!isset($groupedSonBatches[$sonBatchId])) {
-                        $groupedSonBatches[$sonBatchId] = [
-                            'batch' => $sonBatch,
-                            'details' => [],
-                        ];
-                    }
-
-                    $groupedSonBatches[$sonBatchId]['details'][] = [
-                        'father_batch_pieces' => $composition['father_batch_pieces'] ?? $composition['father_batch_piece'] ?? null,
-                        'date' => $composition['date'] ?? null,
-                    ];
-                }
-
-                $finalSonBatches = [];
-                foreach ($groupedSonBatches as $item) {
-                    $finalSonBatches[] = [
-                        'batch' => $item['batch'],
-                        'details' => $item['details'],
-                    ];
-                }
-
-                $batchData['son_batches'] = $finalSonBatches;
-            }
-
+            $batchData['son_batches'] = $this->recursiveGroupSonBatches($batchData['son_batches'] ?? []);
             return new JsonResponse($this->doResponse->doResponse($batchData));
         }
         return new JsonResponse($this->doResponse->doResponse($results));
+    }
+
+    private function recursiveGroupSonBatches(array $sonBatches): array
+    {
+        if (empty($sonBatches)) {
+            return [];
+        }
+
+        $groupedSonBatches = [];
+
+        foreach ($sonBatches as $composition) {
+            $sonBatch = $composition['batch'] ?? null;
+            if (!$sonBatch || !isset($sonBatch['id'])) {
+                continue;
+            }
+
+            $sonBatchId = $sonBatch['id'];
+
+            if (!isset($groupedSonBatches[$sonBatchId])) {
+                // Chiamata ricorsiva sui figli del figlio
+                if (isset($sonBatch['son_batches']) && is_array($sonBatch['son_batches'])) {
+                    $sonBatch['son_batches'] = $this->recursiveGroupSonBatches($sonBatch['son_batches']);
+                }
+
+                $groupedSonBatches[$sonBatchId] = [
+                    'batch' => $sonBatch,
+                    'details' => [],
+                ];
+            }
+
+            $groupedSonBatches[$sonBatchId]['details'][] = [
+                'father_batch_pieces' => $composition['father_batch_pieces'] ?? $composition['father_batch_piece'] ?? null,
+                'date' => $composition['date'] ?? null,
+            ];
+        }
+
+        $finalSonBatches = [];
+        foreach ($groupedSonBatches as $item) {
+            $finalSonBatches[] = [
+                'batch' => $item['batch'],
+                'details' => $item['details'],
+            ];
+        }
+
+        return $finalSonBatches;
     }
 
     #[Route('/batch/{id}/pdf',
