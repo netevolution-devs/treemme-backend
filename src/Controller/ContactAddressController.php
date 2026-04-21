@@ -172,14 +172,6 @@ final class ContactAddressController extends AbstractController
             unset($data['nation_id']);
         }
 
-        if (isset($data['town_id'])) {
-            $town = $this->doctrine->getRepository(Town::class)->find($data['town_id']);
-            if ($town) {
-                $address->setTown($town);
-            }
-            unset($data['town_id']);
-        }
-
         return $address;
     }
 }
