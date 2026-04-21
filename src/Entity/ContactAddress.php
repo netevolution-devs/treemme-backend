@@ -67,6 +67,7 @@ class ContactAddress
     private Collection $clientOrders;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail'])]
     private ?string $zip_code = null;
 
     public function __construct()
