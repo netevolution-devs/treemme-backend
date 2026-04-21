@@ -58,15 +58,17 @@ class ContactAddress
     #[Groups(['contact_address_detail', 'contact_detail'])]
     private ?Nation $nation = null;
 
-    #[ORM\ManyToOne(inversedBy: 'contactAddresses')]
-    #[Groups(['contact_address_detail', 'contact_detail'])]
-    private ?Town $town = null;
+
 
     /**
      * @var Collection<int, ClientOrder>
      */
     #[ORM\OneToMany(mappedBy: 'address', targetEntity: ClientOrder::class)]
     private Collection $clientOrders;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail'])]
+    private ?string $zip_code = null;
 
     public function __construct()
     {
@@ -198,18 +200,6 @@ class ContactAddress
         return $this;
     }
 
-    public function getTown(): ?Town
-    {
-        return $this->town;
-    }
-
-    public function setTown(?Town $town): static
-    {
-        $this->town = $town;
-
-        return $this;
-    }
-
     /**
      * @return Collection<int, ClientOrder>
      */
@@ -236,6 +226,18 @@ class ContactAddress
                 $clientOrder->setAddress(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getZipCode(): ?string
+    {
+        return $this->zip_code;
+    }
+
+    public function setZipCode(?string $zip_code): static
+    {
+        $this->zip_code = $zip_code;
 
         return $this;
     }
