@@ -121,6 +121,9 @@ class ClientOrderRow
     #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?Selection $selection = null;
 
+    #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
+    private ?ContactAddress $address = null;
+
     public function __construct()
     {
         $this->batchOrders = new ArrayCollection();
@@ -448,6 +451,18 @@ class ClientOrderRow
     public function setSelection(?Selection $selection): static
     {
         $this->selection = $selection;
+
+        return $this;
+    }
+
+    public function getAddress(): ?ContactAddress
+    {
+        return $this->address;
+    }
+
+    public function setAddress(?ContactAddress $address): static
+    {
+        $this->address = $address;
 
         return $this;
     }

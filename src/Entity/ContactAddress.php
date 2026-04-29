@@ -70,9 +70,16 @@ class ContactAddress
     #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail'])]
     private ?string $zip_code = null;
 
+    /**
+     * @var Collection<int, ClientOrderRow>
+     */
+    #[ORM\OneToMany(mappedBy: 'address', targetEntity: ClientOrderRow::class)]
+    private Collection $clientOrderRows;
+
     public function __construct()
     {
         $this->clientOrders = new ArrayCollection();
+        $this->clientOrderRows = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -238,6 +245,36 @@ class ContactAddress
     public function setZipCode(?string $zip_code): static
     {
         $this->zip_code = $zip_code;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ClientOrderRow>
+     */
+    public function getClientOrderRows(): Collection
+    {
+        return $this->clientOrderRows;
+    }
+
+    public function addClientOrderRow(ClientOrderRow $clientOrderRow): static
+    {
+        if (!$this->clientOrderRows->contains($clientOrderRow)) {
+            $this->clientOrderRows->add($clientOrderRow);
+            $clientOrderRow->setAddress($this);
+        }
+
+        return $this;
+    }
+
+    public function removeClientOrderRow(ClientOrderRow $clientOrderRow): static
+    {
+        if ($this->clientOrderRows->removeElement($clientOrderRow)) {
+            // set the owning side to null (unless already changed)
+            if ($clientOrderRow->getAddress() === $this) {
+                $clientOrderRow->setAddress(null);
+            }
+        }
 
         return $this;
     }
