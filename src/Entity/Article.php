@@ -87,6 +87,9 @@ class Article
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $client_code = null;
 
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $client_code_note = null;
+
     public function __construct()
     {
         $this->batches = new ArrayCollection();
@@ -331,6 +334,18 @@ class Article
     public function setClientCode(?string $client_code): static
     {
         $this->client_code = $client_code;
+
+        return $this;
+    }
+
+    public function getClientCodeNote(): ?string
+    {
+        return $this->client_code_note;
+    }
+
+    public function setClientCodeNote(?string $client_code_note): static
+    {
+        $this->client_code_note = $client_code_note;
 
         return $this;
     }
