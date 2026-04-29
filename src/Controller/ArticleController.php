@@ -197,7 +197,6 @@ class ArticleController extends AbstractController
             $article->getArticleType()?->getName(),
             $article->getArticleType()?->getLeatherType()?->getName(),
             $article->getThickness()?->getName(),
-            $article->getPrint()?->getName(),
             $article->getColor()?->getColor(),
         ];
 
@@ -206,10 +205,20 @@ class ArticleController extends AbstractController
             static fn (?string $value): bool => $value !== null && trim($value) !== ''
         )));
 
+        $clientCodeParts = [
+            $article->getArticleType()?->getName(),
+            $article->getThickness()?->getName(),
+            $article->getColor()?->getColor(),
+        ];
+
+        $article->setClientCode(implode(' ', array_filter(
+            $clientCodeParts,
+            static fn (?string $value): bool => $value !== null && trim($value) !== ''
+        )));
+
         $codeParts = [
             $this->compressString($article->getArticleType()?->getName()),
             $article->getThickness()?->getName(),
-            $this->compressString($article->getPrint()?->getName()),
             $this->compressString($article->getColor()?->getColor()),
             $this->compressString($article->getClient()?->getName()),
         ];
