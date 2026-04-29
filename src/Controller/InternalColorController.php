@@ -33,19 +33,19 @@ final class InternalColorController extends AbstractController
     public function getInternalColor(?int $id): JsonResponse
     {
         $repository = $this->doctrine->getRepository(InternalColor::class);
-        if ($id) {
+
+        if ($id !== null) {
             $internalColor = $repository->find($id);
+
             if (!$internalColor) {
                 return $this->doResponse->doErrorJsonResponse('InternalColor not found', 404);
             }
         } else {
             $internalColor = $repository->findBy([], ['name' => 'ASC']);
         }
-        $results = $this->groupSerializer->serializeGroup($internalColor, $id ? 'internal_color_detail' : 'internal_color_list');
 
-        if ($id) {
-            return new JsonResponse($this->doResponse->doResponse($results[0]));
-        }
+        $results = $this->groupSerializer->serializeGroup($internalColor, $id !== null ? 'internal_color_detail' : 'internal_color_list');
+
         return new JsonResponse($this->doResponse->doResponse($results));
     }
 

@@ -193,7 +193,7 @@
         <div class="customer-info">
             {% if order.address %}
                 {{ order.address.address }}<br>
-                {{ order.address.town ? order.address.town.cap : '' }} {{ order.address.town ? order.address.town.name : '' }} {{ order.address.town and order.address.town.province ? '- ' ~ order.address.town.province.acronym : '' }}
+                {{ order.address.zip_code  : '' }}
                 <br>
                 {{ order.address.nation ? order.address.nation.name : '' }}
             {% endif %}
