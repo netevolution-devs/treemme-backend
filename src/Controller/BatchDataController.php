@@ -277,7 +277,7 @@ final class BatchDataController extends AbstractController
             }
         }
 
-        $batchCost->setCost($amount);
+        $batchCost->setCost($amount / ($batchData->getCurrencyExchange() ?? 1.0));
         $batchCost->setDate($batchData->getDeliveryDate() ?? new \DateTime());
 
         $this->doctrine->persist($batchCost);
