@@ -84,7 +84,7 @@ class ClientOrder
     private ?string $order_note_production = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['client_order_list', 'client_order_detail'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_summary_print'])]
     private ?string $order_note_administration = null;
 
     #[ORM\Column(nullable: true)]
