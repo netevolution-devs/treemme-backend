@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Repository\BatchOrderRepository;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: BatchOrderRepository::class)]
 class BatchOrder
@@ -14,6 +15,7 @@ class BatchOrder
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'batchOrders')]
+    #[Groups(['client_order_row_list'])]
     #[ORM\JoinColumn(nullable: false)]
     private ?Batch $batch = null;
 

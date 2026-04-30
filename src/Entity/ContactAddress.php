@@ -15,7 +15,7 @@ class ContactAddress
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail', 'client_order_row_list'])]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'contactAddresses')]
@@ -24,23 +24,23 @@ class ContactAddress
     private ?Contact $contact = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail', 'client_order_row_list'])]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?string $address_name = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail', 'client_order_row_list'])]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?string $address = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail', 'client_order_row_list'])]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?string $address_2 = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail', 'client_order_row_list'])]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?string $address_3 = null;
 
     #[ORM\Column(length: 10, nullable: true)]
-    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail', 'client_order_row_list'])]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?string $address_4 = null;
 
     #[ORM\Column(nullable: true)]
@@ -67,7 +67,7 @@ class ContactAddress
     private Collection $clientOrders;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail', 'client_order_row_list'])]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?string $zip_code = null;
 
     /**

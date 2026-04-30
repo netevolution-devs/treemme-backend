@@ -17,13 +17,13 @@ class ContactAgent
 
     #[ORM\ManyToOne(inversedBy: 'contactAgents')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier'])]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier', 'client_summary_print'])]
     #[MaxDepth(1)]
     private ?Contact $contact = null;
 
     #[ORM\ManyToOne(inversedBy: 'contactAgents')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier'])]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier', 'client_summary_print'])]
     #[MaxDepth(1)]
     private ?Contact $agent = null;
 
