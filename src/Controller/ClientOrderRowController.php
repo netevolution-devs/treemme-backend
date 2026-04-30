@@ -7,7 +7,6 @@ use App\Entity\ClientOrderRow;
 use App\Entity\ClientOrder;
 use App\Entity\ContactAddress;
 use App\Entity\Currency;
-use App\Entity\Product;
 use App\Entity\MeasurementUnit;
 use App\Entity\Selection;
 use App\Service\PdfGeneratorService;
@@ -20,7 +19,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Mime\Address;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
