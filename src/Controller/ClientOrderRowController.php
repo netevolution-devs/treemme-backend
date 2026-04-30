@@ -18,6 +18,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Mime\Address;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -45,6 +46,83 @@ final class ClientOrderRowController extends AbstractController
         $this->groupSerializer = $groupSerializer;
         $this->validatorOutputFormatter = $validatorOutputFormatter;
         $this->actionLogger = $actionLogger;
+    }
+
+    #[Route('/client-order-row-report',
+        name: 'get_client_order_row_report',
+        methods: ['GET'])]
+    public function getClientOrderRowsReport(Request $request): JsonResponse
+    {
+        $startDate = $request->query->get('startDate');
+        $endDate = $request->query->get('endDate');
+        $shippingStatus = $request->query->get('shippingStatus'); // 'to_ship', 'shipped'
+        $productionStatus = $request->query->get('productionStatus'); // 'to_produce', 'produced'
+        $printStatus = $request->query->get('printStatus'); // 'to_print', 'printed'
+
+        $qb = $this->doctrine->getRepository(ClientOrderRow::class)->createQueryBuilder('cor');
+        $qb->join('cor.client_order', 'co')
+           ->join('co.client', 'c');
+
+        if ($startDate) {
+            $qb->andWhere('co.orderDate >= :startDate')
+               ->setParameter('startDate', new \DateTime($startDate));
+        }
+        if ($endDate) {
+            $qb->andWhere('co.orderDate <= :endDate')
+               ->setParameter('endDate', new \DateTime($endDate));
+        }
+
+        if ($shippingStatus === 'to_ship') {
+            $qb->andWhere('cor.quantityToShip > 0');
+        } elseif ($shippingStatus === 'shipped') {
+            $qb->andWhere('cor.quantityToShip <= 0 OR cor.quantityToShip IS NULL');
+        }
+
+        // Filtro produzione tramite query per efficienza se possibile, 
+        // ma la logica della somma quantità lotti è complessa per DQL puro in questo contesto.
+        // Manteniamo la logica post-query per precisione sulla somma delle quantità dei lotti.
+
+        if ($printStatus === 'printed') {
+            $qb->andWhere('co.printed = true');
+        } elseif ($printStatus === 'to_print') {
+            $qb->andWhere('co.printed = false OR co.printed IS NULL');
+        }
+
+        $rows = $qb->getQuery()->getResult();
+
+        // Filtro produzione e raggruppamento per cliente
+        $report = [];
+        foreach ($rows as $row) {
+            $totalProduced = 0;
+            foreach ($row->getBatchOrders() as $bo) {
+                $batch = $bo->getBatch();
+                if ($batch) {
+                    $totalProduced += (float)$batch->getQuantity();
+                }
+            }
+
+            // Consideriamo "prodotto" se la quantità totale associata ai lotti è >= alla quantità ordinata
+            $isProduced = $totalProduced >= (float)$row->getQuantity();
+
+            if ($productionStatus === 'produced' && !$isProduced) continue;
+            if ($productionStatus === 'to_produce' && $isProduced) continue;
+
+            $client = $row->getClientOrder()->getClient();
+            $clientId = $client ? $client->getId() : 0;
+            $clientName = $client ? $client->getName() : 'Sconosciuto';
+
+            if (!isset($report[$clientId])) {
+                $report[$clientId] = [
+                    'client' => $client ? $this->groupSerializer->serializeGroup($client, 'client_order_row_list') : null,
+                    'rows' => []
+                ];
+            }
+
+            $serializedRow = $this->groupSerializer->serializeGroup($row, 'client_order_row_list');
+            $report[$clientId]['rows'][] = $serializedRow;
+        }
+
+        return new JsonResponse($this->doResponse->doResponse(array_values($report)));
     }
 
     #[Route('/client-order-row/{id}',
@@ -85,7 +163,13 @@ final class ClientOrderRowController extends AbstractController
 
         try {
             $clientOrderRow = $this->handleRelations($clientOrderRow, $data);
+
             $clientOrderRow = $this->createMethodsByInput->createMethods($clientOrderRow, $data);
+
+            if ($clientOrderRow->getClientOrder() && (!$clientOrderRow->getWeight() || $clientOrderRow->getWeight() === 0)) {
+                $maxWeight = $this->doctrine->getRepository(ClientOrderRow::class)->findMaxWeightByOrder($clientOrderRow->getClientOrder()->getId());
+                $clientOrderRow->setWeight($maxWeight + 1);
+            }
 
             $this->calculatePrices($clientOrderRow);
 
@@ -130,6 +214,11 @@ final class ClientOrderRowController extends AbstractController
         try {
             $clientOrderRow = $this->handleRelations($clientOrderRow, $data);
             $clientOrderRow = $this->createMethodsByInput->createMethods($clientOrderRow, $data);
+
+            if ($clientOrderRow->getClientOrder() && (!$clientOrderRow->getWeight() || $clientOrderRow->getWeight() === 0)) {
+                $maxWeight = $this->doctrine->getRepository(ClientOrderRow::class)->findMaxWeightByOrder($clientOrderRow->getClientOrder()->getId());
+                $clientOrderRow->setWeight($maxWeight + 1);
+            }
 
             $this->calculatePrices($clientOrderRow);
 
@@ -205,6 +294,13 @@ final class ClientOrderRowController extends AbstractController
                 $clientOrderRow->setSelection($selection);
             }
             unset($data['selection_id']);
+        }
+        if (isset($data['address_id'])) {
+            $address = $this->doctrine->getRepository(Address::class)->find($data['address_id']);
+            if ($address) {
+                $clientOrderRow->setAddress($address);
+            }
+            unset($data['address_id']);
         }
 
         return $clientOrderRow;

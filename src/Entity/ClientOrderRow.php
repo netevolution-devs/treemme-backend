@@ -122,7 +122,11 @@ class ClientOrderRow
     private ?Selection $selection = null;
 
     #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?ContactAddress $address = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?float $quantity_to_ship = null;
 
     public function __construct()
     {
@@ -463,6 +467,18 @@ class ClientOrderRow
     public function setAddress(?ContactAddress $address): static
     {
         $this->address = $address;
+
+        return $this;
+    }
+
+    public function getQuantityToShip(): ?float
+    {
+        return $this->quantity_to_ship;
+    }
+
+    public function setQuantityToShip(?float $quantity_to_ship): static
+    {
+        $this->quantity_to_ship = $quantity_to_ship;
 
         return $this;
     }
