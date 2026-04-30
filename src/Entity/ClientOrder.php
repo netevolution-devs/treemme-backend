@@ -36,31 +36,31 @@ class ClientOrder
     private ?Contact $client = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_order_row_list'])]
     private ?string $order_number = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_order_row_list'])]
     private ?\DateTime $order_date = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_order_row_list'])]
     private ?float $percentage_agent = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_order_row_list'])]
     private ?string $client_order_number = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_order_row_list'])]
     private ?\DateTime $client_order_date = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_order_row_list'])]
     private ?string $agent_order_number = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_order_row_list'])]
     private ?\DateTime $agent_order_date = null;
 
     #[ORM\ManyToOne(inversedBy: 'clientOrders')]

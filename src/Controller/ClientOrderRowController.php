@@ -113,7 +113,7 @@ final class ClientOrderRowController extends AbstractController
 
             if (!isset($report[$clientId])) {
                 $report[$clientId] = [
-                    'clientName' => $clientName,
+                    'client' => $client ? $this->groupSerializer->serializeGroup($client, 'client_order_row_list') : null,
                     'rows' => []
                 ];
             }
