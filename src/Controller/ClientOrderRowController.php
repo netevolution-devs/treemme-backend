@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Article;
 use App\Entity\ClientOrderRow;
 use App\Entity\ClientOrder;
+use App\Entity\ContactAddress;
 use App\Entity\Currency;
 use App\Entity\Product;
 use App\Entity\MeasurementUnit;
@@ -405,7 +406,7 @@ final class ClientOrderRowController extends AbstractController
             unset($data['selection_id']);
         }
         if (isset($data['address_id'])) {
-            $address = $this->doctrine->getRepository(Address::class)->find($data['address_id']);
+            $address = $this->doctrine->getRepository(ContactAddress::class)->find($data['address_id']);
             if ($address) {
                 $clientOrderRow->setAddress($address);
             }
