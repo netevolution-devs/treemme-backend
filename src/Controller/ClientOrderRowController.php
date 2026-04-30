@@ -9,6 +9,7 @@ use App\Entity\Currency;
 use App\Entity\Product;
 use App\Entity\MeasurementUnit;
 use App\Entity\Selection;
+use App\Service\PdfGeneratorService;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -30,6 +31,7 @@ final class ClientOrderRowController extends AbstractController
     private $groupSerializer;
     private $validatorOutputFormatter;
     private $actionLogger;
+    private $pdfGenerator;
 
     public function __construct(
         CreateMethodsByInput     $createMethodsByInput,
@@ -38,6 +40,7 @@ final class ClientOrderRowController extends AbstractController
         GroupSerializerService   $groupSerializer,
         ValidatorOutputFormatter $validatorOutputFormatter,
         ActionLoggerService      $actionLogger,
+        PdfGeneratorService      $pdfGenerator,
     )
     {
         $this->createMethodsByInput = $createMethodsByInput;
@@ -46,6 +49,7 @@ final class ClientOrderRowController extends AbstractController
         $this->groupSerializer = $groupSerializer;
         $this->validatorOutputFormatter = $validatorOutputFormatter;
         $this->actionLogger = $actionLogger;
+        $this->pdfGenerator = $pdfGenerator;
     }
 
     #[Route('/client-order-row-report',
@@ -53,11 +57,12 @@ final class ClientOrderRowController extends AbstractController
         methods: ['GET'])]
     public function getClientOrderRowsReport(Request $request): JsonResponse
     {
-        $startDate = $request->query->get('startDate');
-        $endDate = $request->query->get('endDate');
-        $shippingStatus = $request->query->get('shippingStatus'); // 'to_ship', 'shipped'
-        $productionStatus = $request->query->get('productionStatus'); // 'to_produce', 'produced'
-        $printStatus = $request->query->get('printStatus'); // 'to_print', 'printed'
+        $startDate = $request->query->get('start_date');
+        $endDate = $request->query->get('end_date');
+        $shippingStatus = $request->query->get('shipping_status'); // 'to_ship', 'shipped'
+        $productionStatus = $request->query->get('production_status'); // 'to_produce', 'produced'
+        $printStatus = $request->query->get('print_status'); // 'to_print', 'printed'
+        $clientId = $request->query->get('client_id');
 
         $qb = $this->doctrine->getRepository(ClientOrderRow::class)->createQueryBuilder('cor');
         $qb->join('cor.client_order', 'co')
@@ -70,6 +75,11 @@ final class ClientOrderRowController extends AbstractController
         if ($endDate) {
             $qb->andWhere('co.orderDate <= :endDate')
                ->setParameter('endDate', new \DateTime($endDate));
+        }
+
+        if ($clientId) {
+            $qb->andWhere('c.id = :clientId')
+               ->setParameter('clientId', $clientId);
         }
 
         if ($shippingStatus === 'to_ship') {
@@ -111,6 +121,117 @@ final class ClientOrderRowController extends AbstractController
         }
 
         return new JsonResponse($this->doResponse->doResponse($report));
+    }
+
+    #[Route('/client-order-row-summary-print',
+        name: 'get_client_order_row_summary_print',
+        methods: ['GET'])]
+    public function getClientSummaryPrint(Request $request): \Symfony\Component\HttpFoundation\Response
+    {
+        $startDate = $request->query->get('start_date');
+        $endDate = $request->query->get('end_date');
+        $clientId = $request->query->get('client_id');
+
+        $qb = $this->doctrine->getRepository(ClientOrderRow::class)->createQueryBuilder('cor');
+        $qb->join('cor.client_order', 'co')
+            ->join('co.client', 'c')
+            ->orderBy('c.name', 'ASC')
+            ->addOrderBy('co.order_date', 'ASC')
+            ->addOrderBy('cor.id', 'ASC');
+
+        if ($startDate) {
+            $qb->andWhere('co.order_date >= :startDate')
+                ->setParameter('startDate', new \DateTime($startDate));
+        }
+        if ($endDate) {
+            $qb->andWhere('co.order_date <= :endDate')
+                ->setParameter('endDate', new \DateTime($endDate));
+        }
+        if ($clientId) {
+            $qb->andWhere('c.id = :clientId')
+                ->setParameter('clientId', $clientId);
+        }
+
+        /** @var ClientOrderRow[] $rows */
+        $rows = $qb->getQuery()->getResult();
+
+        $groupedData = [];
+        foreach ($rows as $row) {
+            $client = $row->getClientOrder()->getClient();
+            if (!$client) continue;
+
+            $cId = $client->getId();
+            if (!isset($groupedData[$cId])) {
+                // Prendi la prima destinazione (ID più basso)
+                $firstAddress = null;
+                $addresses = $client->getContactAddresses()->toArray();
+                if (!empty($addresses)) {
+                    usort($addresses, fn($a, $b) => $a->getId() <=> $b->getId());
+                    $firstAddress = $addresses[0];
+                }
+
+                // Prendi il primo agente associato
+                $firstAgent = null;
+                $agents = $client->getContactAgents();
+                if (!$agents->isEmpty()) {
+                    $firstAgent = $agents->first()->getAgent();
+                }
+
+                $groupedData[$cId] = [
+                    'client' => $this->groupSerializer->serializeGroup($client, 'client_summary_print'),
+                    'firstAddress' => $firstAddress ? $this->groupSerializer->serializeGroup($firstAddress, 'client_summary_print') : null,
+                    'firstAgent' => $firstAgent ? $this->groupSerializer->serializeGroup($firstAgent, 'client_summary_print') : null,
+                    'orders' => []
+                ];
+            }
+
+            $orderId = $row->getClientOrder()->getId();
+            if (!isset($groupedData[$cId]['orders'][$orderId])) {
+                $groupedData[$cId]['orders'][$orderId] = [
+                    'details' => $this->groupSerializer->serializeGroup($row->getClientOrder(), 'client_summary_print'),
+                    'rows' => []
+                ];
+            }
+
+            // Dati DDT: OrderRow->BatchOrder->Batch->ddtRow solo per ddt di tipo Vendita
+            $ddtData = null;
+            foreach ($row->getBatchOrders() as $bo) {
+                $batch = $bo->getBatch();
+                if ($batch) {
+                    foreach ($batch->getDdtRows() as $dr) {
+                        $ddt = $dr->getDdt();
+                        if ($ddt && $ddt->getReason() && $ddt->getReason()->getName() === 'Vendita') {
+                            $ddtData = $this->groupSerializer->serializeGroup($dr, 'client_summary_print');
+                            break 2;
+                        }
+                    }
+                }
+            }
+
+            $rowSerialized = $this->groupSerializer->serializeGroup($row, 'client_summary_print');
+            $rowSerialized['ddt_row'] = $ddtData;
+
+            $groupedData[$cId]['orders'][$orderId]['rows'][] = $rowSerialized;
+        }
+
+        // Trasformiamo in array semplice per Twig
+        $finalData = [];
+        foreach ($groupedData as $clientData) {
+            $clientData['orders'] = array_values($clientData['orders']);
+            $finalData[] = $clientData;
+        }
+
+        $pdfContent = $this->pdfGenerator->generatePdf('print/client_summary_pdf.html.twig', [
+            'data' => $finalData,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'orientation' => 'landscape'
+        ], 'riepilogo_clienti.pdf');
+
+        return new \Symfony\Component\HttpFoundation\Response($pdfContent, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="riepilogo_clienti.pdf"'
+        ]);
     }
 
     #[Route('/client-order-row/{id}',

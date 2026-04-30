@@ -19,14 +19,14 @@ class Contact
     #[Groups(['contact_list','contact_detail','contact_type_detail', 'leather_list',
         'leather_detail','contact_client','contact_supplier',
         'contact_agent_list','contact_subcontractor_list','client_order_list', 'client_order_detail',
-        'article_list', 'article_detail', 'ddt_list', 'ddt_detail', 'batch_detail', 'color_list', 'color_detail', 'batch_data_detail', 'client_order_row_list'])]
+        'article_list', 'article_detail', 'ddt_list', 'ddt_detail', 'batch_detail', 'color_list', 'color_detail', 'batch_data_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
     #[Groups(['contact_list','contact_detail','contact_type_detail','leather_list',
         'leather_detail','contact_client','contact_supplier',
         'contact_agent_list','contact_subcontractor_list','client_order_list', 'client_order_detail',
-        'article_list', 'article_detail', 'ddt_list', 'ddt_detail', 'batch_detail', 'color_list', 'color_detail', 'batch_data_detail', 'client_order_row_list'])]
+        'article_list', 'article_detail', 'ddt_list', 'ddt_detail', 'batch_detail', 'color_list', 'color_detail', 'batch_data_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?string $name = null;
 
     #[ORM\ManyToOne(inversedBy: 'contacts')]
@@ -41,7 +41,7 @@ class Contact
      * @var Collection<int, ContactAddress>
      */
     #[ORM\OneToMany(mappedBy: 'contact', targetEntity: ContactAddress::class, orphanRemoval: true)]
-    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list','contact_subcontractor_list'])]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list','contact_subcontractor_list', 'client_summary_print'])]
     private Collection $contactAddresses;
 
     #[ORM\Column]
@@ -124,7 +124,7 @@ class Contact
      * @var Collection<int, ContactAgent>
      */
     #[ORM\OneToMany(mappedBy: 'contact', targetEntity: ContactAgent::class, orphanRemoval: true)]
-    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier'])]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier', 'client_summary_print'])]
     private Collection $contactAgents;
 
     #[ORM\OneToMany(mappedBy: 'agent', targetEntity: ContactAgent::class, orphanRemoval: true)]

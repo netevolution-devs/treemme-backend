@@ -18,7 +18,7 @@ class Batch
     #[ORM\GeneratedValue]
     #[ORM\Column]
     #[Groups(['batch_list', 'batch_detail', 'batch_type_detail', 'batch_composition_list', 'measurement_unit_detail',
-        'user_detail', 'production_list', 'production_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'batch_data_detail'])]
+        'user_detail', 'production_list', 'production_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'batch_data_detail','client_order_row_list'])]
     private ?int $id = null;
 
     #[ORM\Column]
@@ -35,15 +35,15 @@ class Batch
 
     #[ORM\Column(length: 50)]
     #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'ddt_detail', 'ddt_row_list',
-        'ddt_row_detail', 'batch_composition_list', 'batch_data_detail'])]
+        'ddt_row_detail', 'batch_composition_list', 'batch_data_detail','client_order_row_list'])]
     private ?string $batch_code = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_list', 'batch_detail'])]
+    #[Groups(['batch_list', 'batch_detail','client_order_row_list'])]
     private ?\DateTime $batch_date = null;
 
     #[ORM\Column]
-    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'batch_data_detail'])]
+    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'batch_data_detail','client_order_row_list'])]
     private ?int $pieces = null;
 
     #[ORM\ManyToOne(inversedBy: 'batches')]
@@ -51,7 +51,7 @@ class Batch
     private ?MeasurementUnit $measurement_unit = null;
 
     #[ORM\Column]
-    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'batch_data_detail'])]
+    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'batch_data_detail','client_order_row_list'])]
     private ?float $quantity = null;
 
     #[ORM\Column]
@@ -164,6 +164,7 @@ class Batch
      * @var Collection<int, DdtRow>
      */
     #[ORM\OneToMany(mappedBy: 'batch', targetEntity: DdtRow::class)]
+    #[Groups(['client_order_row_list'])]
     private Collection $ddtRows;
 
     /**
