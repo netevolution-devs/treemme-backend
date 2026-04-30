@@ -68,11 +68,11 @@ final class ClientOrderRowController extends AbstractController
            ->join('co.client', 'c');
 
         if ($startDate) {
-            $qb->andWhere('co.orderDate >= :startDate')
+            $qb->andWhere('co.order_date >= :startDate')
                ->setParameter('startDate', new \DateTime($startDate));
         }
         if ($endDate) {
-            $qb->andWhere('co.orderDate <= :endDate')
+            $qb->andWhere('co.order_date <= :endDate')
                ->setParameter('endDate', new \DateTime($endDate));
         }
 
@@ -82,9 +82,9 @@ final class ClientOrderRowController extends AbstractController
         }
 
         if ($shippingStatus === 'to_ship') {
-            $qb->andWhere('cor.quantityToShip > 0');
+            $qb->andWhere('cor.quantity_to_ship > 0');
         } elseif ($shippingStatus === 'shipped') {
-            $qb->andWhere('cor.quantityToShip <= 0 OR cor.quantityToShip IS NULL');
+            $qb->andWhere('cor.quantity_to_ship <= 0 OR cor.quantity_to_ship IS NULL');
         }
 
         // Filtro produzione tramite query per efficienza se possibile, 
