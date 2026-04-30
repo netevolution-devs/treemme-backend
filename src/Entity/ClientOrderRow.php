@@ -122,6 +122,7 @@ class ClientOrderRow
     private ?Selection $selection = null;
 
     #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?ContactAddress $address = null;
 
     public function __construct()

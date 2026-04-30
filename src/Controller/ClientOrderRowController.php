@@ -18,6 +18,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Mime\Address;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -205,6 +206,13 @@ final class ClientOrderRowController extends AbstractController
                 $clientOrderRow->setSelection($selection);
             }
             unset($data['selection_id']);
+        }
+        if (isset($data['address_id'])) {
+            $address = $this->doctrine->getRepository(Address::class)->find($data['address_id']);
+            if ($address) {
+                $clientOrderRow->setAddress($address);
+            }
+            unset($data['address_id']);
         }
 
         return $clientOrderRow;
