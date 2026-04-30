@@ -31,13 +31,13 @@ class ClientOrderRowRepository extends ServiceEntityRepository
 //        ;
 //    }
 
-//    public function findOneBySomeField($value): ?ClientOrderRow
-//    {
-//        return $this->createQueryBuilder('c')
-//            ->andWhere('c.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->getQuery()
-//            ->getOneOrNullResult()
-//        ;
-//    }
+    public function findMaxWeightByOrder($orderId): int
+    {
+        return (int) $this->createQueryBuilder('cor')
+            ->select('MAX(cor.weight)')
+            ->where('cor.client_order = :orderId')
+            ->setParameter('orderId', $orderId)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
 }

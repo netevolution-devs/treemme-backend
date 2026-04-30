@@ -211,6 +211,25 @@ final class DdtRowController extends AbstractController
         $this->doctrine->persist($wearhouseMovement);
         $this->doctrine->flush();
 
+        // Se è un DDT di vendita, aggiorniamo la QuantityToShip sulle righe ordine collegate al lotto
+        $ddt = $ddtRow->getDdt();
+        $movementReason = $ddt->getReason()?->getWarehouseMovementReason();
+        if ($movementReason && $movementReason->getReasonType()?->getMovementType() === 'Scarico') {
+            $batch = $ddtRow->getBatch();
+            if ($batch) {
+                foreach ($batch->getBatchOrders() as $batchOrder) {
+                    $orderRow = $batchOrder->getOrderRow();
+                    if ($orderRow) {
+                        $newToShip = (float)$orderRow->getQuantity() - $ddtRow->getQuantity();
+                        $orderRow->setQuantityToShip((string)$newToShip);
+                        $this->doctrine->persist($orderRow);
+                    }
+                }
+            }
+        }
+
+        $this->doctrine->flush();
+
         $results = $this->groupSerializer->serializeGroup([$ddtRow], 'ddt_row_detail');
         return new JsonResponse($this->doResponse->doResponse($results[0]));
     }
@@ -291,6 +310,45 @@ final class DdtRowController extends AbstractController
 
         $this->doctrine->persist($warehouseMovement);
 
+        // Gestione QuantityToShip per DDT di vendita
+        $ddt = $ddtRow->getDdt();
+        $movementReason = $ddt->getReason()?->getWarehouseMovementReason();
+        if ($movementReason && $movementReason->getReasonType()?->getMovementType() === 'Scarico') {
+            $batch = $ddtRow->getBatch();
+            if ($batch) {
+                // Se il lotto è cambiato, dobbiamo ripristinare il vecchio e aggiornare il nuovo
+                if ($oldBatch && $newBatch && $oldBatch->getId() !== $newBatch->getId()) {
+                    // Ripristiniamo il vecchio lotto/ordine
+                    foreach ($oldBatch->getBatchOrders() as $batchOrder) {
+                        $orderRow = $batchOrder->getOrderRow();
+                        if ($orderRow) {
+                            $orderRow->setQuantityToShip((string)$orderRow->getQuantity());
+                            $this->doctrine->persist($orderRow);
+                        }
+                    }
+                    // Aggiorniamo il nuovo lotto/ordine
+                    foreach ($newBatch->getBatchOrders() as $batchOrder) {
+                        $orderRow = $batchOrder->getOrderRow();
+                        if ($orderRow) {
+                            $newToShip = (float)$orderRow->getQuantity() - $ddtRow->getQuantity();
+                            $orderRow->setQuantityToShip((string)$newToShip);
+                            $this->doctrine->persist($orderRow);
+                        }
+                    }
+                } else {
+                    // Stesso lotto, aggiorniamo basandoci sulla quantità totale della riga ordine
+                    foreach ($batch->getBatchOrders() as $batchOrder) {
+                        $orderRow = $batchOrder->getOrderRow();
+                        if ($orderRow) {
+                            $newToShip = (float)$orderRow->getQuantity() - $ddtRow->getQuantity();
+                            $orderRow->setQuantityToShip((string)$newToShip);
+                            $this->doctrine->persist($orderRow);
+                        }
+                    }
+                }
+            }
+        }
+
         $this->doctrine->flush();
 
         $results = $this->groupSerializer->serializeGroup([$ddtRow], 'ddt_row_detail');
@@ -322,6 +380,22 @@ final class DdtRowController extends AbstractController
         ]);
         if ($warehouseMovement) {
             $this->doctrine->remove($warehouseMovement);
+        }
+
+        // Ripristino QuantityToShip per DDT di vendita in caso di eliminazione
+        $ddt = $ddtRow->getDdt();
+        $movementReason = $ddt->getReason()?->getWarehouseMovementReason();
+        if ($movementReason && $movementReason->getReasonType()?->getMovementType() === 'Scarico') {
+            $batch = $ddtRow->getBatch();
+            if ($batch) {
+                foreach ($batch->getBatchOrders() as $batchOrder) {
+                    $orderRow = $batchOrder->getOrderRow();
+                    if ($orderRow) {
+                        $orderRow->setQuantityToShip((string)$orderRow->getQuantity());
+                        $this->doctrine->persist($orderRow);
+                    }
+                }
+            }
         }
 
         $this->doctrine->remove($ddtRow);
