@@ -90,7 +90,7 @@ final class ClientOrderRowController extends AbstractController
 
         $rows = $qb->getQuery()->getResult();
 
-        // Filtro produzione e raggruppamento per cliente
+        // Filtro produzione e preparazione report (lista piatta)
         $report = [];
         foreach ($rows as $row) {
             $totalProduced = 0;
@@ -107,22 +107,10 @@ final class ClientOrderRowController extends AbstractController
             if ($productionStatus === 'produced' && !$isProduced) continue;
             if ($productionStatus === 'to_produce' && $isProduced) continue;
 
-            $client = $row->getClientOrder()->getClient();
-            $clientId = $client ? $client->getId() : 0;
-            $clientName = $client ? $client->getName() : 'Sconosciuto';
-
-            if (!isset($report[$clientId])) {
-                $report[$clientId] = [
-                    'client' => $client ? $this->groupSerializer->serializeGroup($client, 'client_order_row_list') : null,
-                    'rows' => []
-                ];
-            }
-
-            $serializedRow = $this->groupSerializer->serializeGroup($row, 'client_order_row_list');
-            $report[$clientId]['rows'][] = $serializedRow;
+            $report[] = $this->groupSerializer->serializeGroup($row, 'client_order_row_list');
         }
 
-        return new JsonResponse($this->doResponse->doResponse(array_values($report)));
+        return new JsonResponse($this->doResponse->doResponse($report));
     }
 
     #[Route('/client-order-row/{id}',
