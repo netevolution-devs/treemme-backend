@@ -136,7 +136,7 @@
 
                             <td class="row-secondary" style="width: 30%;">
                                 {% if row.ddt_row %}
-                                    <div style="margin-bottom: 3px; font-weight: bold; color: #0056b3;">
+                                    <div style="margin-bottom: 3px; font-weight: bold;">
                                         {{ row.ddt_row.ddt.ddt_number }} {{ row.ddt_row.ddt.ddt_date|date('d/m/Y') }}
                                         {{ row.ddt_row.measurement_unit.prefix }} {{ row.ddt_row.quantity }}
                                         {{ row.ddt_row.currency.sign }} {{ row.ddt_row.price }}
