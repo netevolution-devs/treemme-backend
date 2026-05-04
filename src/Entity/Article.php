@@ -15,13 +15,13 @@ class Article
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['article_list', 'article_detail', 'client_order_row_detail', 'client_order_detail',
-        'batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'color_detail'])]
+    #[Groups(['article_list', 'article_detail', 'client_order_row_list', 'client_order_row_detail', 'client_order_detail',
+        'batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'color_detail', 'client_summary_print'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['article_list', 'article_detail', 'client_order_row_detail', 'client_order_detail',
-        'batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'color_detail'])]
+    #[Groups(['article_list', 'article_detail', 'client_order_row_list', 'client_order_row_detail', 'client_order_detail',
+        'batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'color_detail', 'client_summary_print'])]
     private ?string $code = null;
 
     #[ORM\ManyToOne(inversedBy: 'articles')]
@@ -71,7 +71,7 @@ class Article
     private Collection $clientOrderRows;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['article_list', 'article_detail', 'client_order_row_detail', 'client_order_detail', 'batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['article_list', 'article_detail', 'client_order_detail', 'client_summary_print', 'client_order_row_list'])]
     private ?string $name = null;
 
     /**
@@ -85,7 +85,12 @@ class Article
     private ?Color $color = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['article_list', 'article_detail', 'client_summary_print', 'client_order_row_list'])]
     private ?string $client_code = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['article_list', 'article_detail', 'client_summary_print'])]
+    private ?string $client_code_note = null;
 
     public function __construct()
     {
@@ -331,6 +336,18 @@ class Article
     public function setClientCode(?string $client_code): static
     {
         $this->client_code = $client_code;
+
+        return $this;
+    }
+
+    public function getClientCodeNote(): ?string
+    {
+        return $this->client_code_note;
+    }
+
+    public function setClientCodeNote(?string $client_code_note): static
+    {
+        $this->client_code_note = $client_code_note;
 
         return $this;
     }

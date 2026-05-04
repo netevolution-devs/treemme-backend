@@ -14,15 +14,15 @@ class Ddt
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['ddt_list', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['ddt_list', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_summary_print', 'client_order_row_list'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['ddt_list', 'ddt_detail'])]
+    #[Groups(['ddt_list', 'ddt_detail', 'client_summary_print', 'client_order_row_list'])]
     private ?string $ddt_number = null;
 
     #[ORM\Column]
-    #[Groups(['ddt_list', 'ddt_detail'])]
+    #[Groups(['ddt_list', 'ddt_detail', 'client_summary_print', 'client_order_row_list'])]
     private ?\DateTime $ddt_date = null;
 
     #[ORM\Column(nullable: true)]
@@ -42,7 +42,7 @@ class Ddt
 
     #[ORM\ManyToOne(inversedBy: 'ddts')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['ddt_list', 'ddt_detail'])]
+    #[Groups(['ddt_list', 'ddt_detail', 'client_summary_print'])]
     private ?DdtReason $reason = null;
 
     #[ORM\ManyToOne(inversedBy: 'ddtsFromClient')]

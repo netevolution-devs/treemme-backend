@@ -16,42 +16,42 @@ class ClientOrderRow
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['client_order_row_list', 'client_order_row_detail'])]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_summary_print'])]
     private ?ClientOrder $client_order = null;
 
     #[ORM\Column]
-    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
     private ?bool $processed = null;
 
     #[ORM\Column]
-    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
     private ?bool $cancelled = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
     private ?int $weight = null;
 
 
     #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
     private ?MeasurementUnit $measurement_unit = null;
 
     #[ORM\Column]
-    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
     private ?int $quantity = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
     private ?float $price = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
     private ?float $total_price = null;
 
     #[ORM\Column(nullable: true)]
@@ -99,18 +99,18 @@ class ClientOrderRow
     private ?string $production_row_note = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
     private ?string $administration_row_note = null;
 
     /**
      * @var Collection<int, BatchOrder>
      */
     #[ORM\OneToMany(mappedBy: 'order_row', targetEntity: BatchOrder::class)]
+    #[Groups(['client_order_row_list'])]
     private Collection $batchOrders;
 
     #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
-    #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
     private ?Article $article = null;
 
     #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
@@ -120,6 +120,13 @@ class ClientOrderRow
     #[ORM\ManyToOne(inversedBy: 'cleintOrderRows')]
     #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?Selection $selection = null;
+
+    #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
+    private ?ContactAddress $address = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?float $quantity_to_ship = null;
 
     public function __construct()
     {
@@ -448,6 +455,30 @@ class ClientOrderRow
     public function setSelection(?Selection $selection): static
     {
         $this->selection = $selection;
+
+        return $this;
+    }
+
+    public function getAddress(): ?ContactAddress
+    {
+        return $this->address;
+    }
+
+    public function setAddress(?ContactAddress $address): static
+    {
+        $this->address = $address;
+
+        return $this;
+    }
+
+    public function getQuantityToShip(): ?float
+    {
+        return $this->quantity_to_ship;
+    }
+
+    public function setQuantityToShip(?float $quantity_to_ship): static
+    {
+        $this->quantity_to_ship = $quantity_to_ship;
 
         return $this;
     }
