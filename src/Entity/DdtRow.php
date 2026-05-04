@@ -31,23 +31,23 @@ class DdtRow
     private ?int $pieces = null;
 
     #[ORM\ManyToOne(inversedBy: 'ddtRows')]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_order_row_list'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?MeasurementUnit $measurement_unit = null;
 
     #[ORM\Column]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_order_row_list'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?float $quantity = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_order_row_list'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?float $price = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_order_row_list'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?float $total_value = null;
 
     #[ORM\ManyToOne(inversedBy: 'ddtRows')]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_order_row_list'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?Currency $currency = null;
 
     #[ORM\ManyToOne(inversedBy: 'ddtRows')]
