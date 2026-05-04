@@ -4,23 +4,23 @@
     <meta charset="UTF-8">
     <title>Riepilogo Clienti</title>
     <style>
-        @page { size: A4 landscape; margin: 1cm; }
+        @page { size: A4 landscape; margin: 0.3cm; }
         body { font-family: Arial, sans-serif; font-size: 9pt; color: #333; margin: 0; }
-        .page { page-break-after: always; padding: 10px; }
+        .page { page-break-after: always; padding: 0; }
         .page:last-child { page-break-after: avoid; }
         h1 { font-size: 14pt; margin-bottom: 15px; text-align: center; border-bottom: 1px solid #000; padding-bottom: 5px; text-transform: uppercase; }
         
         .client-section { margin-bottom: 20px; width: 100%; border-collapse: collapse; }
         .client-info-table { width: 100%; margin-bottom: 10px; border: 1px solid #000; }
-        .client-info-table td { padding: 5px; vertical-align: top; border: 1px solid #ccc; }
-        .label { font-weight: bold; font-size: 8pt; color: #555; text-transform: uppercase; display: block; margin-bottom: 2px; }
+        .client-info-table td { padding: 5px; vertical-align: top; border: 1px solid #ccc; text-align: justify; }
+        .label { font-weight: bold; font-size: 8pt; color: #555; text-transform: uppercase; display: block; margin-bottom: 2px; text-align: left; }
         
         .order-container { margin-bottom: 20px; }
-        .order-header { background-color: #f2f2f2; padding: 5px; border: 1px solid #000; font-weight: bold; margin-bottom: 0; }
+        .order-header { background-color: #f2f2f2; padding: 5px; border: 1px solid #000; font-weight: bold; margin-bottom: 0; text-align: justify; }
         
         .rows-table { width: 100%; border-collapse: collapse; border: 1px solid #000; }
         .rows-table th { background-color: #e6e6e6; border: 1px solid #000; padding: 4px; text-align: left; font-size: 8pt; }
-        .rows-table td { border: 1px solid #000; padding: 4px; vertical-align: top; }
+        .rows-table td { border: 1px solid #000; padding: 4px; vertical-align: top; text-align: justify; }
         
         .row-secondary { font-size: 8pt; background-color: #fafafa; }
         .ok-status { color: green; }
@@ -33,7 +33,6 @@
 <body>
     {% for clientGroup in data %}
     <div class="page">
-        <h1>Riepilogo Clienti</h1>
         
         <table class="client-info-table">
             <tr>
@@ -76,7 +75,6 @@
         </table>
 
         {% for order in clientGroup.orders %}
-        <div class="order-container">
             <div class="order-header">
                 <span class="{{ order.details.checked ? 'ok-status' : 'not-ok-status' }}">{{ order.details.checked ? 'OK' : 'KO' }}</span> | {{ order.details.order_number }} DEL {{ order.details.order_date|date('d/m/Y') }}
                 | RIF CLT: {{ order.details.client_order_number ?: '-' }} DEL {{ order.details.client_order_date ? order.details.client_order_date|date('d/m/Y') : '-' }} | NOTE AMM: {{ order.details.order_note_administration ? order.details.order_note_administration : '-'}}
@@ -84,42 +82,75 @@
             <table class="rows-table">
                 <tbody>
                     {% for row in order.rows %}
-                    <tr>
-                        <td>{{ row.weight }}  {{ row.article.client_code ? row.article.client_code : row.article.code }} <br>
-                         Note amm {{ row.administration_row_note }}</td>
-                        <td>
-                            <strong>{{ row.article.name }}</strong>
-                            {% if row.administration_row_note %}
-                                <div style="margin-top: 4px; font-style: italic; font-size: 8pt; color: #666;">
-                                    Note: {{ row.administration_row_note }}
-                                </div>
-                            {% endif %}
-                        </td>
-                        <td class="text-right">{{ row.quantity|number_format(2, ',', '.') }}</td>
-                        <td class="text-center">{{ row.measurement_unit.name }}</td>
-                        <td class="text-right">{{ row.price|number_format(2, ',', '.') }}€</td>
-                        <td class="row-secondary">
-                            {% if row.ddt_row %}
-                                <div style="margin-bottom: 3px; font-weight: bold; color: #0056b3;">
-                                    DDT: {{ row.ddt_row.ddt.ddt_number }} del {{ row.ddt_row.ddt.ddt_date|date('d/m/Y') }} (Qta: {{ row.ddt_row.quantity }})
-                                </div>
-                            {% endif %}
-                            
-                            {% if row.address %}
-                                <div style="font-size: 7.5pt; color: #444;">
-                                    Dest. Alt: {{ row.address.address }}, {{ row.address.zip_code }} {{ row.address.address_name }}
-                                </div>
-                            {% endif %}
-                            
-                            {% if not row.ddt_row and not row.address %}
-                                -
-                            {% endif %}
-                        </td>
-                    </tr>
+                        <tr>
+                            <td style="width: 33%;">
+                                {{ row.weight }} {{ row.article.name }} <br>
+                                Note amm {{ row.administration_row_note }}
+                            </td>
+
+                            <td class="text-right" style="width: 37%; padding: 0;">
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <tr>
+                                        <td style="width: 14%; font-size: 10px;">
+                                            {{ row.measurement_unit.prefix }} {{ row.quantity }}
+                                        </td>
+                                        <td style="width: 14%; font-size: 10px;">
+                                            € {{ row.total_price|number_format(2, ',', '.') }}
+                                        </td>
+                                        <td style="width: 14%; font-size: 10px;">
+                                            {{ row.delivery_date_confirmed ? row.delivery_date_confirmed|date('d/m/Y') : '-' }}
+                                        </td>
+                                        <td style="width: 14%; font-size: 10px;">
+                                            {% set total_pieces = 0 %}
+                                            {% for bo in row.batch_orders|default([]) %}
+                                                {% set total_pieces = total_pieces + (bo.batch.pieces|default(0)) %}
+                                            {% endfor %}
+                                            P {{ total_pieces }}
+                                        </td>
+                                        <td style="width: 14%; font-size: 10px;">
+                                            E {{ row.quantity - row.quantity_to_ship }}
+                                        </td>
+                                        <td style="width: 14%; font-size: 10px;">
+                                            DAP {{ row.missing_quantity }}
+                                        </td>
+                                        <td style="width: 16%; font-size: 10px;">
+                                            DAS {{ row.quantity_to_ship }}
+                                        </td>
+                                    </tr>
+
+                                    {% if row.address %}
+                                        <tr>
+                                            <td colspan="7" style="font-size: 10px; width: 100%;">
+                                                {{ row.address.address }} -
+                                                {% if row.address.zip_code %}
+                                                    {{ row.address.zip_code }} -
+                                                {% endif %}
+                                                {% if row.address.nation %}
+                                                    {{ row.address.nation.name }}
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                </table>
+                            </td>
+
+                            <td class="row-secondary" style="width: 30%;">
+                                {% if row.ddt_row %}
+                                    <div style="margin-bottom: 3px; font-weight: bold; color: #0056b3;">
+                                        {{ row.ddt_row.ddt.ddt_number }} {{ row.ddt_row.ddt.ddt_date|date('d/m/Y') }}
+                                        {{ row.ddt_row.measurement_unit.prefix }} {{ row.ddt_row.quantity }}
+                                        {{ row.ddt_row.currency.sign }} {{ row.ddt_row.price }}
+                                    </div>
+                                {% endif %}
+
+                                {% if not row.ddt_row %}
+                                    -
+                                {% endif %}
+                            </td>
+                        </tr>
                     {% endfor %}
                 </tbody>
             </table>
-        </div>
         {% endfor %}
     </div>
     {% endfor %}

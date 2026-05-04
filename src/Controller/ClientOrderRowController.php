@@ -208,6 +208,7 @@ final class ClientOrderRowController extends AbstractController
 
             $rowSerialized = $this->groupSerializer->serializeGroup($row, 'client_summary_print');
             $rowSerialized['ddt_row'] = $ddtData;
+            $rowSerialized['batch_orders'] = $this->groupSerializer->serializeGroup($row->getBatchOrders(), 'client_summary_print');
 
             $groupedData[$cId]['orders'][$orderId]['rows'][] = $rowSerialized;
         }

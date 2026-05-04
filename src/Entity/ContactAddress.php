@@ -55,7 +55,7 @@ class ContactAddress
 
 
     #[ORM\ManyToOne(inversedBy: 'contactAddress')]
-    #[Groups(['contact_address_detail', 'contact_detail'])]
+    #[Groups(['contact_address_detail', 'contact_detail', 'client_summary_print'])]
     private ?Nation $nation = null;
 
 
