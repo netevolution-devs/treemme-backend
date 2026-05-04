@@ -87,7 +87,7 @@ class ClientOrderRow
     private ?\DateTime $delivery_date_request = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
     private ?\DateTime $delivery_date_confirmed = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
@@ -126,6 +126,7 @@ class ClientOrderRow
     private ?ContactAddress $address = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
     private ?float $quantity_to_ship = null;
 
     public function __construct()
@@ -481,5 +482,19 @@ class ClientOrderRow
         $this->quantity_to_ship = $quantity_to_ship;
 
         return $this;
+    }
+
+    #[VirtualProperty]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
+    public function getMissingQuantity(): float
+    {
+        $batchQuantity = 0;
+        foreach ($this->getBatchOrders() as $batchOrder) {
+            if ($batchOrder->getBatch()) {
+                $batchQuantity += $batchOrder->getBatch()->getQuantity();
+            }
+        }
+
+        return $this->getQuantity() - $batchQuantity;
     }
 }

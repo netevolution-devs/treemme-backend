@@ -35,15 +35,15 @@ class Batch
 
     #[ORM\Column(length: 50)]
     #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'ddt_detail', 'ddt_row_list',
-        'ddt_row_detail', 'batch_composition_list', 'batch_data_detail','client_order_row_list'])]
+        'ddt_row_detail', 'batch_composition_list', 'batch_data_detail','client_order_row_list', 'client_summary_print'])]
     private ?string $batch_code = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_list', 'batch_detail','client_order_row_list'])]
+    #[Groups(['batch_list', 'batch_detail','client_order_row_list', 'client_summary_print'])]
     private ?\DateTime $batch_date = null;
 
     #[ORM\Column]
-    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'batch_data_detail','client_order_row_list'])]
+    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'batch_data_detail','client_order_row_list', 'client_summary_print'])]
     private ?int $pieces = null;
 
     #[ORM\ManyToOne(inversedBy: 'batches')]
