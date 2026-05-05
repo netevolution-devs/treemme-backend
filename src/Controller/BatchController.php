@@ -14,6 +14,7 @@ use App\Entity\BatchSelection;
 use App\Entity\BatchType;
 use App\Entity\ClientOrderRow;
 use App\Entity\Leather;
+use App\Entity\LeatherThickness;
 use App\Entity\Selection;
 use App\Entity\WarehouseMovement;
 use App\Entity\WarehouseMovementReason;
@@ -171,6 +172,42 @@ final class BatchController extends AbstractController
         }
 
         return $finalSonBatches;
+    }
+
+    #[Route('/batch/{id}/available-thicknesses',
+        name: 'get_batch_available_thicknesses',
+        requirements: ['id' => '\d+'],
+        methods: ['GET'])]
+    public function getAvailableThicknesses(int $id): JsonResponse
+    {
+        $batch = $this->doctrine->getRepository(Batch::class)->find($id);
+
+        if (!$batch) {
+            return $this->doResponse->doErrorJsonResponse('Batch not found', 404);
+        }
+
+        $compositions = $batch->getBatchCompositions();
+        $thicknesses = [];
+
+        foreach ($compositions as $composition) {
+            $thickness = $composition->getThickness();
+            if ($thickness) {
+                $thicknessId = $thickness->getId();
+                if (!isset($thicknesses[$thicknessId])) {
+                    $thicknesses[$thicknessId] = [
+                        'thickness' => $thickness,
+                        'total_pieces' => 0
+                    ];
+                }
+                $thicknesses[$thicknessId]['total_pieces'] += $composition->getFatherBatchPieceAvailable();
+            }
+        }
+
+        $results = array_values($thicknesses);
+
+        $serializedResults = $this->groupSerializer->serializeGroup($results, 'leather_thickness_detail');
+
+        return new JsonResponse($this->doResponse->doResponse($serializedResults));
     }
 
     #[Route('/batch/{id}/pdf',
@@ -558,6 +595,9 @@ final class BatchController extends AbstractController
         $batchComposition->setFatherBatchQuantity($newQuantity);
         $batchComposition->setCompositionNote('Riverdimento da lotto ' . $fatherBatch->getBatchCode());
 
+        $batchComposition->setFatherBatchPieceAvailable($batchComposition->getFatherBatchPiece());
+        $batchComposition->setFatherBatchQuantityAvailable($batchComposition->getFatherBatchQuantity());
+
         $this->doctrine->persist($batchComposition);
 
         $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
@@ -723,6 +763,15 @@ final class BatchController extends AbstractController
         $sfComp->setFatherBatchPiece((int)$pieces);
         $sfComp->setFatherBatchQuantity($calculatedQuantity);
         $sfComp->setCompositionNote('Spaccatura lotto ' . $batchCode);
+        if (isset($data['leather_thickness_id'])) {
+            $thickness = $this->doctrine->getRepository(LeatherThickness::class)->find($data['leather_thickness_id']);
+            if ($thickness) {
+                $sfComp->setThickness($thickness);
+            }
+        }
+        $sfComp->setFatherBatchPieceAvailable($sfComp->getFatherBatchPiece());
+        $sfComp->setFatherBatchQuantityAvailable($sfComp->getFatherBatchQuantity());
+
         $this->doctrine->persist($sfComp);
 
         $scComp = new BatchComposition();
@@ -734,6 +783,19 @@ final class BatchController extends AbstractController
         $scComp->setFatherBatchPiece((int)$pieces);
         $scComp->setFatherBatchQuantity($calculatedQuantity);
         $scComp->setCompositionNote('Spaccatura lotto ' . $batchCode);
+        if (isset($data['leather_thickness_id'])) {
+            if (isset($thickness)) {
+                $scComp->setThickness($thickness);
+            } else {
+                $thickness = $this->doctrine->getRepository(LeatherThickness::class)->find($data['leather_thickness_id']);
+                if ($thickness) {
+                    $scComp->setThickness($thickness);
+                }
+            }
+        }
+        $scComp->setFatherBatchPieceAvailable($scComp->getFatherBatchPiece());
+        $scComp->setFatherBatchQuantityAvailable($scComp->getFatherBatchQuantity());
+
         $this->doctrine->persist($scComp);
 
         $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
@@ -1167,6 +1229,8 @@ final class BatchController extends AbstractController
                         $composition->setBatch($batch);
                         $composition->setFatherBatch($fatherBatch);
                         $composition = $this->createMethodsByInput->createMethods($composition, $compositionData);
+                        $composition->setFatherBatchPieceAvailable($composition->getFatherBatchPiece());
+                        $composition->setFatherBatchQuantityAvailable($composition->getFatherBatchQuantity());
                         $batch->addBatchComposition($composition);
                         $this->doctrine->persist($composition);
                     }

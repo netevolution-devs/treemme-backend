@@ -86,6 +86,36 @@ class BatchSelectionController extends AbstractController
             }
 
             $fatherBatch = $batchSelection->getBatch();
+            $thickness = $batchSelection->getThickness();
+
+            if ($fatherBatch && $thickness) {
+                $compositions = $this->doctrine->getRepository(BatchComposition::class)->findBy([
+                    'father_batch' => $fatherBatch,
+                    'thickness' => $thickness
+                ], ['id' => 'ASC']);
+
+                $remainingPieces = $batchSelection->getPieces();
+
+                foreach ($compositions as $comp) {
+                    if ($remainingPieces <= 0) break;
+
+                    $available = $comp->getFatherBatchPieceAvailable();
+                    if ($available <= 0) continue;
+
+                    $toTake = min($available, $remainingPieces);
+
+                    $comp->setFatherBatchPieceAvailable($available - $toTake);
+
+                    if ($comp->getFatherBatchPiece() > 0) {
+                        $qtyPerPiece = $comp->getFatherBatchQuantity() / $comp->getFatherBatchPiece();
+                        $qtyToTake = $qtyPerPiece * $toTake;
+                        $comp->setFatherBatchQuantityAvailable($comp->getFatherBatchQuantityAvailable() - $qtyToTake);
+                    }
+
+                    $remainingPieces -= $toTake;
+                    $this->doctrine->persist($comp);
+                }
+            }
 
             if ($batchSelection->getStockPieces() === null) {
                 $batchSelection->setStockPieces($batchSelection->getPieces());
