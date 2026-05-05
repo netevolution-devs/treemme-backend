@@ -149,6 +149,9 @@ final class BatchCompositionController extends AbstractController
             $batchComposition = $this->handleRelations($batchComposition, $data);
             $batchComposition = $this->createMethodsByInput->createMethods($batchComposition, $data);
 
+            $batchComposition->setFatherBatchPieceAvailable($batchComposition->getFatherBatchPiece());
+            $batchComposition->setFatherBatchQuantityAvailable($batchComposition->getFatherBatchQuantity());
+
             $batch = $batchComposition->getBatch();
             $childQuantity = (float) ($batchComposition->getFatherBatchQuantity() ?? 0.0);
 
