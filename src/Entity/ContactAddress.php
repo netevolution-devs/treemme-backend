@@ -78,6 +78,7 @@ class ContactAddress
     private Collection $clientOrderRows;
 
     #[ORM\Column]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail'])]
     private ?bool $default_address = null;
 
     public function __construct()
