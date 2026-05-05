@@ -21,7 +21,6 @@ class BatchOrder
 
     #[ORM\ManyToOne(inversedBy: 'batchOrders')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['production_list'])]
     private ?ClientOrderRow $order_row = null;
 
     public function getId(): ?int
