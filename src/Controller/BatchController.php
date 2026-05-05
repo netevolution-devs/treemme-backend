@@ -27,6 +27,7 @@ use App\Service\ValidatorOutputFormatter;
 use App\Service\PdfGeneratorService;
 use App\Service\QrCodeService;
 use Doctrine\ORM\EntityManagerInterface;
+use FontLib\Table\Type\name;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -1020,6 +1021,77 @@ final class BatchController extends AbstractController
         } catch (\Exception $e) {
             return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
+    }
+
+    #[Route('/batch/{id}/compensation',
+        name: 'put_batch_compensation',
+        methods: ['PUT'])]
+    public function modifyBatchCompensation(
+        Request            $request,
+        ValidatorInterface $validator,
+        int                $id,
+    ): JsonResponse
+    {
+        $data = $request->toArray();
+
+        $batch = $this->doctrine->getRepository(Batch::class)->find($id);
+
+        if (isset($data['pieces']) && isset($data['type'])) {
+
+            if($data['type'] === '+') {
+                $batch->setStockItems($batch->getStockItems() + $data['pieces']);
+                $batch->setStockQuantity($batch->getStockQuantity() + ($data['pieces'] * $batch->getSqFtAverageExpected()));
+
+                $adjReason = $this->doctrine->getRepository(WarehouseMovementReason::class)->createQueryBuilder('r')
+                    ->join('r.reason_type', 't')
+                    ->where('r.name = :name')
+                    ->setParameter('name', 'Compensazione Positiva')
+                    ->getQuery()
+                    ->getOneOrNullResult()
+                    ?? $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Compensazione Positiva']);
+
+                $movement = new WarehouseMovement();
+                $movement->setBatch($batch);
+                $movement->setReason($adjReason);
+                $movement->setQuantity( $data['pieces'] * $batch->getSqFtAverageExpected());
+                $movement->setPiece($data['pieces']);
+                $movement->setDate(new \DateTime());
+                $movement->setMovementNote('Compensazione lotto');
+
+            } elseif($data['type'] === '-') {
+                $batch->setStockItems($batch->getStockItems() - $data['pieces']);
+                $batch->setStockQuantity($batch->getStockQuantity() - ($data['pieces'] * $batch->getSqFtAverageExpected()));
+
+                $adjReason = $this->doctrine->getRepository(WarehouseMovementReason::class)->createQueryBuilder('r')
+                    ->join('r.reason_type', 't')
+                    ->where('t.name = :type')
+                    ->setParameter('type', 'Compensazione Negativa')
+                    ->getQuery()
+                    ->getOneOrNullResult()
+                    ?? $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Compensazione Negativa']);
+
+                $movement = new WarehouseMovement();
+                $movement->setBatch($batch);
+                $movement->setReason($adjReason);
+                $movement->setQuantity( $data['pieces'] * $batch->getSqFtAverageExpected());
+                $movement->setPiece($data['pieces']);
+                $movement->setDate(new \DateTime());
+                $movement->setMovementNote('Compensazione lotto');
+
+            }
+
+            $this->doctrine->persist($batch);
+            $this->doctrine->persist($movement);
+            $this->doctrine->flush();
+
+            $result = $this->groupSerializer->serializeGroup($batch, 'batch_detail');
+
+            return new JsonResponse($this->doResponse->doResponse($result));
+        }
+
+
+
+        return new JsonResponse($this->doResponse->doResponse('Compensation modification successful'));
     }
 
     #[Route('/batch/{id}',
