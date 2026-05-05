@@ -79,7 +79,7 @@ class ProductionController extends AbstractController
 
         foreach ( $productions as $index => $production ) {
             $batchOrder = $production->getBatch()->getBatchOrders()->first();
-            if (count($batchOrder) > 0) {
+            if ($batchOrder) {
                 $results[$index]['client_name'] = $batchOrder->getOrderRow()->getClientOrder()->getClient()->getName();
             } else {
                 $results[$index]['client_name'] = 'N/A';

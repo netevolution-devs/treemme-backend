@@ -64,6 +64,7 @@ class ContactAddress
      * @var Collection<int, ClientOrder>
      */
     #[ORM\OneToMany(mappedBy: 'address', targetEntity: ClientOrder::class)]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail'])]
     private Collection $clientOrders;
 
     #[ORM\Column(length: 255, nullable: true)]
