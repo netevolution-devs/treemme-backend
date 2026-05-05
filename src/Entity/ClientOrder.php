@@ -15,7 +15,7 @@ class ClientOrder
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_summary_print'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_summary_print', 'production_list'])]
     private ?int $id = null;
 
     #[ORM\Column]
@@ -32,7 +32,7 @@ class ClientOrder
 
     #[ORM\ManyToOne(inversedBy: 'clientOrders')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['client_order_list', 'client_order_detail', 'client_summary_print', 'client_order_row_list'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_summary_print', 'client_order_row_list', 'production_list'])]
     private ?Contact $client = null;
 
     #[ORM\Column(length: 255, nullable: true)]
