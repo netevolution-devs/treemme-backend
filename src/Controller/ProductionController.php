@@ -82,7 +82,7 @@ class ProductionController extends AbstractController
             if ($batchOrder) {
                 $results[$index]['client_name'] = $batchOrder->getOrderRow()->getClientOrder()->getClient()->getName();
             } else {
-                $results[$index]['client_name'] = 'N/A';
+                $results[$index]['client_name'] = null;
             }
         }
 
