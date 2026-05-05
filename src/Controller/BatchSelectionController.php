@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Batch;
+use App\Entity\BatchComposition;
 use App\Entity\BatchSelection;
 use App\Entity\LeatherThickness;
 use App\Entity\Selection;
