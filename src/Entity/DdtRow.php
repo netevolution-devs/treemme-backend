@@ -92,6 +92,14 @@ class DdtRow
     #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
     private ?Processing $processing = null;
 
+    #[ORM\Column(nullable: true)]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    private ?int $pieces_out = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    private ?float $quantity_out = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -309,6 +317,30 @@ class DdtRow
     public function setProcessing(?Processing $processing): static
     {
         $this->processing = $processing;
+
+        return $this;
+    }
+
+    public function getPiecesOut(): ?int
+    {
+        return $this->pieces_out;
+    }
+
+    public function setPiecesOut(?int $pieces_out): static
+    {
+        $this->pieces_out = $pieces_out;
+
+        return $this;
+    }
+
+    public function getQuantityOut(): ?float
+    {
+        return $this->quantity_out;
+    }
+
+    public function setQuantityOut(?float $quantity_out): static
+    {
+        $this->quantity_out = $quantity_out;
 
         return $this;
     }

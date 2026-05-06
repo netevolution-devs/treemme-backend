@@ -122,6 +122,7 @@ final class DdtRowController extends AbstractController
 
             $firstMovementOut = null;
             $returnedPieces = 0;
+            $returnedQuantity = 0;
 
             foreach ($movementsArray as $movement) {
                 $reason = $movement->getReason();
@@ -143,19 +144,33 @@ final class DdtRowController extends AbstractController
                         // Verifichiamo che il rientro sia riferito a questo DDT (tramite note o ddt_number nel movimento)
                         // Nel caso del trasferimento, impostiamo ddt_number del movimento uguale a quello della riga originale
                         if ($movement->getDdtNumber() === $ddt->getDdtNumber()) {
-                            $returnedPieces += abs($movement->getPiece() ?? 0);
+                            $mPieces = abs($movement->getPiece() ?? 0);
+                            $returnedPieces += $mPieces;
+                            
+                            // Nel trasferimento bisogna prendere la quantity di un pezzo e moltiplicarlo per i pezzi trasferiti, questo vale anche per i resi....
+                            $unitQuantity = 0;
+                            $pOut = $ddtRow->getPiecesOut() ?? 0;
+                            $qOut = $ddtRow->getQuantityOut() ?? 0;
+                            if ($pOut > 0) {
+                                $unitQuantity = $qOut / $pOut;
+                            }
+                            $returnedQuantity += ($unitQuantity * $mPieces);
                         }
                     }
                 }
             }
 
             if ($firstMovementOut !== null) {
-                $outPieces = abs($firstMovementOut->getPiece() ?? 0);
+                $outPieces = $ddtRow->getPiecesOut() ?? abs($firstMovementOut->getPiece() ?? 0);
+                $outQuantity = $ddtRow->getQuantityOut() ?? abs($firstMovementOut->getQuantity() ?? 0);
+                
                 $remainingPieces = $outPieces - $returnedPieces;
+                $remainingQuantity = $outQuantity - $returnedQuantity;
 
                 if ($lastMovementReasonName === $ddtReasonName || $remainingPieces > 0) {
                     $results = $this->groupSerializer->serializeGroup($ddtRow, 'ddt_row_list');
                     $results['stock_pieces'] = $remainingPieces;
+                    $results['stock_quantity'] = $remainingQuantity;
                     $ddtRowsSelected[] = $results;
                 }
             }
@@ -173,6 +188,14 @@ final class DdtRowController extends AbstractController
         $ddtRow = new DdtRow();
 
         try {
+
+            if(isset($data['pieces'])){
+                $ddtRow->setPiecesOut($data['pieces']);
+            }
+            if(isset($data['quantity'])){
+                $ddtRow->setQuantityOut($data['quantity']);
+            }
+
             $this->handleRelations($ddtRow, $data);
             $this->createMethodsByInput->createMethods($ddtRow, $data);
         } catch (\Exception $e) {
@@ -187,9 +210,9 @@ final class DdtRowController extends AbstractController
         $this->calculatePrices($ddtRow);
 
         if($ddtRow->getHalfPiece() !== null) {
-            $ddtRow->setWholePiece($ddtRow->getPieces() - ($ddtRow->getHalfPiece() * 2));
+            $ddtRow->setWholePiece(($ddtRow->getPieces() ?? 0) - ($ddtRow->getHalfPiece() / 2));
         } else {
-            $ddtRow->setWholePiece($ddtRow->getPieces());
+            $ddtRow->setWholePiece($ddtRow->getPieces() ?? 0);
         }
 
         $this->doctrine->persist($ddtRow);
@@ -265,6 +288,14 @@ final class DdtRowController extends AbstractController
         $data = $request->toArray();
 
         try {
+
+            if(isset($data['pieces'])){
+                $ddtRow->setPiecesOut($data['pieces']);
+            }
+            if(isset($data['quantity'])){
+                $ddtRow->setQuantityOut($data['quantity']);
+            }
+
             $this->handleRelations($ddtRow, $data);
             $this->createMethodsByInput->createMethods($ddtRow, $data);
         } catch (\Exception $e) {
@@ -279,9 +310,9 @@ final class DdtRowController extends AbstractController
         $this->calculatePrices($ddtRow);
 
         if($ddtRow->getHalfPiece() !== null) {
-            $ddtRow->setWholePiece($ddtRow->getPieces() - ($ddtRow->getHalfPiece() * 2));
+            $ddtRow->setWholePiece(($ddtRow->getPieces() ?? 0) - ($ddtRow->getHalfPiece() / 2));
         } else {
-            $ddtRow->setWholePiece($ddtRow->getPieces());
+            $ddtRow->setWholePiece($ddtRow->getPieces() ?? 0);
         }
 
         $newBatch = $ddtRow->getBatch();
