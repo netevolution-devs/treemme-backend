@@ -23,12 +23,12 @@ class DdtRow
 
     #[ORM\ManyToOne(inversedBy: 'ddtRows')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_summary_print'])]
     private ?Batch $batch = null;
 
     #[ORM\Column]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_order_row_list'])]
-    private ?int $pieces = null;
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_order_row_list', 'client_summary_print'])]
+    private ?float $pieces = null;
 
     #[ORM\ManyToOne(inversedBy: 'ddtRows')]
     #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_order_row_list', 'client_summary_print'])]
@@ -81,7 +81,7 @@ class DdtRow
     private ?int $whole_piece = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_summary_print'])]
     private ?int $half_piece = null;
 
     #[ORM\ManyToOne(inversedBy: 'ddtRows')]
@@ -94,7 +94,7 @@ class DdtRow
 
     #[ORM\Column(nullable: true)]
     #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
-    private ?int $pieces_out = null;
+    private ?float $pieces_out = null;
 
     #[ORM\Column(nullable: true)]
     #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
@@ -129,12 +129,12 @@ class DdtRow
         return $this;
     }
 
-    public function getPieces(): ?int
+    public function getPieces(): ?float
     {
         return $this->pieces;
     }
 
-    public function setPieces(int $pieces): static
+    public function setPieces(float $pieces): static
     {
         $this->pieces = $pieces;
 
@@ -321,12 +321,12 @@ class DdtRow
         return $this;
     }
 
-    public function getPiecesOut(): ?int
+    public function getPiecesOut(): ?float
     {
         return $this->pieces_out;
     }
 
-    public function setPiecesOut(?int $pieces_out): static
+    public function setPiecesOut(?float $pieces_out): static
     {
         $this->pieces_out = $pieces_out;
 
