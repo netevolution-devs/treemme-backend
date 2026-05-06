@@ -16,12 +16,12 @@ class ClientOrderRow
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print', 'ddt_row_list_sold'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_summary_print'])]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_summary_print', 'ddt_row_list_sold'])]
     private ?ClientOrder $client_order = null;
 
     #[ORM\Column]
@@ -47,11 +47,11 @@ class ClientOrderRow
     private ?int $quantity = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print', 'ddt_row_list_sold'])]
     private ?float $price = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print', 'ddt_row_list_sold'])]
     private ?float $total_price = null;
 
     #[ORM\Column(nullable: true)]
