@@ -118,6 +118,18 @@ final class ContactAddressController extends AbstractController
         }
 
         try {
+            if(isset($data['default_address']) && $data['default_address'] === true) {
+                $allAddress = $address->getContact()->getContactAddresses();
+
+                foreach ($allAddress as $addr) {
+                    $addr->setDefaultAddress(false);
+
+                    $this->doctrine->persist($addr);
+                }
+
+                $address->setDefaultAddress(true);
+            }
+
             $address = $this->handleRelations($address, $data);
             $address = $this->createMethodsByInput->createMethods($address, $data);
             $address->setUpdatedAt(new \DateTimeImmutable());

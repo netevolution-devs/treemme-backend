@@ -19,16 +19,18 @@ class Contact
     #[Groups(['contact_list','contact_detail','contact_type_detail', 'leather_list',
         'leather_detail','contact_client','contact_supplier',
         'contact_agent_list','contact_subcontractor_list','client_order_list', 'client_order_detail',
-        'article_list', 'article_detail', 'ddt_list', 'ddt_detail', 'batch_detail',
-        'color_list', 'color_detail', 'batch_data_detail', 'client_order_row_list', 'client_summary_print', 'client_order_row_list'])]
+        'article_list', 'article_detail', 'ddt_list', 'ddt_detail', 'batch_detail', 'ddt_row_list',
+        'color_list', 'color_detail', 'batch_data_detail',
+        'client_order_row_list', 'client_summary_print', 'client_order_row_list', 'ddt_row_list_sold', 'external_processing_print'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
     #[Groups(['contact_list','contact_detail','contact_type_detail','leather_list',
         'leather_detail','contact_client','contact_supplier',
         'contact_agent_list','contact_subcontractor_list','client_order_list', 'client_order_detail',
-        'article_list', 'article_detail', 'ddt_list', 'ddt_detail', 'batch_detail', 'color_list', 'color_detail', 'batch_data_detail',
-        'client_order_row_list', 'client_summary_print', 'client_order_row_list'])]
+        'article_list', 'article_detail', 'ddt_list', 'ddt_detail', 'batch_detail', 'ddt_row_list',
+        'color_list', 'color_detail', 'batch_data_detail',
+        'client_order_row_list', 'client_summary_print', 'client_order_row_list', 'ddt_row_list_sold', 'external_processing_print'])]
     private ?string $name = null;
 
     #[ORM\ManyToOne(inversedBy: 'contacts')]
@@ -43,6 +45,7 @@ class Contact
      * @var Collection<int, ContactAddress>
      */
     #[ORM\OneToMany(mappedBy: 'contact', targetEntity: ContactAddress::class, orphanRemoval: true)]
+    #[ORM\OrderBy(['default_address' => 'DESC'])]
     #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list','contact_subcontractor_list', 'client_summary_print'])]
     private Collection $contactAddresses;
 

@@ -15,7 +15,7 @@ class ClientOrder
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_summary_print'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_summary_print', 'ddt_row_list_sold', 'external_processing_print'])]
     private ?int $id = null;
 
     #[ORM\Column]
@@ -32,15 +32,15 @@ class ClientOrder
 
     #[ORM\ManyToOne(inversedBy: 'clientOrders')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['client_order_list', 'client_order_detail', 'client_summary_print', 'client_order_row_list'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_summary_print', 'client_order_row_list', 'ddt_row_list_sold', 'external_processing_print'])]
     private ?Contact $client = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_order_row_list', 'client_summary_print'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_order_row_list', 'client_summary_print', 'ddt_row_list_sold'])]
     private ?string $order_number = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_order_row_list', 'client_summary_print'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_order_row_list', 'client_summary_print', 'ddt_row_list_sold'])]
     private ?\DateTime $order_date = null;
 
     #[ORM\Column(nullable: true)]
@@ -48,11 +48,11 @@ class ClientOrder
     private ?float $percentage_agent = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_order_row_list', 'client_summary_print'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_order_row_list', 'client_summary_print', 'ddt_row_list_sold'])]
     private ?string $client_order_number = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_order_row_list', 'client_summary_print'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_order_row_list', 'client_summary_print', 'ddt_row_list_sold'])]
     private ?\DateTime $client_order_date = null;
 
     #[ORM\Column(length: 255, nullable: true)]

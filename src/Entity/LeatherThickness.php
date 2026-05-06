@@ -52,12 +52,19 @@ class LeatherThickness
     #[ORM\OneToMany(mappedBy: 'thickness', targetEntity: Article::class)]
     private Collection $articles;
 
+    /**
+     * @var Collection<int, BatchComposition>
+     */
+    #[ORM\OneToMany(mappedBy: 'thickness', targetEntity: BatchComposition::class)]
+    private Collection $batchCompositions;
+
     public function __construct()
     {
         $this->leatherTypes = new ArrayCollection();
         $this->leather = new ArrayCollection();
         $this->batchSelections = new ArrayCollection();
         $this->articles = new ArrayCollection();
+        $this->batchCompositions = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -203,6 +210,36 @@ class LeatherThickness
             // set the owning side to null (unless already changed)
             if ($article->getThickness() === $this) {
                 $article->setThickness(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, BatchComposition>
+     */
+    public function getBatchCompositions(): Collection
+    {
+        return $this->batchCompositions;
+    }
+
+    public function addBatchComposition(BatchComposition $batchComposition): static
+    {
+        if (!$this->batchCompositions->contains($batchComposition)) {
+            $this->batchCompositions->add($batchComposition);
+            $batchComposition->setThickness($this);
+        }
+
+        return $this;
+    }
+
+    public function removeBatchComposition(BatchComposition $batchComposition): static
+    {
+        if ($this->batchCompositions->removeElement($batchComposition)) {
+            // set the owning side to null (unless already changed)
+            if ($batchComposition->getThickness() === $this) {
+                $batchComposition->setThickness(null);
             }
         }
 

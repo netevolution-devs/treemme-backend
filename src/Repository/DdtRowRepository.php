@@ -43,4 +43,57 @@ class DdtRowRepository extends ServiceEntityRepository
     //            ->getOneOrNullResult()
     //        ;
     //    }
+    public function findSoldLots(?int $clientId = null, ?\DateTime $startDate = null, ?\DateTime $endDate = null): array
+    {
+        $qb = $this->createQueryBuilder('dr')
+            ->join('dr.ddt', 'd')
+            ->join('d.reason', 'r')
+            ->andWhere('r.name = :reasonName')
+            ->setParameter('reasonName', 'Vendita');
+
+        if ($clientId) {
+            $qb->andWhere('IDENTITY(d.client) = :clientId')
+                ->setParameter('clientId', $clientId);
+        }
+
+        if ($startDate) {
+            $qb->andWhere('d.ddt_date >= :startDate')
+                ->setParameter('startDate', $startDate);
+        }
+
+        if ($endDate) {
+            $endDate->setTime(23, 59, 59);
+            $qb->andWhere('d.ddt_date <= :endDate')
+                ->setParameter('endDate', $endDate);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    public function findExternalProcessingLots(?int $subcontractorId = null, ?\DateTime $startDate = null, ?\DateTime $endDate = null): array
+    {
+        $qb = $this->createQueryBuilder('dr')
+            ->join('dr.ddt', 'd')
+            ->join('d.reason', 'r')
+            ->andWhere('r.name = :reasonName')
+            ->setParameter('reasonName', 'C/O Lavorazione');
+
+        if ($subcontractorId) {
+            $qb->andWhere('IDENTITY(d.subcontractor) = :subcontractorId')
+                ->setParameter('subcontractorId', $subcontractorId);
+        }
+
+        if ($startDate) {
+            $qb->andWhere('d.ddt_date >= :startDate')
+                ->setParameter('startDate', $startDate);
+        }
+
+        if ($endDate) {
+            $endDate->setTime(23, 59, 59);
+            $qb->andWhere('d.ddt_date <= :endDate')
+                ->setParameter('endDate', $endDate);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
 }

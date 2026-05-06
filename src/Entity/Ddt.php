@@ -14,15 +14,15 @@ class Ddt
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['ddt_list', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_summary_print', 'client_order_row_list'])]
+    #[Groups(['ddt_list', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_summary_print', 'client_order_row_list', 'ddt_row_list_sold', 'external_processing_print'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['ddt_list', 'ddt_detail', 'client_summary_print', 'client_order_row_list'])]
+    #[Groups(['ddt_list', 'ddt_detail', 'ddt_row_list', 'client_summary_print', 'client_order_row_list', 'ddt_row_list_sold', 'external_processing_print'])]
     private ?string $ddt_number = null;
 
     #[ORM\Column]
-    #[Groups(['ddt_list', 'ddt_detail', 'client_summary_print', 'client_order_row_list'])]
+    #[Groups(['ddt_list', 'ddt_detail', 'client_summary_print', 'client_order_row_list', 'ddt_row_list_sold', 'external_processing_print'])]
     private ?\DateTime $ddt_date = null;
 
     #[ORM\Column(nullable: true)]
@@ -30,7 +30,7 @@ class Ddt
     private ?\DateTime $ddt_start_date = null;
 
     #[ORM\ManyToOne(inversedBy: 'ddts')]
-    #[Groups(['ddt_list', 'ddt_detail'])]
+    #[Groups(['ddt_list', 'ddt_detail', 'ddt_row_list'])]
     private ?Contact $subcontractor = null;
 
     /**
@@ -46,7 +46,7 @@ class Ddt
     private ?DdtReason $reason = null;
 
     #[ORM\ManyToOne(inversedBy: 'ddtsFromClient')]
-    #[Groups(['ddt_list', 'ddt_detail'])]
+    #[Groups(['ddt_list', 'ddt_detail', 'ddt_row_list_sold'])]
     private ?Contact $client = null;
 
     public function __construct()

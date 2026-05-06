@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Stampa Lotti in Lavorazione Esterna</title>
+    <style>
+        @page { size: A4 landscape; margin: 0.5cm; }
+        body { font-family: Arial, sans-serif; font-size: 8pt; color: #000; margin: 0; }
+        .page { page-break-after: always; padding: 0; }
+        .page:last-child { page-break-after: avoid; }
+        h1 { font-size: 12pt; margin-bottom: 10px; text-align: center; border-bottom: 1px solid #000; padding-bottom: 5px; text-transform: uppercase; }
+        
+        .rows-table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+        .rows-table th { border-bottom: 1px solid #000; padding: 4px; text-align: left; font-size: 8pt; text-transform: uppercase; }
+        .rows-table td { padding: 4px; vertical-align: middle; font-size: 8pt; border: none; }
+        
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .font-bold { font-weight: bold; }
+        .border-bottom { border-bottom: 1px solid #000; }
+        
+        .footer { position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 7pt; color: #777; }
+    </style>
+</head>
+<body>
+    <div class="page-content">
+        
+        <h1 style="text-align: left;">LAVORAZIONE ESTERNA {% if start_date or end_date %}
+            Dal: {{ start_date ? start_date|date('d/m/Y') : '-' }} Al: {{ end_date ? end_date|date('d/m/Y') : '-' }}
+        {% else %}
+            Tutto il periodo
+        {% endif %}</h1>
+
+        {% for subGroup in data %}
+        <table class="rows-table" style="margin-top: 20px;">
+            <thead>
+                <tr>
+                    <th colspan="7" style="font-size: 10pt; border-bottom: 2px solid #000; padding-top: 10px;">{{ subGroup.subcontractor.name }}</th>
+                </tr>
+                <tr>
+                    <th style="width: 80px;">DATA DDT</th>
+                    <th style="width: 80px;">NUM. DDT</th>
+                    <th style="width: 100px;">LOTTO</th>
+                    <th style="width: 120px;">CLIENTE</th>
+                    <th style="width: 150px;">ARTICOLO</th>
+                    <th class="text-right" style="width: 50px;">PELLI</th>
+                    <th>LAVORAZIONI</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set totalPieces = 0 %}
+                {% set batchCodes = [] %}
+                
+                {% for row in subGroup.rows %}
+                    <tr>
+                        <td>{{ row.ddt.ddt_date|date('d/m/Y') }}</td>
+                        <td>{{ row.ddt.ddt_number }}</td>
+                        <td>{{ row.batch.batch_code }}</td>
+                        <td>
+                            {% set clientNames = [] %}
+                            {% for bo in row.batch.batch_orders %}
+                                {% if bo.order_row and bo.order_row.client_order and bo.order_row.client_order.client %}
+                                    {% if bo.order_row.client_order.client.name not in clientNames %}
+                                        {% set clientNames = clientNames|merge([bo.order_row.client_order.client.name]) %}
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                            {{ clientNames|join(', ') }}
+                        </td>
+                        <td>{{ row.batch.article.name }}</td>
+                        <td class="text-right">{{ row.pieces }}</td>
+                        <td>
+                            {% set processings = [] %}
+                            {% for drp in row.ddt_row_processings %}
+                                {% if drp.processing %}
+                                    {% set processings = processings|merge([drp.processing.name]) %}
+                                {% endif %}
+                            {% endfor %}
+                            {{ processings|join(', ') }}
+                        </td>
+                    </tr>
+                    {% set totalPieces = totalPieces + row.pieces %}
+                    {% if row.batch.batch_code not in batchCodes %}
+                        {% set batchCodes = batchCodes|merge([row.batch.batch_code]) %}
+                    {% endif %}
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="4" class="text-right font-bold" style="border-top: 1px solid #000;">TOTALE TERZISTA:</td>
+                    <td class="text-right font-bold" style="border-top: 1px solid #000;">LOTTI {{ batchCodes|length }}</td>
+                    <td class="text-right font-bold" style="border-top: 1px solid #000;">n. {{ totalPieces }} pelli totali</td>
+                    <td style="border-top: 1px solid #000;"></td>
+                </tr>
+            </tfoot>
+        </table>
+        {% endfor %}
+
+    </div>
+    
+    <div class="footer">
+        Documento generato il {{ "now"|date('d/m/Y H:i') }}
+    </div>
+</body>
+</html>

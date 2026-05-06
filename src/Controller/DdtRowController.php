@@ -4,18 +4,24 @@ namespace App\Controller;
 
 use App\Entity\Contact;
 use App\Entity\Ddt;
+use App\Entity\DdtReason;
 use App\Entity\DdtRow;
 use App\Entity\Batch;
 use App\Entity\MeasurementUnit;
 use App\Entity\Currency;
 use App\Entity\Processing;
+use App\Entity\DdtRowProcessing;
 use App\Entity\Selection;
+use App\Entity\MeasurementUnitCoefficient;
 use App\Entity\WarehouseMovement;
 use App\Entity\WarehouseMovementReason;
 use App\Entity\WarehouseMovementReasonType;
+use App\Repository\MeasurementUnitCoefficientRepository;
+use App\Repository\MeasurementUnitRepository;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
+use App\Service\PdfGeneratorService;
 use App\Service\ValidatorOutputFormatter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -31,19 +37,22 @@ final class DdtRowController extends AbstractController
     private $doResponse;
     private $groupSerializer;
     private $validatorOutputFormatter;
+    private $pdfGenerator;
 
     public function __construct(
         CreateMethodsByInput     $createMethodsByInput,
         EntityManagerInterface   $entityManager,
         DoResponseService        $doResponseService,
         GroupSerializerService   $groupSerializer,
-        ValidatorOutputFormatter $validatorOutputFormatter
+        ValidatorOutputFormatter $validatorOutputFormatter,
+        PdfGeneratorService      $pdfGenerator
     ) {
         $this->createMethodsByInput = $createMethodsByInput;
         $this->doctrine = $entityManager;
         $this->doResponse = $doResponseService;
         $this->groupSerializer = $groupSerializer;
         $this->validatorOutputFormatter = $validatorOutputFormatter;
+        $this->pdfGenerator = $pdfGenerator;
     }
 
     #[Route('/ddt-row/{id}',
@@ -107,48 +116,231 @@ final class DdtRowController extends AbstractController
             $lastMovement = end($movementsArray);
             $lastMovementReasonName = $lastMovement?->getReason()?->getName();
 
-            // Calcola il nome del movimento di "Reso" atteso
             $resoReasonName = "Reso " . $ddtReasonName;
+            $rientroTrasferimentoReasonName = "Rientro da Lavorazione";
 
             // Restituisce il lotto solamente quando l'ultimo movimento ha il movementReason->Name == al ddtReason->Name
-            // Oppure se è un "Reso {ddtReason->Name}"
-            if ($lastMovementReasonName !== $ddtReasonName && $lastMovementReasonName !== $resoReasonName) {
+            // Oppure se è un "Reso {ddtReason->Name}" o un "Rientro da Lavorazione" (per trasferimento)
+            if ($lastMovementReasonName !== $ddtReasonName && 
+                $lastMovementReasonName !== $resoReasonName &&
+                $lastMovementReasonName !== $rientroTrasferimentoReasonName
+            ) {
                 continue;
             }
 
             $firstMovementOut = null;
             $returnedPieces = 0;
+            $returnedQuantity = 0;
 
             foreach ($movementsArray as $movement) {
                 $reason = $movement->getReason();
                 $reasonName = $reason?->getName();
                 $reasonTypeName = $reason?->getReasonType()?->getName();
 
-                // Identifica il primo movimento in uscita con la causale del DDT
-                if ($firstMovementOut === null && $reasonName === $ddtReasonName && $reasonTypeName === 'Scarico') {
+                // Identifica il primo movimento in uscita con la causale del DDT che corrisponde al numero DDT della riga
+                if ($firstMovementOut === null && 
+                    $reasonName === $ddtReasonName && 
+                    $reasonTypeName === 'Scarico'
+                ) {
                     $firstMovementOut = $movement;
                     continue;
                 }
 
-                // Somma i pezzi rientrati per i movimenti di "Reso" corrispondenti
-                if ($firstMovementOut !== null && $reasonName === $resoReasonName) {
-                    $returnedPieces += abs($movement->getPiece() ?? 0);
+                // Somma i pezzi rientrati per i movimenti di "Reso" corrispondenti o rientri per trasferimento
+                if ($firstMovementOut !== null) {
+                    if ($reasonName === $resoReasonName || $reasonName === $rientroTrasferimentoReasonName) {
+                        // Verifichiamo che il rientro sia riferito a questo DDT (tramite note o ddt_number nel movimento)
+                        // Nel caso del trasferimento, impostiamo ddt_number del movimento uguale a quello della riga originale
+                        if ($movement->getDdtNumber() === $ddt->getDdtNumber()) {
+                            $mPieces = abs($movement->getPiece() ?? 0);
+                            $returnedPieces += $mPieces;
+                            
+                            // Nel trasferimento bisogna prendere la quantity di un pezzo e moltiplicarlo per i pezzi trasferiti, questo vale anche per i resi....
+                            $unitQuantity = 0;
+                            $pOut = $ddtRow->getPiecesOut() ?? 0;
+                            $qOut = $ddtRow->getQuantityOut() ?? 0;
+                            if ($pOut > 0) {
+                                $unitQuantity = $qOut / $pOut;
+                            }
+                            $returnedQuantity += ($unitQuantity * $mPieces);
+                        }
+                    }
                 }
             }
 
             if ($firstMovementOut !== null) {
-                $outPieces = abs($firstMovementOut->getPiece() ?? 0);
+                $outPieces = $ddtRow->getPiecesOut() ?? abs($firstMovementOut->getPiece() ?? 0);
+                $outQuantity = $ddtRow->getQuantityOut() ?? abs($firstMovementOut->getQuantity() ?? 0);
+                
                 $remainingPieces = $outPieces - $returnedPieces;
+                $remainingQuantity = $outQuantity - $returnedQuantity;
 
                 if ($lastMovementReasonName === $ddtReasonName || $remainingPieces > 0) {
                     $results = $this->groupSerializer->serializeGroup($ddtRow, 'ddt_row_list');
                     $results['stock_pieces'] = $remainingPieces;
+                    $results['stock_quantity'] = $remainingQuantity;
                     $ddtRowsSelected[] = $results;
                 }
             }
         }
 
         return new JsonResponse($this->doResponse->doResponse($ddtRowsSelected));
+    }
+
+    #[Route('/ddt-row/sold',
+        name: 'get_sold_lots',
+        methods: ['GET'])]
+    public function getSoldLots(Request $request): JsonResponse
+    {
+        $clientId = $request->query->get('client_id') ? (int)$request->query->get('client_id') : null;
+        $startDateStr = $request->query->get('start_date');
+        $endDateStr = $request->query->get('end_date');
+
+        $startDate = $startDateStr ? \DateTime::createFromFormat('Y-m-d', $startDateStr) : null;
+        if ($startDate) $startDate->setTime(0, 0, 0);
+
+        $endDate = $endDateStr ? \DateTime::createFromFormat('Y-m-d', $endDateStr) : null;
+        if ($endDate) $endDate->setTime(0, 0, 0);
+
+        $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
+        $soldLots = $ddtRowRepository->findSoldLots($clientId, $startDate, $endDate);
+
+        $results = $this->groupSerializer->serializeGroup($soldLots, 'ddt_row_list_sold');
+
+        return new JsonResponse($this->doResponse->doResponse($results));
+    }
+
+    #[Route('/ddt-row/sold/pdf',
+        name: 'get_sold_lots_pdf',
+        methods: ['GET'])]
+    public function getSoldLotsPdf(Request $request): \Symfony\Component\HttpFoundation\Response
+    {
+        $clientId = $request->query->get('client_id') ? (int)$request->query->get('client_id') : null;
+        $startDateStr = $request->query->get('start_date');
+        $endDateStr = $request->query->get('end_date');
+
+        $startDate = $startDateStr ? \DateTime::createFromFormat('Y-m-d', $startDateStr) : null;
+        if ($startDate) $startDate->setTime(0, 0, 0);
+
+        $endDate = $endDateStr ? \DateTime::createFromFormat('Y-m-d', $endDateStr) : null;
+        if ($endDate) $endDate->setTime(0, 0, 0);
+
+        $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
+        $soldLots = $ddtRowRepository->findSoldLots($clientId, $startDate, $endDate);
+
+        // Recupero i coefficienti di conversione
+        $coeffRepo = $this->doctrine->getRepository(MeasurementUnitCoefficient::class);
+        $coefficients = $coeffRepo->findAll();
+        
+        // Recupero le unità di misura MQ e PQ per identificare i coefficienti corretti
+        $umRepo = $this->doctrine->getRepository(MeasurementUnit::class);
+        $mqUm = $umRepo->findOneBy(['prefix' => 'MQ']);
+        $pqUm = $umRepo->findOneBy(['prefix' => 'PQ']);
+
+        $groupedData = [];
+        foreach ($soldLots as $row) {
+            $client = $row->getDdt()->getClient();
+            if (!$client) continue;
+
+            $cId = $client->getId();
+            if (!isset($groupedData[$cId])) {
+                $groupedData[$cId] = [
+                    'client' => $this->groupSerializer->serializeGroup($client, 'client_summary_print'),
+                    'rows' => []
+                ];
+            }
+            $groupedData[$cId]['rows'][] = $this->groupSerializer->serializeGroup($row, 'client_summary_print');
+        }
+
+        // Ordina i clienti per nome
+        usort($groupedData, fn($a, $b) => $a['client']['name'] <=> $b['client']['name']);
+
+        $pdfContent = $this->pdfGenerator->generatePdf('print/sold_lots_pdf.html.twig', [
+            'data' => $groupedData,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'orientation' => 'landscape',
+            'coefficients' => $coefficients,
+            'mq_um_id' => $mqUm ? $mqUm->getId() : null,
+            'pq_um_id' => $pqUm ? $pqUm->getId() : null,
+        ], 'lotti_venduti.pdf');
+
+        return new \Symfony\Component\HttpFoundation\Response($pdfContent, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="lotti_venduti.pdf"'
+        ]);
+    }
+
+    #[Route('/ddt-row/external-processing',
+        name: 'get_external_processing_lots',
+        methods: ['GET'])]
+    public function getExternalProcessingLots(Request $request): JsonResponse
+    {
+        $subcontractorId = $request->query->get('subcontractor_id') ? (int)$request->query->get('subcontractor_id') : null;
+        $startDateStr = $request->query->get('start_date');
+        $endDateStr = $request->query->get('end_date');
+
+        $startDate = $startDateStr ? \DateTime::createFromFormat('Y-m-d', $startDateStr) : null;
+        if ($startDate) $startDate->setTime(0, 0, 0);
+
+        $endDate = $endDateStr ? \DateTime::createFromFormat('Y-m-d', $endDateStr) : null;
+        if ($endDate) $endDate->setTime(0, 0, 0);
+
+        $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
+        $lots = $ddtRowRepository->findExternalProcessingLots($subcontractorId, $startDate, $endDate);
+
+        $results = $this->groupSerializer->serializeGroup($lots, ['client_summary_print', 'external_processing_print']);
+
+        return new JsonResponse($this->doResponse->doResponse($results));
+    }
+
+    #[Route('/ddt-row/external-processing/pdf',
+        name: 'get_external_processing_lots_pdf',
+        methods: ['GET'])]
+    public function getExternalProcessingLotsPdf(Request $request): \Symfony\Component\HttpFoundation\Response
+    {
+        $subcontractorId = $request->query->get('subcontractor_id') ? (int)$request->query->get('subcontractor_id') : null;
+        $startDateStr = $request->query->get('start_date');
+        $endDateStr = $request->query->get('end_date');
+
+        $startDate = $startDateStr ? \DateTime::createFromFormat('Y-m-d', $startDateStr) : null;
+        if ($startDate) $startDate->setTime(0, 0, 0);
+
+        $endDate = $endDateStr ? \DateTime::createFromFormat('Y-m-d', $endDateStr) : null;
+        if ($endDate) $endDate->setTime(0, 0, 0);
+
+        $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
+        $lots = $ddtRowRepository->findExternalProcessingLots($subcontractorId, $startDate, $endDate);
+
+        $groupedData = [];
+        foreach ($lots as $row) {
+            $subcontractor = $row->getDdt()->getSubcontractor();
+            if (!$subcontractor) continue;
+
+            $sId = $subcontractor->getId();
+            if (!isset($groupedData[$sId])) {
+                $groupedData[$sId] = [
+                    'subcontractor' => $this->groupSerializer->serializeGroup($subcontractor, 'client_summary_print'),
+                    'rows' => []
+                ];
+            }
+            $groupedData[$sId]['rows'][] = $this->groupSerializer->serializeGroup($row, ['client_summary_print', 'external_processing_print']);
+        }
+
+        // Ordina i terzisti per nome
+        usort($groupedData, fn($a, $b) => $a['subcontractor']['name'] <=> $b['subcontractor']['name']);
+
+        $pdfContent = $this->pdfGenerator->generatePdf('print/external_processing_lots_pdf.html.twig', [
+            'data' => $groupedData,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'orientation' => 'landscape'
+        ], 'lotti_lavorazione_esterna.pdf');
+
+        return new \Symfony\Component\HttpFoundation\Response($pdfContent, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="lotti_lavorazione_esterna.pdf"'
+        ]);
     }
 
     #[Route('/ddt-row',
@@ -160,6 +352,14 @@ final class DdtRowController extends AbstractController
         $ddtRow = new DdtRow();
 
         try {
+
+            if(isset($data['pieces'])){
+                $ddtRow->setPiecesOut($data['pieces']);
+            }
+            if(isset($data['quantity'])){
+                $ddtRow->setQuantityOut($data['quantity']);
+            }
+
             $this->handleRelations($ddtRow, $data);
             $this->createMethodsByInput->createMethods($ddtRow, $data);
         } catch (\Exception $e) {
@@ -174,9 +374,9 @@ final class DdtRowController extends AbstractController
         $this->calculatePrices($ddtRow);
 
         if($ddtRow->getHalfPiece() !== null) {
-            $ddtRow->setWholePiece($ddtRow->getPieces() - ($ddtRow->getHalfPiece() * 2));
+            $ddtRow->setWholePiece(($ddtRow->getPieces() ?? 0) - ($ddtRow->getHalfPiece() / 2));
         } else {
-            $ddtRow->setWholePiece($ddtRow->getPieces());
+            $ddtRow->setWholePiece($ddtRow->getPieces() ?? 0);
         }
 
         $this->doctrine->persist($ddtRow);
@@ -184,7 +384,9 @@ final class DdtRowController extends AbstractController
 
         $batch = $ddtRow->getBatch();
 
-        $batch->setStockQuantity($batch->getStockQuantity() - $ddtRow->getQuantity());
+        $convertedQuantity = $this->getConvertedQuantity($ddtRow->getQuantity(), $ddtRow->getMeasurementUnit(), $batch->getMeasurementUnit());
+
+        $batch->setStockQuantity($batch->getStockQuantity() - $convertedQuantity);
         $batch->setStockItems($batch->getStockItems() - $ddtRow->getPieces());
 
         $this->updateBatchSqFtAverageFound($batch);
@@ -195,7 +397,7 @@ final class DdtRowController extends AbstractController
 
         $wearhouseMovement = new WarehouseMovement();
         $wearhouseMovement->setBatch($batch);
-        $wearhouseMovement->setQuantity($ddtRow->getQuantity());
+        $wearhouseMovement->setQuantity($convertedQuantity);
         $wearhouseMovement->setPiece($ddtRow->getPieces());
         $wearhouseMovement->setReason($ddtRow->getDdt()->getReason()->getWarehouseMovementReason());
         $wearhouseMovement->setDdtDate($ddt->getDdtDate());
@@ -217,10 +419,11 @@ final class DdtRowController extends AbstractController
         if ($movementReason && $movementReason->getReasonType()?->getMovementType() === 'Scarico') {
             $batch = $ddtRow->getBatch();
             if ($batch) {
+                $convertedQuantity = $this->getConvertedQuantity($ddtRow->getQuantity(), $ddtRow->getMeasurementUnit(), $batch->getMeasurementUnit());
                 foreach ($batch->getBatchOrders() as $batchOrder) {
                     $orderRow = $batchOrder->getOrderRow();
                     if ($orderRow) {
-                        $newToShip = (float)$orderRow->getQuantity() - $ddtRow->getQuantity();
+                        $newToShip = (float)$orderRow->getQuantity() - $convertedQuantity;
                         $orderRow->setQuantityToShip((string)$newToShip);
                         $this->doctrine->persist($orderRow);
                     }
@@ -252,6 +455,14 @@ final class DdtRowController extends AbstractController
         $data = $request->toArray();
 
         try {
+
+            if(isset($data['pieces'])){
+                $ddtRow->setPiecesOut($data['pieces']);
+            }
+            if(isset($data['quantity'])){
+                $ddtRow->setQuantityOut($data['quantity']);
+            }
+
             $this->handleRelations($ddtRow, $data);
             $this->createMethodsByInput->createMethods($ddtRow, $data);
         } catch (\Exception $e) {
@@ -266,16 +477,19 @@ final class DdtRowController extends AbstractController
         $this->calculatePrices($ddtRow);
 
         if($ddtRow->getHalfPiece() !== null) {
-            $ddtRow->setWholePiece($ddtRow->getPieces() - ($ddtRow->getHalfPiece() * 2));
+            $ddtRow->setWholePiece(($ddtRow->getPieces() ?? 0) - ($ddtRow->getHalfPiece() / 2));
         } else {
-            $ddtRow->setWholePiece($ddtRow->getPieces());
+            $ddtRow->setWholePiece($ddtRow->getPieces() ?? 0);
         }
 
         $newBatch = $ddtRow->getBatch();
 
         if ($oldBatch && $newBatch && $oldBatch->getId() === $newBatch->getId()) {
             $diffPieces = $ddtRow->getPieces() - $oldPieces;
-            $diffQuantity = $ddtRow->getQuantity() - $oldQuantity;
+            
+            $oldConvertedQuantity = $this->getConvertedQuantity($oldQuantity, $ddtRow->getMeasurementUnit(), $newBatch->getMeasurementUnit());
+            $newConvertedQuantity = $this->getConvertedQuantity($ddtRow->getQuantity(), $ddtRow->getMeasurementUnit(), $newBatch->getMeasurementUnit());
+            $diffQuantity = $newConvertedQuantity - $oldConvertedQuantity;
 
             $newBatch->setStockItems($newBatch->getStockItems() - $diffPieces);
             $newBatch->setStockQuantity($newBatch->getStockQuantity() - $diffQuantity);
@@ -285,13 +499,15 @@ final class DdtRowController extends AbstractController
         } else {
             if ($oldBatch) {
                 $oldBatch->setStockItems($oldBatch->getStockItems() + $oldPieces);
-                $oldBatch->setStockQuantity($oldBatch->getStockQuantity() + $oldQuantity);
+                $oldBatchConvertedQuantity = $this->getConvertedQuantity($oldQuantity, $ddtRow->getMeasurementUnit(), $oldBatch->getMeasurementUnit());
+                $oldBatch->setStockQuantity($oldBatch->getStockQuantity() + $oldBatchConvertedQuantity);
                 $this->updateBatchSqFtAverageFound($oldBatch);
                 $this->doctrine->persist($oldBatch);
             }
             if ($newBatch) {
                 $newBatch->setStockItems($newBatch->getStockItems() - $ddtRow->getPieces());
-                $newBatch->setStockQuantity($newBatch->getStockQuantity() - $ddtRow->getQuantity());
+                $newBatchConvertedQuantity = $this->getConvertedQuantity($ddtRow->getQuantity(), $ddtRow->getMeasurementUnit(), $newBatch->getMeasurementUnit());
+                $newBatch->setStockQuantity($newBatch->getStockQuantity() - $newBatchConvertedQuantity);
                 $this->updateBatchSqFtAverageFound($newBatch);
                 $this->doctrine->persist($newBatch);
             }
@@ -305,7 +521,8 @@ final class DdtRowController extends AbstractController
         }
 
         $warehouseMovement->setBatch($newBatch);
-        $warehouseMovement->setQuantity($ddtRow->getQuantity());
+        $convertedQuantity = $this->getConvertedQuantity($ddtRow->getQuantity(), $ddtRow->getMeasurementUnit(), $newBatch?->getMeasurementUnit());
+        $warehouseMovement->setQuantity($convertedQuantity);
         $warehouseMovement->setPiece($ddtRow->getPieces());
 
         $this->doctrine->persist($warehouseMovement);
@@ -316,6 +533,7 @@ final class DdtRowController extends AbstractController
         if ($movementReason && $movementReason->getReasonType()?->getMovementType() === 'Scarico') {
             $batch = $ddtRow->getBatch();
             if ($batch) {
+                $convertedQuantity = $this->getConvertedQuantity($ddtRow->getQuantity(), $ddtRow->getMeasurementUnit(), $batch->getMeasurementUnit());
                 // Se il lotto è cambiato, dobbiamo ripristinare il vecchio e aggiornare il nuovo
                 if ($oldBatch && $newBatch && $oldBatch->getId() !== $newBatch->getId()) {
                     // Ripristiniamo il vecchio lotto/ordine
@@ -330,7 +548,7 @@ final class DdtRowController extends AbstractController
                     foreach ($newBatch->getBatchOrders() as $batchOrder) {
                         $orderRow = $batchOrder->getOrderRow();
                         if ($orderRow) {
-                            $newToShip = (float)$orderRow->getQuantity() - $ddtRow->getQuantity();
+                            $newToShip = (float)$orderRow->getQuantity() - $convertedQuantity;
                             $orderRow->setQuantityToShip((string)$newToShip);
                             $this->doctrine->persist($orderRow);
                         }
@@ -340,7 +558,7 @@ final class DdtRowController extends AbstractController
                     foreach ($batch->getBatchOrders() as $batchOrder) {
                         $orderRow = $batchOrder->getOrderRow();
                         if ($orderRow) {
-                            $newToShip = (float)$orderRow->getQuantity() - $ddtRow->getQuantity();
+                            $newToShip = (float)$orderRow->getQuantity() - $convertedQuantity;
                             $orderRow->setQuantityToShip((string)$newToShip);
                             $this->doctrine->persist($orderRow);
                         }
@@ -456,50 +674,6 @@ final class DdtRowController extends AbstractController
         $this->doctrine->persist($warehouseMovement);
         $this->doctrine->flush();
 
-//        $diffPieces = $pieces - $ddtRow->getPieces();
-//        if ($diffPieces !== 0) {
-//            $reasonName = $diffPieces > 0 ? "Compensazione positiva" : "Compensazione negativa";
-//            $compReason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => $reasonName]);
-//
-//            if (!$compReason) {
-//                $compReason = new WarehouseMovementReason();
-//                $compReason->setName($reasonName);
-//                $movementType = $diffPieces > 0 ? 'Compensazione positiva' : 'Compensazione negativa';
-//                $reasonType = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => $movementType]);
-//                if (!$reasonType) {
-//                    $reasonType = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => $movementType === 'Carico' ? 'Carico' : 'Scarico']);
-//                }
-//                if (!$reasonType) {
-//                    $reasonType = new WarehouseMovementReasonType();
-//                    $reasonType->setName($movementType);
-//                    $reasonType->setMovementType($movementType === 'Compensazione positiva' ? 'Compensazione positiva' : 'Compensazione negativa');
-//                    $this->doctrine->persist($reasonType);
-//                }
-//                $compReason->setReasonType($reasonType);
-//                $this->doctrine->persist($compReason);
-//            }
-//
-//            $compMovement = new WarehouseMovement();
-//            $compMovement->setBatch($batch);
-//            $compMovement->setQuantity(0);
-//            $compMovement->setPiece($diffPieces);
-//            $compMovement->setReason($compReason);
-//            $compMovement->setDdtNumber($ddtRow->getDdt()->getDdtNumber());
-//            $compMovement->setDdtDate($ddtRow->getDdt()->getDdtDate());
-//            $compMovement->setDate(new \DateTime());
-//            $compMovement->setMovementNote('Compensazione riga DDT ' . $ddtRow->getId() . ' del DDT ' . $ddtRow->getDdt()->getDdtNumber());
-//
-//            if ($ddt->getSubcontractor()) {
-//                $compMovement->setContact($ddt->getSubcontractor());
-//            } elseif ($ddt->getClient()) {
-//                $compMovement->setContact($ddt->getClient());
-//            }
-//            $this->doctrine->persist($compMovement);
-//
-//            $batch->setStockItems($batch->getStockItems() + $diffPieces);
-//            $this->doctrine->persist($batch);
-//        }
-
         $batch->setStockQuantity($batch->getStockQuantity() + $quantity);
         $batch->setStockItems($batch->getStockItems() + $pieces);
 
@@ -533,36 +707,133 @@ final class DdtRowController extends AbstractController
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
 
         $subcontractor = $this->doctrine->getRepository(Contact::class)->find($data['subcontractor_id']);
-        $quantity = $data['quantity'] ?? $ddtRow->getQuantity();
-        $pieces = $data['pieces'] ?? $ddtRow->getPieces();
+        if (!$subcontractor) {
+            return $this->doResponse->doErrorJsonResponse('Terzista non trovato', 404);
+        }
 
-        $reasonTransfer = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Reso C/O Lavorazione']);
-        if (!$reasonTransfer) {
-            $reasonTypeTransfer = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => 'Out']);
-            if ($reasonTypeTransfer) {
-                $reasonTransfer = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['reason_type' => $reasonTypeTransfer]);
+        $quantity = (float)($data['quantity'] ?? $ddtRow->getQuantity());
+        $pieces = (int)($data['pieces'] ?? $ddtRow->getPieces());
+
+        $ddt = $ddtRow->getDdt();
+
+        // 1. GESTIONE RIENTRO (MOVIMENTO INGRESSO)
+        $reasonReturn = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Reso ' . $ddt->getReason()->getName()]);
+        if (!$reasonReturn) {
+            $reasonTypeIn = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => 'Carico']);
+            if ($reasonTypeIn) {
+                $reasonReturn = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['reason_type' => $reasonTypeIn]);
             }
         }
 
-        if (!$reasonTransfer) {
-            return $this->doResponse->doErrorJsonResponse('Causale di magazzino "Carico" non trovata', 400);
+        if (!$reasonReturn) {
+            return $this->doResponse->doErrorJsonResponse('Causale di magazzino per il rientro non trovata', 400);
         }
 
-        $warehouseMovement = new WarehouseMovement();
-        $warehouseMovement->setBatch($batch);
-        $warehouseMovement->setQuantity($quantity);
-        $warehouseMovement->setPiece($pieces);
-        $warehouseMovement->setReason($reasonTransfer);
-        $warehouseMovement->setDdtNumber($ddtRow->getDdt()->getDdtNumber());
-        $warehouseMovement->setDdtDate($ddtRow->getDdt()->getDdtDate());
-        $warehouseMovement->setDate(new \DateTime());
-        $warehouseMovement->setMovementNote($data['row_note'] ?: 'Rientro riga DDT ' . $ddtRow->getId());
-        $warehouseMovement->setContact($subcontractor);
+        $movementIn = new WarehouseMovement();
+        $movementIn->setBatch($batch);
+        $movementIn->setQuantity($quantity);
+        $movementIn->setPiece($pieces);
+        $movementIn->setReason($reasonReturn);
+        $movementIn->setDdtNumber($ddtRow->getDdt()->getDdtNumber());
+        $movementIn->setDdtDate($ddtRow->getDdt()->getDdtDate());
+        $movementIn->setDate(new \DateTime());
+        $movementIn->setMovementNote('Rientro per trasferimento da riga DDT ' . $ddtRow->getId());
+        if ($ddtRow->getDdt()->getSubcontractor()) {
+            $movementIn->setContact($ddtRow->getDdt()->getSubcontractor());
+        }
 
-        $this->doctrine->persist($warehouseMovement);
+        $this->doctrine->persist($movementIn);
+
+        // Aggiorno stock del lotto per il rientro
+        $batch->setStockQuantity($batch->getStockQuantity() + $quantity);
+        $batch->setStockItems($batch->getStockItems() + $pieces);
+
+        // 2. CREAZIONE NUOVO DDT IN USCITA
+        $newDdt = new Ddt();
+        $newDdt->setSubcontractor($subcontractor);
+        $newDdt->setDdtNumber($data['ddt_number'] ?? ('TRF-' . time()));
+        $newDdt->setDdtDate(new \DateTime());
+
+        $ddtReason = $this->doctrine->getRepository(DdtReason::class)->findOneBy(['name' => 'Conto Lavorazione']);
+        if (!$ddtReason) {
+            $ddtReason = $this->doctrine->getRepository(DdtReason::class)->findOneBy([]); // Prendo la prima se non trovo quella specifica
+        }
+        if ($ddtReason) {
+            $newDdt->setReason($ddtReason);
+        }
+
+        $this->doctrine->persist($newDdt);
+
+        // 3. CREAZIONE NUOVA RIGA DDT
+        $newDdtRow = new DdtRow();
+        $newDdtRow->setDdt($newDdt);
+        $newDdtRow->setBatch($batch);
+        $newDdtRow->setQuantity($quantity);
+        $newDdtRow->setPieces($pieces);
+        $newDdtRow->setMeasurementUnit($ddtRow->getMeasurementUnit());
+        $newDdtRow->setCurrency($ddtRow->getCurrency());
+        $newDdtRow->setPrice($ddtRow->getPrice());
+        $newDdtRow->setCurrencyPrice($ddtRow->getCurrencyPrice());
+        $newDdtRow->setCurrencyExchange($ddtRow->getCurrencyExchange());
+        $newDdtRow->setSelection($ddtRow->getSelection());
+
+        if (isset($data['processing_ids']) && is_array($data['processing_ids'])) {
+            foreach ($data['processing_ids'] as $pId) {
+                $processing = $this->doctrine->getRepository(Processing::class)->find($pId);
+                if ($processing) {
+                    $ddtRowProcessing = new DdtRowProcessing();
+                    $ddtRowProcessing->setDdtRow($newDdtRow);
+                    $ddtRowProcessing->setProcessing($processing);
+                    $this->doctrine->persist($ddtRowProcessing);
+                    $newDdtRow->addDdtRowProcessing($ddtRowProcessing);
+                }
+            }
+        } else {
+            foreach ($ddtRow->getDdtRowProcessings() as $oldDrp) {
+                $newDrp = new DdtRowProcessing();
+                $newDrp->setDdtRow($newDdtRow);
+                $newDrp->setProcessing($oldDrp->getProcessing());
+                $this->doctrine->persist($newDrp);
+                $newDdtRow->addDdtRowProcessing($newDrp);
+            }
+        }
+
+        $this->calculatePrices($newDdtRow);
+        $this->doctrine->persist($newDdtRow);
+
+        // 4. MOVIMENTO USCITA PER NUOVA RIGA
+        $reasonTransfer = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Invio in Lavorazione']);
+        if (!$reasonTransfer) {
+            $reasonTypeOut = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => 'Out']);
+            if ($reasonTypeOut) {
+                $reasonTransfer = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['reason_type' => $reasonTypeOut]);
+            }
+        }
+
+        if ($reasonTransfer) {
+            $movementOut = new WarehouseMovement();
+            $movementOut->setBatch($batch);
+            $movementOut->setQuantity($quantity);
+            $movementOut->setPiece($pieces);
+            $movementOut->setReason($reasonTransfer);
+            $movementOut->setDdtNumber($newDdt->getDdtNumber());
+            $movementOut->setDdtDate($newDdt->getDdtDate());
+            $movementOut->setDate(new \DateTime());
+            $movementOut->setMovementNote('Trasferimento da riga DDT ' . $ddtRow->getId());
+            $movementOut->setContact($subcontractor);
+            $this->doctrine->persist($movementOut);
+
+            // Aggiorno stock del lotto per l'uscita
+            $batch->setStockQuantity($batch->getStockQuantity() - $quantity);
+            $batch->setStockItems($batch->getStockItems() - $pieces);
+        }
+
+        $this->updateBatchSqFtAverageFound($batch);
+        $this->doctrine->persist($batch);
+
         $this->doctrine->flush();
 
-        $results = $this->groupSerializer->serializeGroup([$ddtRow], 'ddt_row_detail');
+        $results = $this->groupSerializer->serializeGroup([$newDdtRow], 'ddt_row_detail');
         return new JsonResponse($this->doResponse->doResponse($results[0]));
     }
 
@@ -575,6 +846,7 @@ final class DdtRowController extends AbstractController
             }
             unset($data['ddt_id']);
         }
+
         if (isset($data['batch_id'])) {
             $batch = $this->doctrine->getRepository(Batch::class)->find($data['batch_id']);
             if ($batch) {
@@ -582,6 +854,7 @@ final class DdtRowController extends AbstractController
             }
             unset($data['batch_id']);
         }
+
         if (isset($data['measurement_unit_id'])) {
             $mu = $this->doctrine->getRepository(MeasurementUnit::class)->find($data['measurement_unit_id']);
             if ($mu) {
@@ -589,6 +862,7 @@ final class DdtRowController extends AbstractController
             }
             unset($data['measurement_unit_id']);
         }
+
         if (isset($data['currency_id'])) {
             $currency = $this->doctrine->getRepository(Currency::class)->find($data['currency_id']);
             if ($currency) {
@@ -596,6 +870,7 @@ final class DdtRowController extends AbstractController
             }
             unset($data['currency_id']);
         }
+
         if (isset($data['selection_id'])) {
             $selection = $this->doctrine->getRepository(Selection::class)->find($data['selection_id']);
             if ($selection) {
@@ -603,11 +878,56 @@ final class DdtRowController extends AbstractController
             }
             unset($data['selection_id']);
         }
-        if (isset($data['processing_id'])) {
-            $processing = $this->doctrine->getRepository(Processing::class)->find($data['processing_id']);
-            if ($processing) {
-                $ddtRow->setProcessing($processing);
+
+        if (array_key_exists('processing_ids', $data)) {
+            foreach ($ddtRow->getDdtRowProcessings() as $oldDrp) {
+                $this->doctrine->remove($oldDrp);
             }
+            $ddtRow->getDdtRowProcessings()->clear();
+
+            $processingIds = $data['processing_ids'];
+
+            if (is_string($processingIds)) {
+                $processingIds = array_filter(
+                    array_map('trim', explode(',', $processingIds)),
+                    static fn (string $value): bool => $value !== ''
+                );
+            }
+
+            if (is_array($processingIds)) {
+                foreach ($processingIds as $pId) {
+                    $processing = $this->doctrine->getRepository(Processing::class)->find((int) $pId);
+                    if ($processing) {
+                        $ddtRowProcessing = new DdtRowProcessing();
+                        $ddtRowProcessing->setDdtRow($ddtRow);
+                        $ddtRowProcessing->setProcessing($processing);
+                        $this->doctrine->persist($ddtRowProcessing);
+                        $ddtRow->addDdtRowProcessing($ddtRowProcessing);
+                    }
+                }
+            }
+
+            unset($data['processing_ids']);
+        }
+
+        // Supporto retrocompatibilità se viene inviato un singolo processing_id
+        if (array_key_exists('processing_id', $data)) {
+            foreach ($ddtRow->getDdtRowProcessings() as $oldDrp) {
+                $this->doctrine->remove($oldDrp);
+            }
+            $ddtRow->getDdtRowProcessings()->clear();
+
+            if ($data['processing_id'] !== null && $data['processing_id'] !== '') {
+                $processing = $this->doctrine->getRepository(Processing::class)->find((int) $data['processing_id']);
+                if ($processing) {
+                    $ddtRowProcessing = new DdtRowProcessing();
+                    $ddtRowProcessing->setDdtRow($ddtRow);
+                    $ddtRowProcessing->setProcessing($processing);
+                    $this->doctrine->persist($ddtRowProcessing);
+                    $ddtRow->addDdtRowProcessing($ddtRowProcessing);
+                }
+            }
+
             unset($data['processing_id']);
         }
     }
@@ -633,6 +953,32 @@ final class DdtRowController extends AbstractController
         // Totali - Usiamo quantity per uniformare con le righe ordine
         $ddtRow->setTotalValue(round($price * $quantity, 2));
         $ddtRow->setCurrencyTotalValue(round($currencyPrice * $quantity, 2));
+    }
+
+    private function getConvertedQuantity(float $quantity, ?MeasurementUnit $startUm, ?MeasurementUnit $endUm): float
+    {
+        if (!$startUm || !$endUm || $startUm->getId() === $endUm->getId()) {
+            return $quantity;
+        }
+
+        $coefficient = $this->doctrine->getRepository(MeasurementUnitCoefficient::class)->findOneBy([
+            'start_um' => $startUm,
+            'end_um' => $endUm
+        ]);
+
+        if ($coefficient) {
+            return $quantity * $coefficient->getCoefficient();
+        }
+
+        // Fallback per conversioni standard MQ <-> PQ se non trovate nel DB
+        if ($startUm->getPrefix() === 'MQ' && $endUm->getPrefix() === 'PQ') {
+            return $quantity * 10.764;
+        }
+        if ($startUm->getPrefix() === 'PQ' && $endUm->getPrefix() === 'MQ') {
+            return $quantity / 10.764;
+        }
+
+        return $quantity;
     }
 
     private function updateBatchSqFtAverageFound(Batch $batch): void

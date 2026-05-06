@@ -14,6 +14,7 @@ use App\Entity\BatchSelection;
 use App\Entity\BatchType;
 use App\Entity\ClientOrderRow;
 use App\Entity\Leather;
+use App\Entity\LeatherThickness;
 use App\Entity\Selection;
 use App\Entity\WarehouseMovement;
 use App\Entity\WarehouseMovementReason;
@@ -26,6 +27,7 @@ use App\Service\ValidatorOutputFormatter;
 use App\Service\PdfGeneratorService;
 use App\Service\QrCodeService;
 use Doctrine\ORM\EntityManagerInterface;
+use FontLib\Table\Type\name;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -173,8 +175,57 @@ final class BatchController extends AbstractController
         return $finalSonBatches;
     }
 
+    #[Route('/batch/{id}/available-thicknesses',
+        name: 'get_batch_available_thicknesses',
+        requirements: ['id' => '\d+'],
+        methods: ['GET'])]
+    public function getAvailableThicknesses(int $id): JsonResponse
+    {
+        $batch = $this->doctrine->getRepository(Batch::class)->find($id);
+
+        if (!$batch) {
+            return $this->doResponse->doErrorJsonResponse('Batch not found', 404);
+        }
+
+        $compositions = $batch->getBatchCompositions();
+        $selections = $batch->getBatchSelections();
+        $thicknesses = [];
+
+        foreach ($compositions as $composition) {
+            $thickness = $composition->getThickness();
+            if ($thickness) {
+                $thicknessId = $thickness->getId();
+                if (!isset($thicknesses[$thicknessId])) {
+                    $thicknesses[$thicknessId] = [
+                        'thickness' => $thickness,
+                        'total_pieces' => 0
+                    ];
+                }
+                $thicknesses[$thicknessId]['total_pieces'] += $composition->getFatherBatchPieceAvailable();
+            }
+        }
+
+        foreach ($selections as $selection) {
+            $thickness = $selection->getThickness();
+            if ($thickness) {
+                $thicknessId = $thickness->getId();
+                if (isset($thicknesses[$thicknessId])) {
+                    $thicknesses[$thicknessId]['total_pieces'] -= $selection->getPieces();
+                }
+            }
+        }
+
+        $results = array_values(array_filter($thicknesses, function($item) {
+            return $item['total_pieces'] > 0;
+        }));
+
+        $serializedResults = $this->groupSerializer->serializeGroup($results, 'leather_thickness_detail');
+
+        return new JsonResponse($this->doResponse->doResponse($serializedResults));
+    }
+
     #[Route('/batch/{id}/pdf',
-        name: 'get_batch_pdf',
+        name: 'get_batch_lot_pdf',
         requirements: ['id' => '\d+'],
         methods: ['GET'])]
     public function generateBatchPdf(int $id): Response
@@ -558,6 +609,9 @@ final class BatchController extends AbstractController
         $batchComposition->setFatherBatchQuantity($newQuantity);
         $batchComposition->setCompositionNote('Riverdimento da lotto ' . $fatherBatch->getBatchCode());
 
+        $batchComposition->setFatherBatchPieceAvailable($batchComposition->getFatherBatchPiece());
+        $batchComposition->setFatherBatchQuantityAvailable($batchComposition->getFatherBatchQuantity());
+
         $this->doctrine->persist($batchComposition);
 
         $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
@@ -723,6 +777,15 @@ final class BatchController extends AbstractController
         $sfComp->setFatherBatchPiece((int)$pieces);
         $sfComp->setFatherBatchQuantity($calculatedQuantity);
         $sfComp->setCompositionNote('Spaccatura lotto ' . $batchCode);
+        if (isset($data['thickness_id'])) {
+            $thickness = $this->doctrine->getRepository(LeatherThickness::class)->find($data['thickness_id']);
+            if ($thickness) {
+                $sfComp->setThickness($thickness);
+            }
+        }
+        $sfComp->setFatherBatchPieceAvailable($sfComp->getFatherBatchPiece());
+        $sfComp->setFatherBatchQuantityAvailable($sfComp->getFatherBatchQuantity());
+
         $this->doctrine->persist($sfComp);
 
         $scComp = new BatchComposition();
@@ -734,6 +797,19 @@ final class BatchController extends AbstractController
         $scComp->setFatherBatchPiece((int)$pieces);
         $scComp->setFatherBatchQuantity($calculatedQuantity);
         $scComp->setCompositionNote('Spaccatura lotto ' . $batchCode);
+        if (isset($data['thickness_id'])) {
+            if (isset($thickness)) {
+                $scComp->setThickness($thickness);
+            } else {
+                $thickness = $this->doctrine->getRepository(LeatherThickness::class)->find($data['thickness_id']);
+                if ($thickness) {
+                    $scComp->setThickness($thickness);
+                }
+            }
+        }
+        $scComp->setFatherBatchPieceAvailable($scComp->getFatherBatchPiece());
+        $scComp->setFatherBatchQuantityAvailable($scComp->getFatherBatchQuantity());
+
         $this->doctrine->persist($scComp);
 
         $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
@@ -960,6 +1036,93 @@ final class BatchController extends AbstractController
         }
     }
 
+    #[Route('/batch/{id}/compensation',
+        name: 'put_batch_compensation',
+        methods: ['PUT'])]
+    public function modifyBatchCompensation(
+        Request $request,
+        int $id,
+    ): JsonResponse
+    {
+        $data = $request->toArray();
+
+        if (!isset($data['pieces'], $data['sign'])) {
+            return $this->doResponse->doErrorJsonResponse('Dati mancanti: pieces e type sono obbligatori', 400);
+        }
+
+        $pieces = (int) $data['pieces'];
+
+        if ($pieces <= 0) {
+            return $this->doResponse->doErrorJsonResponse('Il numero di pezzi deve essere maggiore di zero', 400);
+        }
+
+        if (!in_array($data['sign'], ['+', '-'], true)) {
+            return $this->doResponse->doErrorJsonResponse('Tipo compensazione non valido', 400);
+        }
+
+        $batch = $this->doctrine->getRepository(Batch::class)->find($id);
+
+        if (!$batch) {
+            return $this->doResponse->doErrorJsonResponse('Batch not found', 404);
+        }
+
+        $sign = $data['sign'] === '+' ? 1 : -1;
+        $reasonName = $data['sign'] === '+'
+            ? 'Compensazione Positiva'
+            : 'Compensazione Negativa';
+
+        $sqFtAverageExpected = $batch->getSqFtAverageExpected() ?? 1;
+        $quantity = $pieces * $sqFtAverageExpected;
+
+        if (isset($data['batch_selection_id'])) {
+            $batchSelection = $this->doctrine
+                ->getRepository(BatchSelection::class)
+                ->find($data['batch_selection_id']);
+
+            if (!$batchSelection) {
+                return $this->doResponse->doErrorJsonResponse('Selezione batch non trovata', 404);
+            }
+
+            $batchSelection->setStockPieces($batchSelection->getStockPieces() + ($pieces * $sign));
+            $batchSelection->setStockQuantity($batchSelection->getStockQuantity() + ($quantity * $sign));
+
+            $this->doctrine->persist($batchSelection);
+        }
+
+        $batch->setStockItems($batch->getStockItems() + ($pieces * $sign));
+        $batch->setStockQuantity($batch->getStockQuantity() + ($quantity * $sign));
+
+        $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
+
+        $adjReason = $reasonRepo->createQueryBuilder('r')
+            ->join('r.reason_type', 't')
+            ->where('r.name = :name')
+            ->setParameter('name', $reasonName)
+            ->getQuery()
+            ->getOneOrNullResult()
+            ?? $reasonRepo->findOneBy(['name' => $reasonName]);
+
+        if (!$adjReason) {
+            return $this->doResponse->doErrorJsonResponse('Causale "' . $reasonName . '" non trovata', 400);
+        }
+
+        $movement = new WarehouseMovement();
+        $movement->setBatch($batch);
+        $movement->setReason($adjReason);
+        $movement->setQuantity($quantity * $sign);
+        $movement->setPiece($pieces * $sign);
+        $movement->setDate(new \DateTime());
+        $movement->setMovementNote('Compensazione lotto');
+
+        $this->doctrine->persist($batch);
+        $this->doctrine->persist($movement);
+        $this->doctrine->flush();
+
+        $result = $this->groupSerializer->serializeGroup($batch, 'batch_detail');
+
+        return new JsonResponse($this->doResponse->doResponse($result));
+    }
+
     #[Route('/batch/{id}',
         name: 'put_batch',
         methods: ['PUT'])]
@@ -1167,6 +1330,8 @@ final class BatchController extends AbstractController
                         $composition->setBatch($batch);
                         $composition->setFatherBatch($fatherBatch);
                         $composition = $this->createMethodsByInput->createMethods($composition, $compositionData);
+                        $composition->setFatherBatchPieceAvailable($composition->getFatherBatchPiece());
+                        $composition->setFatherBatchQuantityAvailable($composition->getFatherBatchQuantity());
                         $batch->addBatchComposition($composition);
                         $this->doctrine->persist($composition);
                     }

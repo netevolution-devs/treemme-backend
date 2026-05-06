@@ -64,6 +64,7 @@ class ContactAddress
      * @var Collection<int, ClientOrder>
      */
     #[ORM\OneToMany(mappedBy: 'address', targetEntity: ClientOrder::class)]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail'])]
     private Collection $clientOrders;
 
     #[ORM\Column(length: 255, nullable: true)]
@@ -75,6 +76,10 @@ class ContactAddress
      */
     #[ORM\OneToMany(mappedBy: 'address', targetEntity: ClientOrderRow::class)]
     private Collection $clientOrderRows;
+
+    #[ORM\Column]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail'])]
+    private ?bool $default_address = null;
 
     public function __construct()
     {
@@ -275,6 +280,18 @@ class ContactAddress
                 $clientOrderRow->setAddress(null);
             }
         }
+
+        return $this;
+    }
+
+    public function isDefaultAddress(): ?bool
+    {
+        return $this->default_address;
+    }
+
+    public function setDefaultAddress(bool $default_address): static
+    {
+        $this->default_address = $default_address;
 
         return $this;
     }

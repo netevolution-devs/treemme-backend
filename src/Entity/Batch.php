@@ -18,7 +18,7 @@ class Batch
     #[ORM\GeneratedValue]
     #[ORM\Column]
     #[Groups(['batch_list', 'batch_detail', 'batch_type_detail', 'batch_composition_list', 'measurement_unit_detail',
-        'user_detail', 'production_list', 'production_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'batch_data_detail','client_order_row_list'])]
+        'user_detail', 'production_list', 'production_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'batch_data_detail','client_order_row_list', 'ddt_row_list_sold'])]
     private ?int $id = null;
 
     #[ORM\Column]
@@ -30,12 +30,12 @@ class Batch
     private ?bool $checked = null;
 
     #[ORM\ManyToOne(inversedBy: 'batches')]
-    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail'])]
+    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'ddt_row_list_sold'])]
     private ?BatchType $batch_type = null;
 
     #[ORM\Column(length: 50)]
     #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'ddt_detail', 'ddt_row_list',
-        'ddt_row_detail', 'batch_composition_list', 'batch_data_detail','client_order_row_list', 'client_summary_print'])]
+        'ddt_row_detail', 'batch_composition_list', 'batch_data_detail','client_order_row_list', 'client_summary_print', 'ddt_row_list_sold'])]
     private ?string $batch_code = null;
 
     #[ORM\Column(nullable: true)]
@@ -43,15 +43,15 @@ class Batch
     private ?\DateTime $batch_date = null;
 
     #[ORM\Column]
-    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'batch_data_detail','client_order_row_list', 'client_summary_print'])]
+    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'batch_data_detail','client_order_row_list', 'client_summary_print', 'ddt_row_list_sold'])]
     private ?int $pieces = null;
 
     #[ORM\ManyToOne(inversedBy: 'batches')]
-    #[Groups(['batch_list', 'batch_detail', 'batch_data_detail'])]
+    #[Groups(['batch_list', 'batch_detail', 'batch_data_detail', 'ddt_row_list_sold'])]
     private ?MeasurementUnit $measurement_unit = null;
 
     #[ORM\Column]
-    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'batch_data_detail','client_order_row_list'])]
+    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'batch_data_detail','client_order_row_list', 'ddt_row_list_sold'])]
     private ?float $quantity = null;
 
     #[ORM\Column]
@@ -83,7 +83,7 @@ class Batch
     private ?float $sq_ft_average_expected = null;
 
     #[ORM\Column]
-    #[Groups(['batch_list', 'batch_detail'])]
+    #[Groups(['batch_list', 'batch_detail', 'client_summary_print', 'ddt_row_list_sold'])]
     private ?float $sq_ft_average_found = null;
 
     #[ORM\Column(nullable: true)]
@@ -126,7 +126,7 @@ class Batch
 
     #[ORM\ManyToOne(inversedBy: 'batches')]
     #[ORM\JoinColumn(nullable: true)]
-    #[Groups(['batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'batch_data_detail'])]
+    #[Groups(['batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'batch_data_detail', 'client_summary_print', 'ddt_row_list_sold'])]
     private ?Leather $leather = null;
 
     /**
@@ -147,6 +147,7 @@ class Batch
      * @var Collection<int, BatchOrder>
      */
     #[ORM\OneToMany(mappedBy: 'batch', targetEntity: BatchOrder::class)]
+    #[Groups(['ddt_row_list_sold', 'external_processing_print'])]
     private Collection $batchOrders;
 
     /**
@@ -157,7 +158,8 @@ class Batch
     private Collection $productions;
 
     #[ORM\ManyToOne(inversedBy: 'batches')]
-    #[Groups(['batch_list', 'batch_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'ddt_detail',
+        'ddt_row_list', 'ddt_row_detail', 'client_summary_print', 'ddt_row_list_sold'])]
     private ?Article $article = null;
 
     /**

@@ -77,6 +77,16 @@ class ProductionController extends AbstractController
 
         $results = $this->groupSerializer->serializeGroup($productions, 'production_list');
 
+        foreach ( $productions as $index => $production ) {
+            $batchOrder = $production->getBatch()->getBatchOrders()->first();
+            if ($batchOrder) {
+                $results[$index]['client_name'] = $batchOrder->getOrderRow()->getClientOrder()->getClient()->getName();
+            } else {
+                $results[$index]['client_name'] = null;
+            }
+        }
+
+
         return new JsonResponse($this->doResponse->doResponse($results));
     }
 

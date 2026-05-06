@@ -16,12 +16,12 @@ class Article
     #[ORM\GeneratedValue]
     #[ORM\Column]
     #[Groups(['article_list', 'article_detail', 'client_order_row_list', 'client_order_row_detail', 'client_order_detail',
-        'batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'color_detail', 'client_summary_print'])]
+        'batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'color_detail', 'client_summary_print', 'ddt_row_list_sold', 'external_processing_print'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['article_list', 'article_detail', 'client_order_row_list', 'client_order_row_detail', 'client_order_detail',
-        'batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'color_detail', 'client_summary_print'])]
+        'batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'color_detail', 'client_summary_print', 'external_processing_print'])]
     private ?string $code = null;
 
     #[ORM\ManyToOne(inversedBy: 'articles')]
@@ -71,7 +71,7 @@ class Article
     private Collection $clientOrderRows;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['article_list', 'article_detail', 'client_order_detail', 'client_summary_print', 'client_order_row_list'])]
+    #[Groups(['article_list', 'article_detail', 'client_order_detail', 'client_summary_print', 'client_order_row_list', 'ddt_row_list_sold', 'external_processing_print'])]
     private ?string $name = null;
 
     /**
@@ -85,11 +85,11 @@ class Article
     private ?Color $color = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['article_list', 'article_detail', 'client_summary_print', 'client_order_row_list'])]
+    #[Groups(['article_list', 'article_detail', 'client_summary_print', 'client_order_row_list', 'ddt_row_list_sold'])]
     private ?string $client_code = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['article_list', 'article_detail', 'client_summary_print'])]
+    #[Groups(['article_list', 'article_detail', 'client_summary_print', 'ddt_row_list_sold'])]
     private ?string $client_code_note = null;
 
     public function __construct()
