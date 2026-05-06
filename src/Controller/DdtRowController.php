@@ -204,15 +204,15 @@ final class DdtRowController extends AbstractController
         $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
         $soldLots = $ddtRowRepository->findSoldLots($clientId, $startDate, $endDate);
 
-        $results = $this->groupSerializer->serializeGroup($soldLots, 'ddt_row_list');
+        $results = $this->groupSerializer->serializeGroup($soldLots, 'ddt_row_list_sold');
 
         return new JsonResponse($this->doResponse->doResponse($results));
     }
 
-    #[Route('/ddt-row/sold/print',
-        name: 'get_sold_lots_print',
+    #[Route('/ddt-row/sold/pdf',
+        name: 'get_sold_lots_pdf',
         methods: ['GET'])]
-    public function getSoldLotsPrint(Request $request): \Symfony\Component\HttpFoundation\Response
+    public function getSoldLotsPdf(Request $request): \Symfony\Component\HttpFoundation\Response
     {
         $clientId = $request->query->get('client_id') ? (int)$request->query->get('client_id') : null;
         $startDateStr = $request->query->get('start_date');
