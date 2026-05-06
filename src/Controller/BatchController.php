@@ -188,6 +188,7 @@ final class BatchController extends AbstractController
         }
 
         $compositions = $batch->getBatchCompositions();
+        $selections = $batch->getBatchSelections();
         $thicknesses = [];
 
         foreach ($compositions as $composition) {
@@ -204,7 +205,19 @@ final class BatchController extends AbstractController
             }
         }
 
-        $results = array_values($thicknesses);
+        foreach ($selections as $selection) {
+            $thickness = $selection->getThickness();
+            if ($thickness) {
+                $thicknessId = $thickness->getId();
+                if (isset($thicknesses[$thicknessId])) {
+                    $thicknesses[$thicknessId]['total_pieces'] -= $selection->getPieces();
+                }
+            }
+        }
+
+        $results = array_values(array_filter($thicknesses, function($item) {
+            return $item['total_pieces'] > 0;
+        }));
 
         $serializedResults = $this->groupSerializer->serializeGroup($results, 'leather_thickness_detail');
 
