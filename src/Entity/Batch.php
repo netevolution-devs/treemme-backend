@@ -83,7 +83,7 @@ class Batch
     private ?float $sq_ft_average_expected = null;
 
     #[ORM\Column]
-    #[Groups(['batch_list', 'batch_detail'])]
+    #[Groups(['batch_list', 'batch_detail', 'client_summary_print'])]
     private ?float $sq_ft_average_found = null;
 
     #[ORM\Column(nullable: true)]
@@ -157,7 +157,7 @@ class Batch
     private Collection $productions;
 
     #[ORM\ManyToOne(inversedBy: 'batches')]
-    #[Groups(['batch_list', 'batch_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_summary_print'])]
     private ?Article $article = null;
 
     /**

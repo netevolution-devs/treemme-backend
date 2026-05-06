@@ -225,7 +225,7 @@ final class BatchController extends AbstractController
     }
 
     #[Route('/batch/{id}/pdf',
-        name: 'get_batch_pdf',
+        name: 'get_batch_lot_pdf',
         requirements: ['id' => '\d+'],
         methods: ['GET'])]
     public function generateBatchPdf(int $id): Response

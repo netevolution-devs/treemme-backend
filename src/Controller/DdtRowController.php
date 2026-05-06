@@ -17,6 +17,7 @@ use App\Entity\WarehouseMovementReasonType;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
+use App\Service\PdfGeneratorService;
 use App\Service\ValidatorOutputFormatter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -32,19 +33,22 @@ final class DdtRowController extends AbstractController
     private $doResponse;
     private $groupSerializer;
     private $validatorOutputFormatter;
+    private $pdfGenerator;
 
     public function __construct(
         CreateMethodsByInput     $createMethodsByInput,
         EntityManagerInterface   $entityManager,
         DoResponseService        $doResponseService,
         GroupSerializerService   $groupSerializer,
-        ValidatorOutputFormatter $validatorOutputFormatter
+        ValidatorOutputFormatter $validatorOutputFormatter,
+        PdfGeneratorService      $pdfGenerator
     ) {
         $this->createMethodsByInput = $createMethodsByInput;
         $this->doctrine = $entityManager;
         $this->doResponse = $doResponseService;
         $this->groupSerializer = $groupSerializer;
         $this->validatorOutputFormatter = $validatorOutputFormatter;
+        $this->pdfGenerator = $pdfGenerator;
     }
 
     #[Route('/ddt-row/{id}',
@@ -177,6 +181,78 @@ final class DdtRowController extends AbstractController
         }
 
         return new JsonResponse($this->doResponse->doResponse($ddtRowsSelected));
+    }
+
+    #[Route('/ddt-row/sold',
+        name: 'get_sold_lots',
+        methods: ['GET'])]
+    public function getSoldLots(Request $request): JsonResponse
+    {
+        $clientId = $request->query->get('client_id') ? (int)$request->query->get('client_id') : null;
+        $startDateStr = $request->query->get('start_date');
+        $endDateStr = $request->query->get('end_date');
+
+        $startDate = $startDateStr ? \DateTime::createFromFormat('Y-m-d', $startDateStr) : null;
+        if ($startDate) $startDate->setTime(0, 0, 0);
+
+        $endDate = $endDateStr ? \DateTime::createFromFormat('Y-m-d', $endDateStr) : null;
+        if ($endDate) $endDate->setTime(0, 0, 0);
+
+        $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
+        $soldLots = $ddtRowRepository->findSoldLots($clientId, $startDate, $endDate);
+
+        $results = $this->groupSerializer->serializeGroup($soldLots, 'ddt_row_list');
+
+        return new JsonResponse($this->doResponse->doResponse($results));
+    }
+
+    #[Route('/ddt-row/sold/print',
+        name: 'get_sold_lots_print',
+        methods: ['GET'])]
+    public function getSoldLotsPrint(Request $request): \Symfony\Component\HttpFoundation\Response
+    {
+        $clientId = $request->query->get('client_id') ? (int)$request->query->get('client_id') : null;
+        $startDateStr = $request->query->get('start_date');
+        $endDateStr = $request->query->get('end_date');
+
+        $startDate = $startDateStr ? \DateTime::createFromFormat('Y-m-d', $startDateStr) : null;
+        if ($startDate) $startDate->setTime(0, 0, 0);
+
+        $endDate = $endDateStr ? \DateTime::createFromFormat('Y-m-d', $endDateStr) : null;
+        if ($endDate) $endDate->setTime(0, 0, 0);
+
+        $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
+        $soldLots = $ddtRowRepository->findSoldLots($clientId, $startDate, $endDate);
+
+        $groupedData = [];
+        foreach ($soldLots as $row) {
+            $client = $row->getDdt()->getClient();
+            if (!$client) continue;
+
+            $cId = $client->getId();
+            if (!isset($groupedData[$cId])) {
+                $groupedData[$cId] = [
+                    'client' => $this->groupSerializer->serializeGroup($client, 'client_summary_print'),
+                    'rows' => []
+                ];
+            }
+            $groupedData[$cId]['rows'][] = $this->groupSerializer->serializeGroup($row, 'client_summary_print');
+        }
+
+        // Ordina i clienti per nome
+        usort($groupedData, fn($a, $b) => $a['client']['name'] <=> $b['client']['name']);
+
+        $pdfContent = $this->pdfGenerator->generatePdf('print/sold_lots_pdf.html.twig', [
+            'data' => $groupedData,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'orientation' => 'landscape'
+        ], 'lotti_venduti.pdf');
+
+        return new \Symfony\Component\HttpFoundation\Response($pdfContent, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="lotti_venduti.pdf"'
+        ]);
     }
 
     #[Route('/ddt-row',

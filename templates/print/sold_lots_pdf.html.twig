@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Stampa Lotti Venduti</title>
+    <style>
+        @page { size: A4 landscape; margin: 0.5cm; }
+        body { font-family: Arial, sans-serif; font-size: 8pt; color: #000; margin: 0; }
+        .page { page-break-after: always; padding: 0; }
+        .page:last-child { page-break-after: avoid; }
+        h1 { font-size: 12pt; margin-bottom: 10px; text-align: center; border-bottom: 1px solid #000; padding-bottom: 5px; text-transform: uppercase; }
+        
+        .client-info-table { width: 100%; margin-bottom: 10px; border: none; }
+        .client-info-table td { padding: 4px; vertical-align: top; }
+        .label { font-weight: bold; font-size: 7pt; color: #555; text-transform: uppercase; display: block; }
+        
+        .rows-table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+        .rows-table th { border-bottom: 1px solid #000; padding: 4px; text-align: left; font-size: 8pt; text-transform: uppercase; }
+        .rows-table td { padding: 4px; vertical-align: middle; font-size: 8pt; border: none; }
+        
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .font-bold { font-weight: bold; }
+        .border-bottom { border-bottom: 1px solid #000; }
+        
+        .footer { position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 7pt; color: #777; }
+    </style>
+</head>
+<body>
+    <div class="page-content">
+        <span style="float: right; font-size: 8pt;">{{ "now"|date('d/m/Y') }}</span>
+        
+        VENDITE {% if start_date or end_date %}
+            Dal: {{ start_date ? start_date|date('d/m/Y') : '-' }} Al: {{ end_date ? end_date|date('d/m/Y') : '-' }}
+        {% else %}
+            Tutto il periodo
+        {% endif %}
+
+        {% set grandTotalPieces = 0 %}
+        {% set grandTotalHalf = 0 %}
+        {% set grandTotalMQ = 0 %}
+        {% set grandTotalPQ = 0 %}
+
+        {% for clientGroup in data %}
+        <table class="rows-table" style="margin-top: 20px;">
+            <thead>
+                <tr>
+                    <th colspan="7" style="font-size: 10pt; border-bottom: 2px solid #000; padding-top: 10px;">{{ clientGroup.client.name }}</th>
+                </tr>
+                <tr>
+                    <th style="width: 40%;">LOTTO / ARTICOLO</th>
+                    <th class="text-right">PZ</th>
+                    <th class="text-right">MZ</th>
+                    <th class="text-right">MQ</th>
+                    <th class="text-right">PQ</th>
+                    <th class="text-right">Media PQ</th>
+                    <th class="text-right">Media PQ Trov.</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set totalPieces = 0 %}
+                {% set totalHalf = 0 %}
+                {% set totalMQ = 0 %}
+                {% set totalPQ = 0 %}
+                
+                {% for row in clientGroup.rows %}
+                    {% set mq = 0 %}
+                    {% set pq = 0 %}
+                    {% if row.measurement_unit.prefix == 'MQ' %}
+                        {% set mq = row.quantity %}
+                        {% set pq = row.quantity * 10.764 %}
+                    {% elseif row.measurement_unit.prefix == 'PQ' or row.measurement_unit.prefix == 'SQFT' %}
+                        {% set pq = row.quantity %}
+                        {% set mq = row.quantity / 10.764 %}
+                    {% endif %}
+                    
+                    {% set mediaPQ = 0 %}
+                    {% if row.pieces > 0 %}
+                        {% set mediaPQ = pq / row.pieces %}
+                    {% endif %}
+                    
+                    <tr>
+                        <td>
+                            {{ row.batch.batch_code }} - {{ row.batch.article.client_code|default('-') }}
+                        </td>
+                        <td class="text-right">{{ row.pieces }}</td>
+                        <td class="text-right">{{ row.half_piece|default(0) }}</td>
+                        <td class="text-right">{{ mq|number_format(2, ',', '.') }}</td>
+                        <td class="text-right">{{ pq|number_format(2, ',', '.') }}</td>
+                        <td class="text-right">{{ mediaPQ|number_format(2, ',', '.') }}</td>
+                        <td class="text-right">{{ row.batch.sq_ft_average_found|number_format(2, ',', '.') }}</td>
+                    </tr>
+                    {% set totalPieces = totalPieces + row.pieces %}
+                    {% set totalHalf = totalHalf + (row.half_piece|default(0)) %}
+                    {% set totalMQ = totalMQ + mq %}
+                    {% set totalPQ = totalPQ + pq %}
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td class="text-right font-bold" style="border-top: 1px solid #000;">TOTALE CLIENTE:</td>
+                    <td class="text-right font-bold" style="border-top: 1px solid #000;">{{ totalPieces }}</td>
+                    <td class="text-right font-bold" style="border-top: 1px solid #000;">{{ totalHalf }}</td>
+                    <td class="text-right font-bold" style="border-top: 1px solid #000;">{{ totalMQ|number_format(2, ',', '.') }}</td>
+                    <td class="text-right font-bold" style="border-top: 1px solid #000;">{{ totalPQ|number_format(2, ',', '.') }}</td>
+                    <td style="border-top: 1px solid #000;"></td>
+                    <td style="border-top: 1px solid #000;"></td>
+                </tr>
+            </tfoot>
+        </table>
+        
+        {% set grandTotalPieces = grandTotalPieces + totalPieces %}
+        {% set grandTotalHalf = grandTotalHalf + totalHalf %}
+        {% set grandTotalMQ = grandTotalMQ + totalMQ %}
+        {% set grandTotalPQ = grandTotalPQ + totalPQ %}
+        {% endfor %}
+
+        <div style="margin-top: 30px; border-top: 2px solid #000; padding-top: 10px;">
+            <table class="rows-table">
+                <tfoot>
+                    <tr>
+                        <td class="text-right font-bold" style="font-size: 11pt; width: 40%;">TOTALE GENERALE:</td>
+                        <td class="text-right font-bold" style="font-size: 11pt;">{{ grandTotalPieces }}</td>
+                        <td class="text-right font-bold" style="font-size: 11pt;">{{ grandTotalHalf }}</td>
+                        <td class="text-right font-bold" style="font-size: 11pt;">{{ grandTotalMQ|number_format(2, ',', '.') }}</td>
+                        <td class="text-right font-bold" style="font-size: 11pt;">{{ grandTotalPQ|number_format(2, ',', '.') }}</td>
+                        <td style="width: 20%;"></td>
+                        <td style="width: 10%;"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    
+    <div class="footer">
+        Documento generato il {{ "now"|date('d/m/Y H:i') }}
+    </div>
+</body>
+</html>
