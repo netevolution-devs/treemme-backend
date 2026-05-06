@@ -10,6 +10,7 @@ use App\Entity\Batch;
 use App\Entity\MeasurementUnit;
 use App\Entity\Currency;
 use App\Entity\Processing;
+use App\Entity\DdtRowProcessing;
 use App\Entity\Selection;
 use App\Entity\MeasurementUnitCoefficient;
 use App\Entity\WarehouseMovement;
@@ -704,13 +705,25 @@ final class DdtRowController extends AbstractController
         $newDdtRow->setCurrencyExchange($ddtRow->getCurrencyExchange());
         $newDdtRow->setSelection($ddtRow->getSelection());
 
-        if (isset($data['processing_id'])) {
-            $processing = $this->doctrine->getRepository(Processing::class)->find($data['processing_id']);
-            if ($processing) {
-                $newDdtRow->setProcessing($processing);
+        if (isset($data['processing_ids']) && is_array($data['processing_ids'])) {
+            foreach ($data['processing_ids'] as $pId) {
+                $processing = $this->doctrine->getRepository(Processing::class)->find($pId);
+                if ($processing) {
+                    $ddtRowProcessing = new DdtRowProcessing();
+                    $ddtRowProcessing->setDdtRow($newDdtRow);
+                    $ddtRowProcessing->setProcessing($processing);
+                    $this->doctrine->persist($ddtRowProcessing);
+                    $newDdtRow->addDdtRowProcessing($ddtRowProcessing);
+                }
             }
         } else {
-            $newDdtRow->setProcessing($ddtRow->getProcessing());
+            foreach ($ddtRow->getDdtRowProcessings() as $oldDrp) {
+                $newDrp = new DdtRowProcessing();
+                $newDrp->setDdtRow($newDdtRow);
+                $newDrp->setProcessing($oldDrp->getProcessing());
+                $this->doctrine->persist($newDrp);
+                $newDdtRow->addDdtRowProcessing($newDrp);
+            }
         }
 
         $this->calculatePrices($newDdtRow);
@@ -789,10 +802,39 @@ final class DdtRowController extends AbstractController
             }
             unset($data['selection_id']);
         }
+        if (isset($data['processing_ids']) && is_array($data['processing_ids'])) {
+            foreach ($ddtRow->getDdtRowProcessings() as $oldDrp) {
+                $this->doctrine->remove($oldDrp);
+            }
+            $ddtRow->getDdtRowProcessings()->clear();
+
+            foreach ($data['processing_ids'] as $pId) {
+                $processing = $this->doctrine->getRepository(Processing::class)->find($pId);
+                if ($processing) {
+                    $ddtRowProcessing = new DdtRowProcessing();
+                    $ddtRowProcessing->setDdtRow($ddtRow);
+                    $ddtRowProcessing->setProcessing($processing);
+                    $this->doctrine->persist($ddtRowProcessing);
+                    $ddtRow->addDdtRowProcessing($ddtRowProcessing);
+                }
+            }
+            unset($data['processing_ids']);
+        }
+        // Supporto retrocompatibilità se viene inviato un singolo processing_id
         if (isset($data['processing_id'])) {
+            // Rimuovo le vecchie lavorazioni
+            foreach ($ddtRow->getDdtRowProcessings() as $oldDrp) {
+                $this->doctrine->remove($oldDrp);
+            }
+            $ddtRow->getDdtRowProcessings()->clear();
+
             $processing = $this->doctrine->getRepository(Processing::class)->find($data['processing_id']);
             if ($processing) {
-                $ddtRow->setProcessing($processing);
+                $ddtRowProcessing = new DdtRowProcessing();
+                $ddtRowProcessing->setDdtRow($ddtRow);
+                $ddtRowProcessing->setProcessing($processing);
+                $this->doctrine->persist($ddtRowProcessing);
+                $ddtRow->addDdtRowProcessing($ddtRowProcessing);
             }
             unset($data['processing_id']);
         }
