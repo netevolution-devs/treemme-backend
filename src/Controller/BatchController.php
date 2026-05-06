@@ -1046,7 +1046,7 @@ final class BatchController extends AbstractController
     {
         $data = $request->toArray();
 
-        if (!isset($data['pieces'], $data['type'])) {
+        if (!isset($data['pieces'], $data['sign'])) {
             return $this->doResponse->doErrorJsonResponse('Dati mancanti: pieces e type sono obbligatori', 400);
         }
 
@@ -1056,7 +1056,7 @@ final class BatchController extends AbstractController
             return $this->doResponse->doErrorJsonResponse('Il numero di pezzi deve essere maggiore di zero', 400);
         }
 
-        if (!in_array($data['type'], ['+', '-'], true)) {
+        if (!in_array($data['sign'], ['+', '-'], true)) {
             return $this->doResponse->doErrorJsonResponse('Tipo compensazione non valido', 400);
         }
 
@@ -1066,8 +1066,8 @@ final class BatchController extends AbstractController
             return $this->doResponse->doErrorJsonResponse('Batch not found', 404);
         }
 
-        $sign = $data['type'] === '+' ? 1 : -1;
-        $reasonName = $data['type'] === '+'
+        $sign = $data['sign'] === '+' ? 1 : -1;
+        $reasonName = $data['sign'] === '+'
             ? 'Compensazione Positiva'
             : 'Compensazione Negativa';
 
