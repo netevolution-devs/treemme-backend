@@ -764,8 +764,8 @@ final class BatchController extends AbstractController
         $sfComp->setFatherBatchPiece((int)$pieces);
         $sfComp->setFatherBatchQuantity($calculatedQuantity);
         $sfComp->setCompositionNote('Spaccatura lotto ' . $batchCode);
-        if (isset($data['leather_thickness_id'])) {
-            $thickness = $this->doctrine->getRepository(LeatherThickness::class)->find($data['leather_thickness_id']);
+        if (isset($data['thickness_id'])) {
+            $thickness = $this->doctrine->getRepository(LeatherThickness::class)->find($data['thickness_id']);
             if ($thickness) {
                 $sfComp->setThickness($thickness);
             }
@@ -784,11 +784,11 @@ final class BatchController extends AbstractController
         $scComp->setFatherBatchPiece((int)$pieces);
         $scComp->setFatherBatchQuantity($calculatedQuantity);
         $scComp->setCompositionNote('Spaccatura lotto ' . $batchCode);
-        if (isset($data['leather_thickness_id'])) {
+        if (isset($data['thickness_id'])) {
             if (isset($thickness)) {
                 $scComp->setThickness($thickness);
             } else {
-                $thickness = $this->doctrine->getRepository(LeatherThickness::class)->find($data['leather_thickness_id']);
+                $thickness = $this->doctrine->getRepository(LeatherThickness::class)->find($data['thickness_id']);
                 if ($thickness) {
                     $scComp->setThickness($thickness);
                 }
@@ -1027,71 +1027,87 @@ final class BatchController extends AbstractController
         name: 'put_batch_compensation',
         methods: ['PUT'])]
     public function modifyBatchCompensation(
-        Request            $request,
-        ValidatorInterface $validator,
-        int                $id,
+        Request $request,
+        int $id,
     ): JsonResponse
     {
         $data = $request->toArray();
 
-        $batch = $this->doctrine->getRepository(Batch::class)->find($id);
-
-        if (isset($data['pieces']) && isset($data['type'])) {
-
-            if($data['type'] === '+') {
-                $batch->setStockItems($batch->getStockItems() + $data['pieces']);
-                $batch->setStockQuantity($batch->getStockQuantity() + ($data['pieces'] * $batch->getSqFtAverageExpected()));
-
-                $adjReason = $this->doctrine->getRepository(WarehouseMovementReason::class)->createQueryBuilder('r')
-                    ->join('r.reason_type', 't')
-                    ->where('r.name = :name')
-                    ->setParameter('name', 'Compensazione Positiva')
-                    ->getQuery()
-                    ->getOneOrNullResult()
-                    ?? $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Compensazione Positiva']);
-
-                $movement = new WarehouseMovement();
-                $movement->setBatch($batch);
-                $movement->setReason($adjReason);
-                $movement->setQuantity( $data['pieces'] * $batch->getSqFtAverageExpected());
-                $movement->setPiece($data['pieces']);
-                $movement->setDate(new \DateTime());
-                $movement->setMovementNote('Compensazione lotto');
-
-            } elseif($data['type'] === '-') {
-                $batch->setStockItems($batch->getStockItems() - $data['pieces']);
-                $batch->setStockQuantity($batch->getStockQuantity() - ($data['pieces'] * $batch->getSqFtAverageExpected()));
-
-                $adjReason = $this->doctrine->getRepository(WarehouseMovementReason::class)->createQueryBuilder('r')
-                    ->join('r.reason_type', 't')
-                    ->where('t.name = :type')
-                    ->setParameter('type', 'Compensazione Negativa')
-                    ->getQuery()
-                    ->getOneOrNullResult()
-                    ?? $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Compensazione Negativa']);
-
-                $movement = new WarehouseMovement();
-                $movement->setBatch($batch);
-                $movement->setReason($adjReason);
-                $movement->setQuantity( $data['pieces'] * $batch->getSqFtAverageExpected());
-                $movement->setPiece($data['pieces']);
-                $movement->setDate(new \DateTime());
-                $movement->setMovementNote('Compensazione lotto');
-
-            }
-
-            $this->doctrine->persist($batch);
-            $this->doctrine->persist($movement);
-            $this->doctrine->flush();
-
-            $result = $this->groupSerializer->serializeGroup($batch, 'batch_detail');
-
-            return new JsonResponse($this->doResponse->doResponse($result));
+        if (!isset($data['pieces'], $data['type'])) {
+            return $this->doResponse->doErrorJsonResponse('Dati mancanti: pieces e type sono obbligatori', 400);
         }
 
+        $pieces = (int) $data['pieces'];
 
+        if ($pieces <= 0) {
+            return $this->doResponse->doErrorJsonResponse('Il numero di pezzi deve essere maggiore di zero', 400);
+        }
 
-        return new JsonResponse($this->doResponse->doResponse('Compensation modification successful'));
+        if (!in_array($data['type'], ['+', '-'], true)) {
+            return $this->doResponse->doErrorJsonResponse('Tipo compensazione non valido', 400);
+        }
+
+        $batch = $this->doctrine->getRepository(Batch::class)->find($id);
+
+        if (!$batch) {
+            return $this->doResponse->doErrorJsonResponse('Batch not found', 404);
+        }
+
+        $sign = $data['type'] === '+' ? 1 : -1;
+        $reasonName = $data['type'] === '+'
+            ? 'Compensazione Positiva'
+            : 'Compensazione Negativa';
+
+        $sqFtAverageExpected = $batch->getSqFtAverageExpected() ?? 1;
+        $quantity = $pieces * $sqFtAverageExpected;
+
+        if (isset($data['batch_selection_id'])) {
+            $batchSelection = $this->doctrine
+                ->getRepository(BatchSelection::class)
+                ->find($data['batch_selection_id']);
+
+            if (!$batchSelection) {
+                return $this->doResponse->doErrorJsonResponse('Selezione batch non trovata', 404);
+            }
+
+            $batchSelection->setStockPieces($batchSelection->getStockPieces() + ($pieces * $sign));
+            $batchSelection->setStockQuantity($batchSelection->getStockQuantity() + ($quantity * $sign));
+
+            $this->doctrine->persist($batchSelection);
+        }
+
+        $batch->setStockItems($batch->getStockItems() + ($pieces * $sign));
+        $batch->setStockQuantity($batch->getStockQuantity() + ($quantity * $sign));
+
+        $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
+
+        $adjReason = $reasonRepo->createQueryBuilder('r')
+            ->join('r.reason_type', 't')
+            ->where('r.name = :name')
+            ->setParameter('name', $reasonName)
+            ->getQuery()
+            ->getOneOrNullResult()
+            ?? $reasonRepo->findOneBy(['name' => $reasonName]);
+
+        if (!$adjReason) {
+            return $this->doResponse->doErrorJsonResponse('Causale "' . $reasonName . '" non trovata', 400);
+        }
+
+        $movement = new WarehouseMovement();
+        $movement->setBatch($batch);
+        $movement->setReason($adjReason);
+        $movement->setQuantity($quantity * $sign);
+        $movement->setPiece($pieces * $sign);
+        $movement->setDate(new \DateTime());
+        $movement->setMovementNote('Compensazione lotto');
+
+        $this->doctrine->persist($batch);
+        $this->doctrine->persist($movement);
+        $this->doctrine->flush();
+
+        $result = $this->groupSerializer->serializeGroup($batch, 'batch_detail');
+
+        return new JsonResponse($this->doResponse->doResponse($result));
     }
 
     #[Route('/batch/{id}',
