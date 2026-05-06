@@ -18,7 +18,7 @@ class Ddt
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['ddt_list', 'ddt_detail', 'client_summary_print', 'client_order_row_list'])]
+    #[Groups(['ddt_list', 'ddt_detail', 'ddt_row_list', 'client_summary_print', 'client_order_row_list'])]
     private ?string $ddt_number = null;
 
     #[ORM\Column]
@@ -30,7 +30,7 @@ class Ddt
     private ?\DateTime $ddt_start_date = null;
 
     #[ORM\ManyToOne(inversedBy: 'ddts')]
-    #[Groups(['ddt_list', 'ddt_detail'])]
+    #[Groups(['ddt_list', 'ddt_detail', 'ddt_row_list'])]
     private ?Contact $subcontractor = null;
 
     /**
