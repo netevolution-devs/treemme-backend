@@ -509,10 +509,12 @@ final class DdtRowController extends AbstractController
         $quantity = (float)($data['quantity'] ?? $ddtRow->getQuantity());
         $pieces = (int)($data['pieces'] ?? $ddtRow->getPieces());
 
+        $ddt = $ddtRow->getDdt();
+
         // 1. GESTIONE RIENTRO (MOVIMENTO INGRESSO)
-        $reasonReturn = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Rientro da Lavorazione']);
+        $reasonReturn = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Reso ' . $ddt->getReason()->getName()]);
         if (!$reasonReturn) {
-            $reasonTypeIn = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => 'In']);
+            $reasonTypeIn = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => 'Carico']);
             if ($reasonTypeIn) {
                 $reasonReturn = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['reason_type' => $reasonTypeIn]);
             }
