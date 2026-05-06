@@ -147,6 +147,7 @@ class Batch
      * @var Collection<int, BatchOrder>
      */
     #[ORM\OneToMany(mappedBy: 'batch', targetEntity: BatchOrder::class)]
+    #[Groups(['ddt_row_list_sold'])]
     private Collection $batchOrders;
 
     /**

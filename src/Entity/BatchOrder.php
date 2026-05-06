@@ -21,6 +21,7 @@ class BatchOrder
 
     #[ORM\ManyToOne(inversedBy: 'batchOrders')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['ddt_row_list_sold'])]
     private ?ClientOrderRow $order_row = null;
 
     public function getId(): ?int
