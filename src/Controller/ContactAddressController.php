@@ -127,9 +127,7 @@ final class ContactAddressController extends AbstractController
                     $this->doctrine->persist($addr);
                 }
 
-
                 $address->setDefaultAddress(true);
-
             }
 
             $address = $this->handleRelations($address, $data);
