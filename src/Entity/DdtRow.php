@@ -16,7 +16,7 @@ class DdtRow
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_summary_print', 'client_order_row_list'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_summary_print', 'client_order_row_list', 'external_processing_print'])]
     private ?int $id = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
@@ -25,11 +25,11 @@ class DdtRow
 
     #[ORM\ManyToOne(inversedBy: 'ddtRows')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_summary_print'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_summary_print', 'external_processing_print'])]
     private ?Batch $batch = null;
 
     #[ORM\Column]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_order_row_list', 'client_summary_print'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_order_row_list', 'client_summary_print', 'external_processing_print'])]
     private ?float $pieces = null;
 
     #[ORM\ManyToOne(inversedBy: 'ddtRows')]
@@ -54,7 +54,7 @@ class DdtRow
 
     #[ORM\ManyToOne(inversedBy: 'ddtRows')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_summary_print', 'client_order_row_list'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_summary_print', 'client_order_row_list', 'external_processing_print'])]
     private ?Ddt $ddt = null;
 
     #[ORM\Column(nullable: true)]
@@ -102,7 +102,7 @@ class DdtRow
      * @var Collection<int, DdtRowProcessing>
      */
     #[ORM\OneToMany(mappedBy: 'ddt_row', targetEntity: DdtRowProcessing::class, orphanRemoval: true)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'external_processing_print'])]
     private Collection $ddtRowProcessings;
 
     public function __construct()

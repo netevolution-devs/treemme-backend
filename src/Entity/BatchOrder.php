@@ -15,13 +15,13 @@ class BatchOrder
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'batchOrders')]
-    #[Groups(['client_order_row_list', 'client_summary_print'])]
+    #[Groups(['client_order_row_list', 'client_summary_print', 'external_processing_print'])]
     #[ORM\JoinColumn(nullable: false)]
     private ?Batch $batch = null;
 
     #[ORM\ManyToOne(inversedBy: 'batchOrders')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['ddt_row_list_sold'])]
+    #[Groups(['ddt_row_list_sold', 'external_processing_print'])]
     private ?ClientOrderRow $order_row = null;
 
     public function getId(): ?int

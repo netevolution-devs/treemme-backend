@@ -14,11 +14,11 @@ class Processing
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['processing_list', 'processing_detail', 'material_bill_detail', 'recipe_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['processing_list', 'processing_detail', 'material_bill_detail', 'recipe_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'external_processing_print'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['processing_list', 'processing_detail', 'material_bill_detail', 'recipe_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['processing_list', 'processing_detail', 'material_bill_detail', 'recipe_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'external_processing_print'])]
     private ?string $name = null;
 
     #[ORM\Column]
