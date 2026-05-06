@@ -19,7 +19,7 @@ class DdtRowProcessing
     private ?DdtRow $ddt_row = null;
 
     #[ORM\ManyToOne(inversedBy: 'ProcessingDdtRows')]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'external_processing_print'])]
     private ?Processing $processing = null;
 
 

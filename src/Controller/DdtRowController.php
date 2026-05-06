@@ -271,6 +271,78 @@ final class DdtRowController extends AbstractController
         ]);
     }
 
+    #[Route('/ddt-row/external-processing',
+        name: 'get_external_processing_lots',
+        methods: ['GET'])]
+    public function getExternalProcessingLots(Request $request): JsonResponse
+    {
+        $subcontractorId = $request->query->get('subcontractor_id') ? (int)$request->query->get('subcontractor_id') : null;
+        $startDateStr = $request->query->get('start_date');
+        $endDateStr = $request->query->get('end_date');
+
+        $startDate = $startDateStr ? \DateTime::createFromFormat('Y-m-d', $startDateStr) : null;
+        if ($startDate) $startDate->setTime(0, 0, 0);
+
+        $endDate = $endDateStr ? \DateTime::createFromFormat('Y-m-d', $endDateStr) : null;
+        if ($endDate) $endDate->setTime(0, 0, 0);
+
+        $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
+        $lots = $ddtRowRepository->findExternalProcessingLots($subcontractorId, $startDate, $endDate);
+
+        $results = $this->groupSerializer->serializeGroup($lots, ['client_summary_print', 'external_processing_print']);
+
+        return new JsonResponse($this->doResponse->doResponse($results));
+    }
+
+    #[Route('/ddt-row/external-processing/pdf',
+        name: 'get_external_processing_lots_pdf',
+        methods: ['GET'])]
+    public function getExternalProcessingLotsPdf(Request $request): \Symfony\Component\HttpFoundation\Response
+    {
+        $subcontractorId = $request->query->get('subcontractor_id') ? (int)$request->query->get('subcontractor_id') : null;
+        $startDateStr = $request->query->get('start_date');
+        $endDateStr = $request->query->get('end_date');
+
+        $startDate = $startDateStr ? \DateTime::createFromFormat('Y-m-d', $startDateStr) : null;
+        if ($startDate) $startDate->setTime(0, 0, 0);
+
+        $endDate = $endDateStr ? \DateTime::createFromFormat('Y-m-d', $endDateStr) : null;
+        if ($endDate) $endDate->setTime(0, 0, 0);
+
+        $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
+        $lots = $ddtRowRepository->findExternalProcessingLots($subcontractorId, $startDate, $endDate);
+
+        $groupedData = [];
+        foreach ($lots as $row) {
+            $subcontractor = $row->getDdt()->getSubcontractor();
+            if (!$subcontractor) continue;
+
+            $sId = $subcontractor->getId();
+            if (!isset($groupedData[$sId])) {
+                $groupedData[$sId] = [
+                    'subcontractor' => $this->groupSerializer->serializeGroup($subcontractor, 'client_summary_print'),
+                    'rows' => []
+                ];
+            }
+            $groupedData[$sId]['rows'][] = $this->groupSerializer->serializeGroup($row, ['client_summary_print', 'external_processing_print']);
+        }
+
+        // Ordina i terzisti per nome
+        usort($groupedData, fn($a, $b) => $a['subcontractor']['name'] <=> $b['subcontractor']['name']);
+
+        $pdfContent = $this->pdfGenerator->generatePdf('print/external_processing_lots_pdf.html.twig', [
+            'data' => $groupedData,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'orientation' => 'landscape'
+        ], 'lotti_lavorazione_esterna.pdf');
+
+        return new \Symfony\Component\HttpFoundation\Response($pdfContent, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="lotti_lavorazione_esterna.pdf"'
+        ]);
+    }
+
     #[Route('/ddt-row',
         name: 'post_ddt_row',
         methods: ['POST'])]
@@ -774,6 +846,7 @@ final class DdtRowController extends AbstractController
             }
             unset($data['ddt_id']);
         }
+
         if (isset($data['batch_id'])) {
             $batch = $this->doctrine->getRepository(Batch::class)->find($data['batch_id']);
             if ($batch) {
@@ -781,6 +854,7 @@ final class DdtRowController extends AbstractController
             }
             unset($data['batch_id']);
         }
+
         if (isset($data['measurement_unit_id'])) {
             $mu = $this->doctrine->getRepository(MeasurementUnit::class)->find($data['measurement_unit_id']);
             if ($mu) {
@@ -788,6 +862,7 @@ final class DdtRowController extends AbstractController
             }
             unset($data['measurement_unit_id']);
         }
+
         if (isset($data['currency_id'])) {
             $currency = $this->doctrine->getRepository(Currency::class)->find($data['currency_id']);
             if ($currency) {
@@ -795,6 +870,7 @@ final class DdtRowController extends AbstractController
             }
             unset($data['currency_id']);
         }
+
         if (isset($data['selection_id'])) {
             $selection = $this->doctrine->getRepository(Selection::class)->find($data['selection_id']);
             if ($selection) {
@@ -802,14 +878,47 @@ final class DdtRowController extends AbstractController
             }
             unset($data['selection_id']);
         }
-        if (isset($data['processing_ids']) && is_array($data['processing_ids'])) {
+
+        if (array_key_exists('processing_ids', $data)) {
             foreach ($ddtRow->getDdtRowProcessings() as $oldDrp) {
                 $this->doctrine->remove($oldDrp);
             }
             $ddtRow->getDdtRowProcessings()->clear();
 
-            foreach ($data['processing_ids'] as $pId) {
-                $processing = $this->doctrine->getRepository(Processing::class)->find($pId);
+            $processingIds = $data['processing_ids'];
+
+            if (is_string($processingIds)) {
+                $processingIds = array_filter(
+                    array_map('trim', explode(',', $processingIds)),
+                    static fn (string $value): bool => $value !== ''
+                );
+            }
+
+            if (is_array($processingIds)) {
+                foreach ($processingIds as $pId) {
+                    $processing = $this->doctrine->getRepository(Processing::class)->find((int) $pId);
+                    if ($processing) {
+                        $ddtRowProcessing = new DdtRowProcessing();
+                        $ddtRowProcessing->setDdtRow($ddtRow);
+                        $ddtRowProcessing->setProcessing($processing);
+                        $this->doctrine->persist($ddtRowProcessing);
+                        $ddtRow->addDdtRowProcessing($ddtRowProcessing);
+                    }
+                }
+            }
+
+            unset($data['processing_ids']);
+        }
+
+        // Supporto retrocompatibilità se viene inviato un singolo processing_id
+        if (array_key_exists('processing_id', $data)) {
+            foreach ($ddtRow->getDdtRowProcessings() as $oldDrp) {
+                $this->doctrine->remove($oldDrp);
+            }
+            $ddtRow->getDdtRowProcessings()->clear();
+
+            if ($data['processing_id'] !== null && $data['processing_id'] !== '') {
+                $processing = $this->doctrine->getRepository(Processing::class)->find((int) $data['processing_id']);
                 if ($processing) {
                     $ddtRowProcessing = new DdtRowProcessing();
                     $ddtRowProcessing->setDdtRow($ddtRow);
@@ -818,24 +927,7 @@ final class DdtRowController extends AbstractController
                     $ddtRow->addDdtRowProcessing($ddtRowProcessing);
                 }
             }
-            unset($data['processing_ids']);
-        }
-        // Supporto retrocompatibilità se viene inviato un singolo processing_id
-        if (isset($data['processing_id'])) {
-            // Rimuovo le vecchie lavorazioni
-            foreach ($ddtRow->getDdtRowProcessings() as $oldDrp) {
-                $this->doctrine->remove($oldDrp);
-            }
-            $ddtRow->getDdtRowProcessings()->clear();
 
-            $processing = $this->doctrine->getRepository(Processing::class)->find($data['processing_id']);
-            if ($processing) {
-                $ddtRowProcessing = new DdtRowProcessing();
-                $ddtRowProcessing->setDdtRow($ddtRow);
-                $ddtRowProcessing->setProcessing($processing);
-                $this->doctrine->persist($ddtRowProcessing);
-                $ddtRow->addDdtRowProcessing($ddtRowProcessing);
-            }
             unset($data['processing_id']);
         }
     }

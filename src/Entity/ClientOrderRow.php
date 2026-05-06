@@ -16,12 +16,12 @@ class ClientOrderRow
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print', 'ddt_row_list_sold'])]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print', 'ddt_row_list_sold', 'external_processing_print'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_summary_print', 'ddt_row_list_sold'])]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_summary_print', 'ddt_row_list_sold', 'external_processing_print'])]
     private ?ClientOrder $client_order = null;
 
     #[ORM\Column]
