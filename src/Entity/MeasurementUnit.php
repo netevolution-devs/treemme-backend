@@ -16,19 +16,21 @@ class MeasurementUnit
     #[ORM\Column]
     #[Groups(['measurement_unit_list', 'measurement_unit_detail', 'batch_list', 'batch_detail',
         'product_list', 'product_detail', 'client_order_row_detail', 'client_order_detail',
-        'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'pallet_list', 'pallet_detail', 'batch_data_detail', 'client_summary_print', 'client_order_row_list'])]
+        'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'pallet_list', 'pallet_detail',
+        'batch_data_detail', 'client_summary_print', 'client_order_row_list', 'ddt_row_list_sold'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
     #[Groups(['measurement_unit_list', 'measurement_unit_detail', 'batch_list', 'batch_detail',
         'product_list', 'product_detail', 'client_order_row_detail', 'client_order_detail',
-        'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'pallet_list', 'pallet_detail', 'batch_data_detail', 'client_summary_print', 'client_order_row_list'])]
+        'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'pallet_list', 'pallet_detail',
+        'batch_data_detail', 'client_summary_print', 'client_order_row_list', 'ddt_row_list_sold'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 10, nullable: true)]
     #[Groups(['measurement_unit_list', 'measurement_unit_detail', 'batch_list', 'batch_detail',
         'product_list', 'product_detail', 'client_order_row_detail', 'client_order_detail',
-        'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'pallet_list', 'pallet_detail', 'batch_data_detail', 'client_summary_print', 'client_order_row_list'])]
+        'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'pallet_list', 'pallet_detail', 'batch_data_detail', 'client_summary_print', 'client_order_row_list', 'ddt_row_list_sold'])]
     private ?string $prefix = null;
 
     /**

@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\DdtRowRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\Serializer\Annotation\Groups;
@@ -88,10 +90,6 @@ class DdtRow
     #[Groups(['ddt_row_detail'])]
     private ?Selection $selection = null;
 
-    #[ORM\ManyToOne(inversedBy: 'ddtRows')]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
-    private ?Processing $processing = null;
-
     #[ORM\Column(nullable: true)]
     #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
     private ?float $pieces_out = null;
@@ -99,6 +97,18 @@ class DdtRow
     #[ORM\Column(nullable: true)]
     #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
     private ?float $quantity_out = null;
+
+    /**
+     * @var Collection<int, DdtRowProcessing>
+     */
+    #[ORM\OneToMany(mappedBy: 'ddt_row', targetEntity: DdtRowProcessing::class, orphanRemoval: true)]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    private Collection $ddtRowProcessings;
+
+    public function __construct()
+    {
+        $this->ddtRowProcessings = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -309,18 +319,6 @@ class DdtRow
         return $this;
     }
 
-    public function getProcessing(): ?Processing
-    {
-        return $this->processing;
-    }
-
-    public function setProcessing(?Processing $processing): static
-    {
-        $this->processing = $processing;
-
-        return $this;
-    }
-
     public function getPiecesOut(): ?float
     {
         return $this->pieces_out;
@@ -341,6 +339,36 @@ class DdtRow
     public function setQuantityOut(?float $quantity_out): static
     {
         $this->quantity_out = $quantity_out;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, DdtRowProcessing>
+     */
+    public function getDdtRowProcessings(): Collection
+    {
+        return $this->ddtRowProcessings;
+    }
+
+    public function addDdtRowProcessing(DdtRowProcessing $ddtRowProcessing): static
+    {
+        if (!$this->ddtRowProcessings->contains($ddtRowProcessing)) {
+            $this->ddtRowProcessings->add($ddtRowProcessing);
+            $ddtRowProcessing->setDdtRow($this);
+        }
+
+        return $this;
+    }
+
+    public function removeDdtRowProcessing(DdtRowProcessing $ddtRowProcessing): static
+    {
+        if ($this->ddtRowProcessings->removeElement($ddtRowProcessing)) {
+            // set the owning side to null (unless already changed)
+            if ($ddtRowProcessing->getDdtRow() === $this) {
+                $ddtRowProcessing->setDdtRow(null);
+            }
+        }
 
         return $this;
     }
