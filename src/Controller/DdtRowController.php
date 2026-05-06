@@ -108,14 +108,13 @@ final class DdtRowController extends AbstractController
             $lastMovement = end($movementsArray);
             $lastMovementReasonName = $lastMovement?->getReason()?->getName();
 
-            // Calcola il nome del movimento di "Reso" atteso
             $resoReasonName = "Reso " . $ddtReasonName;
             $rientroTrasferimentoReasonName = "Rientro da Lavorazione";
 
             // Restituisce il lotto solamente quando l'ultimo movimento ha il movementReason->Name == al ddtReason->Name
             // Oppure se è un "Reso {ddtReason->Name}" o un "Rientro da Lavorazione" (per trasferimento)
             if ($lastMovementReasonName !== $ddtReasonName && 
-                $lastMovementReasonName !== $resoReasonName && 
+                $lastMovementReasonName !== $resoReasonName &&
                 $lastMovementReasonName !== $rientroTrasferimentoReasonName
             ) {
                 continue;
@@ -132,8 +131,7 @@ final class DdtRowController extends AbstractController
                 // Identifica il primo movimento in uscita con la causale del DDT che corrisponde al numero DDT della riga
                 if ($firstMovementOut === null && 
                     $reasonName === $ddtReasonName && 
-                    $reasonTypeName === 'Scarico' &&
-                    $movement->getDdtNumber() === $ddt->getDdtNumber()
+                    $reasonTypeName === 'Scarico'
                 ) {
                     $firstMovementOut = $movement;
                     continue;
