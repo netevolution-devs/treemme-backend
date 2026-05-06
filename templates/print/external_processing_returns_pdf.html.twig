@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Stampa Lotti in Lavorazione Esterna</title>
+    <title>Stampa Rientri Lavorazione Esterna</title>
     <style>
         @page { size: A4 landscape; margin: 0.5cm; }
         body { font-family: Arial, sans-serif; font-size: 8pt; color: #000; margin: 0; }
@@ -25,7 +25,7 @@
 <body>
     <div class="page-content">
         
-        <h1 style="text-align: left;">LAVORAZIONE ESTERNA {% if start_date or end_date %}
+        <h1 style="text-align: left;">RIENTRI LAVORAZIONE ESTERNA {% if start_date or end_date %}
             Dal: {{ start_date ? start_date|date('d/m/Y') : '-' }} Al: {{ end_date ? end_date|date('d/m/Y') : '-' }}
         {% else %}
             Tutto il periodo
@@ -35,26 +35,29 @@
         <table class="rows-table" style="margin-top: 20px;">
             <thead>
                 <tr>
-                    <th colspan="7" style="font-size: 10pt; border-bottom: 2px solid #000; padding-top: 10px;">{{ subGroup.subcontractor.name }}</th>
+                    <th colspan="9" style="font-size: 10pt; border-bottom: 2px solid #000; padding-top: 10px;">{{ subGroup.subcontractor.name }}</th>
                 </tr>
                 <tr>
                     <th style="width: 80px;">DATA DDT</th>
-                    <th style="width: 80px;">NUM. DDT</th>
+                    <th style="width: 50px;">DDT</th>
                     <th style="width: 100px;">LOTTO</th>
                     <th style="width: 120px;">CLIENTE</th>
                     <th style="width: 150px;">ARTICOLO</th>
-                    <th class="text-right" style="width: 50px;">PELLI</th>
+                    <th class="text-right" style="width: 50px;">PEZZI</th>
+                    <th style="width: 80px;">DATA RIENTRO</th>
+                    <th class="text-right" style="width: 50px;">PEZZI</th>
                     <th>LAVORAZIONI</th>
                 </tr>
             </thead>
             <tbody>
                 {% set totalPieces = 0 %}
+                {% set totalReturnedSub = 0 %}
                 {% set batchCodes = [] %}
                 
                 {% for row in subGroup.rows %}
                     <tr>
                         <td>{{ row.ddt.ddt_date|date('d/m/Y') }}</td>
-                        <td>{{ row.ddt.ddt_number }}</td>
+                        <td style="text-align: center">{{ row.ddt.ddt_number }}</td>
                         <td>{{ row.batch.batch_code }}</td>
                         <td>
                             {% set clientNames = [] %}
@@ -69,6 +72,8 @@
                         </td>
                         <td>{{ row.batch.article.client_code ?? row.batch.leather.name ?? '' }}</td>
                         <td class="text-right">{{ row.pieces }}</td>
+                        <td class="text-center">{{ row.last_return_date ? row.last_return_date|date('d/m/Y') : '-' }}</td>
+                        <td class="text-right">{{ row.returned_pieces > 0 ? '-' ~ row.returned_pieces : '-' }}</td>
                         <td>
                             {% set processings = [] %}
                             {% for drp in row.ddt_row_processings %}
@@ -80,19 +85,12 @@
                         </td>
                     </tr>
                     {% set totalPieces = totalPieces + row.pieces %}
+                    {% set totalReturnedSub = totalReturnedSub + row.returned_pieces %}
                     {% if row.batch.batch_code not in batchCodes %}
                         {% set batchCodes = batchCodes|merge([row.batch.batch_code]) %}
                     {% endif %}
                 {% endfor %}
             </tbody>
-            <tfoot>
-                <tr>
-                    <td colspan="4" class="text-right font-bold" style="border-top: 1px solid #000;">TOTALE TERZISTA:</td>
-                    <td class="text-right font-bold" style="border-top: 1px solid #000;">LOTTI {{ batchCodes|length }}</td>
-                    <td class="text-right font-bold" style="border-top: 1px solid #000;">n. {{ totalPieces }} pelli totali</td>
-                    <td style="border-top: 1px solid #000;"></td>
-                </tr>
-            </tfoot>
         </table>
         {% endfor %}
 
