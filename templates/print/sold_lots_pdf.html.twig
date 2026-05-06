@@ -66,12 +66,41 @@
                 {% for row in clientGroup.rows %}
                     {% set mq = 0 %}
                     {% set pq = 0 %}
+                    
+                    {% set currentUmId = row.measurement_unit.id %}
+                    
+                    {# Calcolo MQ #}
                     {% if row.measurement_unit.prefix == 'MQ' %}
                         {% set mq = row.quantity %}
-                        {% set pq = row.quantity * 10.764 %}
-                    {% elseif row.measurement_unit.prefix == 'PQ' or row.measurement_unit.prefix == 'SQFT' %}
+                    {% else %}
+                        {# Cerco coefficiente da currentUmId a MQ #}
+                        {% set foundCoeff = false %}
+                        {% for c in coefficients %}
+                            {% if not foundCoeff and c.startUm.id == currentUmId and c.endUm.id == mq_um_id %}
+                                {% set mq = row.quantity * c.coefficient %}
+                                {% set foundCoeff = true %}
+                            {% endif %}
+                        {% endfor %}
+                        {% if not foundCoeff and row.measurement_unit.prefix == 'PQ' or row.measurement_unit.prefix == 'SQFT' %}
+                             {% set mq = row.quantity / 10.764 %}
+                        {% endif %}
+                    {% endif %}
+                    
+                    {# Calcolo PQ #}
+                    {% if row.measurement_unit.prefix == 'PQ' or row.measurement_unit.prefix == 'SQFT' %}
                         {% set pq = row.quantity %}
-                        {% set mq = row.quantity / 10.764 %}
+                    {% else %}
+                        {# Cerco coefficiente da currentUmId a PQ #}
+                        {% set foundCoeff = false %}
+                        {% for c in coefficients %}
+                            {% if not foundCoeff and c.startUm.id == currentUmId and c.endUm.id == pq_um_id %}
+                                {% set pq = row.quantity * c.coefficient %}
+                                {% set foundCoeff = true %}
+                            {% endif %}
+                        {% endfor %}
+                        {% if not foundCoeff and row.measurement_unit.prefix == 'MQ' %}
+                             {% set pq = row.quantity * 10.764 %}
+                        {% endif %}
                     {% endif %}
                     
                     {% set mediaPQ = 0 %}

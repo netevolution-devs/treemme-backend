@@ -11,9 +11,12 @@ use App\Entity\MeasurementUnit;
 use App\Entity\Currency;
 use App\Entity\Processing;
 use App\Entity\Selection;
+use App\Entity\MeasurementUnitCoefficient;
 use App\Entity\WarehouseMovement;
 use App\Entity\WarehouseMovementReason;
 use App\Entity\WarehouseMovementReasonType;
+use App\Repository\MeasurementUnitCoefficientRepository;
+use App\Repository\MeasurementUnitRepository;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -224,6 +227,15 @@ final class DdtRowController extends AbstractController
         $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
         $soldLots = $ddtRowRepository->findSoldLots($clientId, $startDate, $endDate);
 
+        // Recupero i coefficienti di conversione
+        $coeffRepo = $this->doctrine->getRepository(MeasurementUnitCoefficient::class);
+        $coefficients = $coeffRepo->findAll();
+        
+        // Recupero le unità di misura MQ e PQ per identificare i coefficienti corretti
+        $umRepo = $this->doctrine->getRepository(MeasurementUnit::class);
+        $mqUm = $umRepo->findOneBy(['prefix' => 'MQ']);
+        $pqUm = $umRepo->findOneBy(['prefix' => 'PQ']);
+
         $groupedData = [];
         foreach ($soldLots as $row) {
             $client = $row->getDdt()->getClient();
@@ -246,7 +258,10 @@ final class DdtRowController extends AbstractController
             'data' => $groupedData,
             'start_date' => $startDate,
             'end_date' => $endDate,
-            'orientation' => 'landscape'
+            'orientation' => 'landscape',
+            'coefficients' => $coefficients,
+            'mq_um_id' => $mqUm ? $mqUm->getId() : null,
+            'pq_um_id' => $pqUm ? $pqUm->getId() : null,
         ], 'lotti_venduti.pdf');
 
         return new \Symfony\Component\HttpFoundation\Response($pdfContent, 200, [
@@ -296,7 +311,9 @@ final class DdtRowController extends AbstractController
 
         $batch = $ddtRow->getBatch();
 
-        $batch->setStockQuantity($batch->getStockQuantity() - $ddtRow->getQuantity());
+        $convertedQuantity = $this->getConvertedQuantity($ddtRow->getQuantity(), $ddtRow->getMeasurementUnit(), $batch->getMeasurementUnit());
+
+        $batch->setStockQuantity($batch->getStockQuantity() - $convertedQuantity);
         $batch->setStockItems($batch->getStockItems() - $ddtRow->getPieces());
 
         $this->updateBatchSqFtAverageFound($batch);
@@ -307,7 +324,7 @@ final class DdtRowController extends AbstractController
 
         $wearhouseMovement = new WarehouseMovement();
         $wearhouseMovement->setBatch($batch);
-        $wearhouseMovement->setQuantity($ddtRow->getQuantity());
+        $wearhouseMovement->setQuantity($convertedQuantity);
         $wearhouseMovement->setPiece($ddtRow->getPieces());
         $wearhouseMovement->setReason($ddtRow->getDdt()->getReason()->getWarehouseMovementReason());
         $wearhouseMovement->setDdtDate($ddt->getDdtDate());
@@ -329,10 +346,11 @@ final class DdtRowController extends AbstractController
         if ($movementReason && $movementReason->getReasonType()?->getMovementType() === 'Scarico') {
             $batch = $ddtRow->getBatch();
             if ($batch) {
+                $convertedQuantity = $this->getConvertedQuantity($ddtRow->getQuantity(), $ddtRow->getMeasurementUnit(), $batch->getMeasurementUnit());
                 foreach ($batch->getBatchOrders() as $batchOrder) {
                     $orderRow = $batchOrder->getOrderRow();
                     if ($orderRow) {
-                        $newToShip = (float)$orderRow->getQuantity() - $ddtRow->getQuantity();
+                        $newToShip = (float)$orderRow->getQuantity() - $convertedQuantity;
                         $orderRow->setQuantityToShip((string)$newToShip);
                         $this->doctrine->persist($orderRow);
                     }
@@ -395,7 +413,10 @@ final class DdtRowController extends AbstractController
 
         if ($oldBatch && $newBatch && $oldBatch->getId() === $newBatch->getId()) {
             $diffPieces = $ddtRow->getPieces() - $oldPieces;
-            $diffQuantity = $ddtRow->getQuantity() - $oldQuantity;
+            
+            $oldConvertedQuantity = $this->getConvertedQuantity($oldQuantity, $ddtRow->getMeasurementUnit(), $newBatch->getMeasurementUnit());
+            $newConvertedQuantity = $this->getConvertedQuantity($ddtRow->getQuantity(), $ddtRow->getMeasurementUnit(), $newBatch->getMeasurementUnit());
+            $diffQuantity = $newConvertedQuantity - $oldConvertedQuantity;
 
             $newBatch->setStockItems($newBatch->getStockItems() - $diffPieces);
             $newBatch->setStockQuantity($newBatch->getStockQuantity() - $diffQuantity);
@@ -405,13 +426,15 @@ final class DdtRowController extends AbstractController
         } else {
             if ($oldBatch) {
                 $oldBatch->setStockItems($oldBatch->getStockItems() + $oldPieces);
-                $oldBatch->setStockQuantity($oldBatch->getStockQuantity() + $oldQuantity);
+                $oldBatchConvertedQuantity = $this->getConvertedQuantity($oldQuantity, $ddtRow->getMeasurementUnit(), $oldBatch->getMeasurementUnit());
+                $oldBatch->setStockQuantity($oldBatch->getStockQuantity() + $oldBatchConvertedQuantity);
                 $this->updateBatchSqFtAverageFound($oldBatch);
                 $this->doctrine->persist($oldBatch);
             }
             if ($newBatch) {
                 $newBatch->setStockItems($newBatch->getStockItems() - $ddtRow->getPieces());
-                $newBatch->setStockQuantity($newBatch->getStockQuantity() - $ddtRow->getQuantity());
+                $newBatchConvertedQuantity = $this->getConvertedQuantity($ddtRow->getQuantity(), $ddtRow->getMeasurementUnit(), $newBatch->getMeasurementUnit());
+                $newBatch->setStockQuantity($newBatch->getStockQuantity() - $newBatchConvertedQuantity);
                 $this->updateBatchSqFtAverageFound($newBatch);
                 $this->doctrine->persist($newBatch);
             }
@@ -425,7 +448,8 @@ final class DdtRowController extends AbstractController
         }
 
         $warehouseMovement->setBatch($newBatch);
-        $warehouseMovement->setQuantity($ddtRow->getQuantity());
+        $convertedQuantity = $this->getConvertedQuantity($ddtRow->getQuantity(), $ddtRow->getMeasurementUnit(), $newBatch?->getMeasurementUnit());
+        $warehouseMovement->setQuantity($convertedQuantity);
         $warehouseMovement->setPiece($ddtRow->getPieces());
 
         $this->doctrine->persist($warehouseMovement);
@@ -436,6 +460,7 @@ final class DdtRowController extends AbstractController
         if ($movementReason && $movementReason->getReasonType()?->getMovementType() === 'Scarico') {
             $batch = $ddtRow->getBatch();
             if ($batch) {
+                $convertedQuantity = $this->getConvertedQuantity($ddtRow->getQuantity(), $ddtRow->getMeasurementUnit(), $batch->getMeasurementUnit());
                 // Se il lotto è cambiato, dobbiamo ripristinare il vecchio e aggiornare il nuovo
                 if ($oldBatch && $newBatch && $oldBatch->getId() !== $newBatch->getId()) {
                     // Ripristiniamo il vecchio lotto/ordine
@@ -450,7 +475,7 @@ final class DdtRowController extends AbstractController
                     foreach ($newBatch->getBatchOrders() as $batchOrder) {
                         $orderRow = $batchOrder->getOrderRow();
                         if ($orderRow) {
-                            $newToShip = (float)$orderRow->getQuantity() - $ddtRow->getQuantity();
+                            $newToShip = (float)$orderRow->getQuantity() - $convertedQuantity;
                             $orderRow->setQuantityToShip((string)$newToShip);
                             $this->doctrine->persist($orderRow);
                         }
@@ -460,7 +485,7 @@ final class DdtRowController extends AbstractController
                     foreach ($batch->getBatchOrders() as $batchOrder) {
                         $orderRow = $batchOrder->getOrderRow();
                         if ($orderRow) {
-                            $newToShip = (float)$orderRow->getQuantity() - $ddtRow->getQuantity();
+                            $newToShip = (float)$orderRow->getQuantity() - $convertedQuantity;
                             $orderRow->setQuantityToShip((string)$newToShip);
                             $this->doctrine->persist($orderRow);
                         }
@@ -794,6 +819,32 @@ final class DdtRowController extends AbstractController
         // Totali - Usiamo quantity per uniformare con le righe ordine
         $ddtRow->setTotalValue(round($price * $quantity, 2));
         $ddtRow->setCurrencyTotalValue(round($currencyPrice * $quantity, 2));
+    }
+
+    private function getConvertedQuantity(float $quantity, ?MeasurementUnit $startUm, ?MeasurementUnit $endUm): float
+    {
+        if (!$startUm || !$endUm || $startUm->getId() === $endUm->getId()) {
+            return $quantity;
+        }
+
+        $coefficient = $this->doctrine->getRepository(MeasurementUnitCoefficient::class)->findOneBy([
+            'start_um' => $startUm,
+            'end_um' => $endUm
+        ]);
+
+        if ($coefficient) {
+            return $quantity * $coefficient->getCoefficient();
+        }
+
+        // Fallback per conversioni standard MQ <-> PQ se non trovate nel DB
+        if ($startUm->getPrefix() === 'MQ' && $endUm->getPrefix() === 'PQ') {
+            return $quantity * 10.764;
+        }
+        if ($startUm->getPrefix() === 'PQ' && $endUm->getPrefix() === 'MQ') {
+            return $quantity / 10.764;
+        }
+
+        return $quantity;
     }
 
     private function updateBatchSqFtAverageFound(Batch $batch): void
