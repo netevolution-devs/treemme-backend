@@ -103,7 +103,7 @@
                     
                     <tr>
                         <td>
-                            {{ row.batch.batch_code }} - {{ row.batch.article.client_code|default('-') }}
+                            {{ row.batch.batch_code }} - {{ row.batch.article.client_code ?? row.batch.leather.name ?? '' }}
                         </td>
                         <td class="text-right">{{ row.pieces }}</td>
                         <td class="text-right">{{ row.half_piece|default(0) }}</td>
