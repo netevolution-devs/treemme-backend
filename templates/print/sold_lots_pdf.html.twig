@@ -28,7 +28,6 @@
 </head>
 <body>
     <div class="page-content">
-        <span style="float: right; font-size: 8pt;">{{ "now"|date('d/m/Y') }}</span>
         
         VENDITE {% if start_date or end_date %}
             Dal: {{ start_date ? start_date|date('d/m/Y') : '-' }} Al: {{ end_date ? end_date|date('d/m/Y') : '-' }}
@@ -45,7 +44,7 @@
         <table class="rows-table" style="margin-top: 20px;">
             <thead>
                 <tr>
-                    <th colspan="7" style="font-size: 10pt; border-bottom: 2px solid #000; padding-top: 10px;">{{ clientGroup.client.name }}</th>
+                    <th colspan="6" style="font-size: 10pt; border-bottom: 2px solid #000; padding-top: 10px;">{{ clientGroup.client.name }}</th>
                 </tr>
                 <tr>
                     <th style="width: 40%;">LOTTO / ARTICOLO</th>
@@ -53,7 +52,6 @@
                     <th class="text-right">MZ</th>
                     <th class="text-right">MQ</th>
                     <th class="text-right">PQ</th>
-                    <th class="text-right">Media PQ</th>
                     <th class="text-right">Media PQ Trov.</th>
                 </tr>
             </thead>
@@ -66,17 +64,41 @@
                 {% for row in clientGroup.rows %}
                     {% set mq = 0 %}
                     {% set pq = 0 %}
+                    
+                    {% set currentUmId = row.measurement_unit.id %}
+                    
+                    {# Calcolo MQ #}
                     {% if row.measurement_unit.prefix == 'MQ' %}
                         {% set mq = row.quantity %}
-                        {% set pq = row.quantity * 10.764 %}
-                    {% elseif row.measurement_unit.prefix == 'PQ' or row.measurement_unit.prefix == 'SQFT' %}
-                        {% set pq = row.quantity %}
-                        {% set mq = row.quantity / 10.764 %}
+                    {% else %}
+                        {# Cerco coefficiente da currentUmId a MQ #}
+                        {% set foundCoeff = false %}
+                        {% for c in coefficients %}
+                            {% if not foundCoeff and c.startUm.id == currentUmId and c.endUm.id == mq_um_id %}
+                                {% set mq = row.quantity * c.coefficient %}
+                                {% set foundCoeff = true %}
+                            {% endif %}
+                        {% endfor %}
+                        {% if not foundCoeff and (row.measurement_unit.prefix == 'PQ' or row.measurement_unit.prefix == 'SQFT') %}
+                             {% set mq = row.quantity / 10.764 %}
+                        {% endif %}
                     {% endif %}
                     
-                    {% set mediaPQ = 0 %}
-                    {% if row.pieces > 0 %}
-                        {% set mediaPQ = pq / row.pieces %}
+                    {# Calcolo PQ #}
+                    {% if row.measurement_unit.prefix == 'PQ' or row.measurement_unit.prefix == 'SQFT' %}
+                        {% set pq = row.quantity %}
+                    {% else %}
+                        {# Cerco coefficiente da currentUmId a PQ #}
+                        {% set foundCoeff = false %}
+                        {% for c in coefficients %}
+                            {% if not foundCoeff and c.startUm.id == currentUmId and c.endUm.id == pq_um_id %}
+                                {% set pq = row.quantity * c.coefficient %}
+                                {% set foundCoeff = true %}
+                            {% endif %}
+                        {% endfor %}
+                        {% if not foundCoeff and row.measurement_unit.prefix == 'MQ' %}
+                             {% set pq = row.quantity * 10.764 %}
+                        {% endif %}
                     {% endif %}
                     
                     <tr>
@@ -87,8 +109,7 @@
                         <td class="text-right">{{ row.half_piece|default(0) }}</td>
                         <td class="text-right">{{ mq|number_format(2, ',', '.') }}</td>
                         <td class="text-right">{{ pq|number_format(2, ',', '.') }}</td>
-                        <td class="text-right">{{ mediaPQ|number_format(2, ',', '.') }}</td>
-                        <td class="text-right">{{ row.batch.sq_ft_average_found|number_format(2, ',', '.') }}</td>
+                        <td class="text-right">{{ row.batch.sq_ft_average_found }}</td>
                     </tr>
                     {% set totalPieces = totalPieces + row.pieces %}
                     {% set totalHalf = totalHalf + (row.half_piece|default(0)) %}
@@ -103,7 +124,6 @@
                     <td class="text-right font-bold" style="border-top: 1px solid #000;">{{ totalHalf }}</td>
                     <td class="text-right font-bold" style="border-top: 1px solid #000;">{{ totalMQ|number_format(2, ',', '.') }}</td>
                     <td class="text-right font-bold" style="border-top: 1px solid #000;">{{ totalPQ|number_format(2, ',', '.') }}</td>
-                    <td style="border-top: 1px solid #000;"></td>
                     <td style="border-top: 1px solid #000;"></td>
                 </tr>
             </tfoot>
@@ -124,7 +144,6 @@
                         <td class="text-right font-bold" style="font-size: 11pt;">{{ grandTotalHalf }}</td>
                         <td class="text-right font-bold" style="font-size: 11pt;">{{ grandTotalMQ|number_format(2, ',', '.') }}</td>
                         <td class="text-right font-bold" style="font-size: 11pt;">{{ grandTotalPQ|number_format(2, ',', '.') }}</td>
-                        <td style="width: 20%;"></td>
                         <td style="width: 10%;"></td>
                     </tr>
                 </tfoot>

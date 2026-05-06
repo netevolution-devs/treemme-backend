@@ -14,57 +14,57 @@ class DdtRow
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_summary_print', 'client_order_row_list'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_summary_print', 'client_order_row_list'])]
     private ?int $id = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_order_row_list'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_order_row_list'])]
     private ?string $order_note = null;
 
     #[ORM\ManyToOne(inversedBy: 'ddtRows')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_summary_print'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_summary_print'])]
     private ?Batch $batch = null;
 
     #[ORM\Column]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_order_row_list', 'client_summary_print'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?float $pieces = null;
 
     #[ORM\ManyToOne(inversedBy: 'ddtRows')]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_order_row_list', 'client_summary_print'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?MeasurementUnit $measurement_unit = null;
 
     #[ORM\Column]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_order_row_list', 'client_summary_print'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?float $quantity = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_order_row_list', 'client_summary_print'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?float $price = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_order_row_list', 'client_summary_print'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?float $total_value = null;
 
     #[ORM\ManyToOne(inversedBy: 'ddtRows')]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_order_row_list', 'client_summary_print'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?Currency $currency = null;
 
     #[ORM\ManyToOne(inversedBy: 'ddtRows')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_summary_print', 'client_order_row_list'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_summary_print', 'client_order_row_list'])]
     private ?Ddt $ddt = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail'])]
     private ?float $currency_price = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail'])]
     private ?float $currency_exchange = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail'])]
     private ?float $currency_total_value = null;
 
     #[ORM\Column(nullable: true)]
@@ -73,15 +73,15 @@ class DdtRow
     private ?float $KG_weight = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail'])]
     private ?string $row_note = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail'])]
     private ?int $whole_piece = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'client_summary_print'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_summary_print'])]
     private ?int $half_piece = null;
 
     #[ORM\ManyToOne(inversedBy: 'ddtRows')]
