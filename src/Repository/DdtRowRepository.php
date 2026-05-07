@@ -48,7 +48,7 @@ class DdtRowRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('dr')
             ->join('dr.ddt', 'd')
             ->join('d.reason', 'r')
-            ->leftJoin('d.batch', 'b')
+            ->leftJoin('dr.batch', 'b')
             ->andWhere('r.name = :reasonName')
             ->setParameter('reasonName', 'Vendita');
 
