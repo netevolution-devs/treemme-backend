@@ -43,13 +43,19 @@ class DdtRowRepository extends ServiceEntityRepository
     //            ->getOneOrNullResult()
     //        ;
     //    }
-    public function findSoldLots(?int $clientId = null, ?\DateTime $startDate = null, ?\DateTime $endDate = null): array
+    public function findSoldLots(?int $clientId = null, ?\DateTime $startDate = null, ?\DateTime $endDate = null, ?string $batchCode = null): array
     {
         $qb = $this->createQueryBuilder('dr')
             ->join('dr.ddt', 'd')
             ->join('d.reason', 'r')
+            ->leftJoin('d.batch', 'b')
             ->andWhere('r.name = :reasonName')
             ->setParameter('reasonName', 'Vendita');
+
+        if ($batchCode) {
+            $qb->andWhere('b.batch_code = :batchCode')
+                ->setParameter('batchCode', $batchCode);
+        }
 
         if ($clientId) {
             $qb->andWhere('IDENTITY(d.client) = :clientId')

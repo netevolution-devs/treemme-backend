@@ -197,6 +197,7 @@ final class DdtRowController extends AbstractController
         methods: ['GET'])]
     public function getSoldLots(Request $request): JsonResponse
     {
+        $batchCode = $request->query->get('batch_code') ? (string)$request->query->get('batch_code') : null;
         $clientId = $request->query->get('client_id') ? (int)$request->query->get('client_id') : null;
         $startDateStr = $request->query->get('start_date');
         $endDateStr = $request->query->get('end_date');
@@ -208,7 +209,7 @@ final class DdtRowController extends AbstractController
         if ($endDate) $endDate->setTime(0, 0, 0);
 
         $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
-        $soldLots = $ddtRowRepository->findSoldLots($clientId, $startDate, $endDate);
+        $soldLots = $ddtRowRepository->findSoldLots($clientId, $startDate, $endDate, $batchCode);
 
         $results = $this->groupSerializer->serializeGroup($soldLots, 'ddt_row_list_sold');
 
@@ -220,6 +221,7 @@ final class DdtRowController extends AbstractController
         methods: ['GET'])]
     public function getSoldLotsPdf(Request $request): \Symfony\Component\HttpFoundation\Response
     {
+        $batchCode = $request->query->get('batch_code') ? (string)$request->query->get('batch_code') : null;
         $clientId = $request->query->get('client_id') ? (int)$request->query->get('client_id') : null;
         $startDateStr = $request->query->get('start_date');
         $endDateStr = $request->query->get('end_date');
@@ -231,7 +233,7 @@ final class DdtRowController extends AbstractController
         if ($endDate) $endDate->setTime(0, 0, 0);
 
         $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
-        $soldLots = $ddtRowRepository->findSoldLots($clientId, $startDate, $endDate);
+        $soldLots = $ddtRowRepository->findSoldLots($clientId, $startDate, $endDate, $batchCode);
 
         // Recupero i coefficienti di conversione
         $coeffRepo = $this->doctrine->getRepository(MeasurementUnitCoefficient::class);
