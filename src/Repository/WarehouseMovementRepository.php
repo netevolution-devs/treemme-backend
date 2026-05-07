@@ -40,4 +40,33 @@ class WarehouseMovementRepository extends ServiceEntityRepository
 //            ->getOneOrNullResult()
 //        ;
 //    }
+    public function findExternalProcessingMovements(?int $subcontractorId = null, ?\DateTime $startDate = null, ?\DateTime $endDate = null): array
+    {
+        $qb = $this->createQueryBuilder('wm')
+            ->join('wm.reason', 'r')
+            ->join('r.reason_type', 'rt')
+            ->andWhere('r.name IN (:reasons)')
+            ->setParameter('reasons', ['C/O Lavorazione', 'Reso C/O Lavorazione']);
+
+        if ($subcontractorId) {
+            $qb->andWhere('IDENTITY(wm.contact) = :subcontractorId')
+                ->setParameter('subcontractorId', $subcontractorId);
+        }
+
+        if ($startDate) {
+            $qb->andWhere('wm.date >= :startDate')
+                ->setParameter('startDate', $startDate);
+        }
+
+        if ($endDate) {
+            $endDate->setTime(23, 59, 59);
+            $qb->andWhere('wm.date <= :endDate')
+                ->setParameter('endDate', $endDate);
+        }
+
+        $qb->orderBy('wm.date', 'ASC')
+            ->addOrderBy('wm.id', 'ASC');
+
+        return $qb->getQuery()->getResult();
+    }
 }

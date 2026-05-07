@@ -35,7 +35,7 @@ class Batch
 
     #[ORM\Column(length: 50)]
     #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'ddt_detail', 'ddt_row_list',
-        'ddt_row_detail', 'batch_composition_list', 'batch_data_detail','client_order_row_list', 'client_summary_print', 'ddt_row_list_sold'])]
+        'ddt_row_detail', 'batch_composition_list', 'batch_data_detail','client_order_row_list', 'client_summary_print', 'ddt_row_list_sold', 'warehouse_movement_list'])]
     private ?string $batch_code = null;
 
     #[ORM\Column(nullable: true)]
