@@ -70,11 +70,12 @@ class DdtRowRepository extends ServiceEntityRepository
         return $qb->getQuery()->getResult();
     }
 
-    public function findExternalProcessingLots(?int $subcontractorId = null, ?\DateTime $startDate = null, ?\DateTime $endDate = null): array
+    public function findExternalProcessingLots(?int $subcontractorId = null, ?\DateTime $startDate = null, ?\DateTime $endDate = null, ?string $batchCode = null): array
     {
         $qb = $this->createQueryBuilder('dr')
             ->join('dr.ddt', 'd')
             ->join('d.reason', 'r')
+            ->join('dr.batch', 'b')
             ->andWhere('r.name = :reasonName')
             ->setParameter('reasonName', 'C/O Lavorazione');
 
@@ -94,14 +95,21 @@ class DdtRowRepository extends ServiceEntityRepository
                 ->setParameter('endDate', $endDate);
         }
 
+        if ($batchCode) {
+            $normalizedCode = str_replace('0', '', $batchCode);
+            $qb->andWhere("REPLACE(b.batch_code, '0', '') LIKE :code")
+                ->setParameter('code', '%' . $normalizedCode . '%');
+        }
+
         return $qb->getQuery()->getResult();
     }
 
-    public function findSubcontractingNotReturned(?int $subcontractorId = null, ?\DateTime $startDate = null, ?\DateTime $endDate = null): array
+    public function findSubcontractingNotReturned(?int $subcontractorId = null, ?\DateTime $startDate = null, ?\DateTime $endDate = null, ?string $batchCode = null): array
     {
         $qb = $this->createQueryBuilder('dr')
             ->join('dr.ddt', 'd')
             ->join('d.reason', 'r')
+            ->join('dr.batch', 'b')
             ->andWhere('r.name != :vendita')
             ->setParameter('vendita', 'Vendita');
 
@@ -119,6 +127,12 @@ class DdtRowRepository extends ServiceEntityRepository
             $endDate->setTime(23, 59, 59);
             $qb->andWhere('d.ddt_date <= :endDate')
                 ->setParameter('endDate', $endDate);
+        }
+
+        if ($batchCode) {
+            $normalizedCode = str_replace('0', '', $batchCode);
+            $qb->andWhere("REPLACE(b.batch_code, '0', '') LIKE :code")
+                ->setParameter('code', '%' . $normalizedCode . '%');
         }
 
         return $qb->getQuery()->getResult();
