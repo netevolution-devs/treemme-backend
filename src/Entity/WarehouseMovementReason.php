@@ -18,7 +18,7 @@ class WarehouseMovementReason
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['reason_list', 'reason_detail', 'batch_detail', 'ddt_reason_list', 'ddt_reason_detail'])]
+    #[Groups(['reason_list', 'reason_detail', 'batch_detail', 'ddt_reason_list', 'ddt_reason_detail', 'warehouse_movement_list'])]
     private ?string $name = null;
 
     #[ORM\ManyToOne(inversedBy: 'warehouseMovementReasons')]

@@ -1095,5 +1095,83 @@ final class DdtRowController extends AbstractController
             }
         }
     }
+    #[Route('/ddt-row/external-processing-movements',
+        name: 'get_external_processing_movements',
+        methods: ['GET'])]
+    public function getExternalProcessingMovements(Request $request): JsonResponse
+    {
+        $subcontractorId = $request->query->get('subcontractor_id') ? (int)$request->query->get('subcontractor_id') : null;
+        $startDateStr = $request->query->get('start_date');
+        $endDateStr = $request->query->get('end_date');
+
+        $startDate = $startDateStr ? \DateTime::createFromFormat('Y-m-d', $startDateStr) : null;
+        if ($startDate) $startDate->setTime(0, 0, 0);
+
+        $endDate = $endDateStr ? \DateTime::createFromFormat('Y-m-d', $endDateStr) : null;
+        if ($endDate) $endDate->setTime(23, 59, 59);
+
+        $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
+        $lots = $ddtRowRepository->findExternalProcessingLots($subcontractorId, $startDate, $endDate);
+
+        $groupedData = [];
+        $wmRepo = $this->doctrine->getRepository(WarehouseMovement::class);
+        $wmReasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
+
+        // Cerchiamo le causali di rientro (tipo 'Carico')
+        $returnReasons = $wmReasonRepo->createQueryBuilder('r')
+            ->join('r.reason_type', 'rt')
+            ->andWhere('rt.movement_type = :type')
+            ->setParameter('type', 'Carico')
+            ->getQuery()
+            ->getResult();
+
+        foreach ($lots as $row) {
+            $subcontractor = $row->getDdt()->getSubcontractor();
+            if (!$subcontractor) continue;
+
+            $sId = $subcontractor->getId();
+            if (!isset($groupedData[$sId])) {
+                $groupedData[$sId] = [
+                    'subcontractor' => $this->groupSerializer->serializeGroup($subcontractor, 'client_summary_print'),
+                    'rows' => []
+                ];
+            }
+
+            $serializedRow = $this->groupSerializer->serializeGroup($row, ['client_summary_print', 'external_processing_print']);
+
+            // Cerchiamo i movimenti di rientro per questo lotto e terzista
+            $returns = $wmRepo->createQueryBuilder('wm')
+                ->andWhere('wm.batch = :batch')
+                ->andWhere('wm.contact = :contact')
+                ->andWhere('wm.reason IN (:reasons)')
+                ->andWhere('wm.date >= :ddtDate')
+                ->setParameter('batch', $row->getBatch())
+                ->setParameter('contact', $subcontractor)
+                ->setParameter('reasons', $returnReasons)
+                ->setParameter('ddtDate', $row->getDdt()->getDdtDate())
+                ->orderBy('wm.date', 'DESC')
+                ->getQuery()
+                ->getResult();
+
+            $totalReturnedPieces = 0;
+            $lastReturnDate = null;
+            foreach ($returns as $return) {
+                $totalReturnedPieces += $return->getPiece();
+                if (!$lastReturnDate || $return->getDate() > $lastReturnDate) {
+                    $lastReturnDate = $return->getDate();
+                }
+            }
+
+            $serializedRow['returned_pieces'] = $totalReturnedPieces;
+            $serializedRow['last_return_date'] = $lastReturnDate ? $lastReturnDate->format('Y-m-d') : null;
+
+            $groupedData[$sId]['rows'][] = $serializedRow;
+        }
+
+        // Ordina i terzisti per nome
+        usort($groupedData, fn($a, $b) => $a['subcontractor']['name'] <=> $b['subcontractor']['name']);
+
+        return new JsonResponse($this->doResponse->doResponse(array_values($groupedData)));
+    }
 }
 
