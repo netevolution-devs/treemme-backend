@@ -81,10 +81,14 @@ final class DdtRowController extends AbstractController
     #[Route('/ddt-row/subcontracting-not-returned',
         name: 'get_ddt_row_subcontracting_not_returned',
         methods: ['GET'])]
-    public function getDdtRowSubcontractingNotReturned(): JsonResponse
+    public function getDdtRowSubcontractingNotReturned(Request $request): JsonResponse
     {
+        $startDate = $request->query->get('start_date') ? new \DateTime($request->query->get('start_date')) : null;
+        $endDate = $request->query->get('end_date') ? new \DateTime($request->query->get('end_date')) : null;
+        $subcontractorId = $request->query->get('subcontractor_id') ? (int)$request->query->get('subcontractor_id') : null;
+
         $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
-        $ddtRows = $ddtRowRepository->findAll();
+        $ddtRows = $ddtRowRepository->findSubcontractingNotReturned($subcontractorId, $startDate, $endDate);
 
         $ddtRowsSelected = [];
         foreach ($ddtRows as $ddtRow) {

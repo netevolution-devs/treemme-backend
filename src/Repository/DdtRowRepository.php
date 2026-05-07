@@ -96,4 +96,31 @@ class DdtRowRepository extends ServiceEntityRepository
 
         return $qb->getQuery()->getResult();
     }
+
+    public function findSubcontractingNotReturned(?int $subcontractorId = null, ?\DateTime $startDate = null, ?\DateTime $endDate = null): array
+    {
+        $qb = $this->createQueryBuilder('dr')
+            ->join('dr.ddt', 'd')
+            ->join('d.reason', 'r')
+            ->andWhere('r.name != :vendita')
+            ->setParameter('vendita', 'Vendita');
+
+        if ($subcontractorId) {
+            $qb->andWhere('IDENTITY(d.subcontractor) = :subcontractorId')
+                ->setParameter('subcontractorId', $subcontractorId);
+        }
+
+        if ($startDate) {
+            $qb->andWhere('d.ddt_date >= :startDate')
+                ->setParameter('startDate', $startDate);
+        }
+
+        if ($endDate) {
+            $endDate->setTime(23, 59, 59);
+            $qb->andWhere('d.ddt_date <= :endDate')
+                ->setParameter('endDate', $endDate);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
 }
