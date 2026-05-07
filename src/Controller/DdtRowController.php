@@ -83,12 +83,13 @@ final class DdtRowController extends AbstractController
         methods: ['GET'])]
     public function getDdtRowSubcontractingNotReturned(Request $request): JsonResponse
     {
+        $batchCode = $request->query->get('batch_code') ? (string)$request->query->get('batch_code') : null;
         $startDate = $request->query->get('start_date') ? new \DateTime($request->query->get('start_date')) : null;
         $endDate = $request->query->get('end_date') ? new \DateTime($request->query->get('end_date')) : null;
         $subcontractorId = $request->query->get('subcontractor_id') ? (int)$request->query->get('subcontractor_id') : null;
 
         $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
-        $ddtRows = $ddtRowRepository->findSubcontractingNotReturned($subcontractorId, $startDate, $endDate);
+        $ddtRows = $ddtRowRepository->findSubcontractingNotReturned($subcontractorId, $startDate, $endDate, $batchCode);
 
         $ddtRowsSelected = [];
         foreach ($ddtRows as $ddtRow) {
@@ -196,6 +197,7 @@ final class DdtRowController extends AbstractController
         methods: ['GET'])]
     public function getSoldLots(Request $request): JsonResponse
     {
+        $batchCode = $request->query->get('batch_code') ? (string)$request->query->get('batch_code') : null;
         $clientId = $request->query->get('client_id') ? (int)$request->query->get('client_id') : null;
         $startDateStr = $request->query->get('start_date');
         $endDateStr = $request->query->get('end_date');
@@ -207,7 +209,7 @@ final class DdtRowController extends AbstractController
         if ($endDate) $endDate->setTime(0, 0, 0);
 
         $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
-        $soldLots = $ddtRowRepository->findSoldLots($clientId, $startDate, $endDate);
+        $soldLots = $ddtRowRepository->findSoldLots($clientId, $startDate, $endDate, $batchCode);
 
         $results = $this->groupSerializer->serializeGroup($soldLots, 'ddt_row_list_sold');
 
@@ -219,6 +221,7 @@ final class DdtRowController extends AbstractController
         methods: ['GET'])]
     public function getSoldLotsPdf(Request $request): \Symfony\Component\HttpFoundation\Response
     {
+        $batchCode = $request->query->get('batch_code') ? (string)$request->query->get('batch_code') : null;
         $clientId = $request->query->get('client_id') ? (int)$request->query->get('client_id') : null;
         $startDateStr = $request->query->get('start_date');
         $endDateStr = $request->query->get('end_date');
@@ -230,7 +233,7 @@ final class DdtRowController extends AbstractController
         if ($endDate) $endDate->setTime(0, 0, 0);
 
         $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
-        $soldLots = $ddtRowRepository->findSoldLots($clientId, $startDate, $endDate);
+        $soldLots = $ddtRowRepository->findSoldLots($clientId, $startDate, $endDate, $batchCode);
 
         // Recupero i coefficienti di conversione
         $coeffRepo = $this->doctrine->getRepository(MeasurementUnitCoefficient::class);
@@ -280,6 +283,7 @@ final class DdtRowController extends AbstractController
         methods: ['GET'])]
     public function getExternalProcessingLots(Request $request): JsonResponse
     {
+        $batchCode = $request->query->get('batch_code') ? (string)$request->query->get('batch_code') : null;
         $subcontractorId = $request->query->get('subcontractor_id') ? (int)$request->query->get('subcontractor_id') : null;
         $startDateStr = $request->query->get('start_date');
         $endDateStr = $request->query->get('end_date');
@@ -291,7 +295,7 @@ final class DdtRowController extends AbstractController
         if ($endDate) $endDate->setTime(0, 0, 0);
 
         $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
-        $lots = $ddtRowRepository->findExternalProcessingLots($subcontractorId, $startDate, $endDate);
+        $lots = $ddtRowRepository->findExternalProcessingLots($subcontractorId, $startDate, $endDate, $batchCode);
 
         $results = $this->groupSerializer->serializeGroup($lots, ['client_summary_print', 'external_processing_print']);
 
@@ -303,6 +307,7 @@ final class DdtRowController extends AbstractController
         methods: ['GET'])]
     public function getExternalProcessingLotsPdf(Request $request): \Symfony\Component\HttpFoundation\Response
     {
+        $batchCode = $request->query->get('batch_code') ? (string)$request->query->get('batch_code') : null;
         $subcontractorId = $request->query->get('subcontractor_id') ? (int)$request->query->get('subcontractor_id') : null;
         $startDateStr = $request->query->get('start_date');
         $endDateStr = $request->query->get('end_date');
@@ -314,7 +319,7 @@ final class DdtRowController extends AbstractController
         if ($endDate) $endDate->setTime(0, 0, 0);
 
         $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
-        $lots = $ddtRowRepository->findExternalProcessingLots($subcontractorId, $startDate, $endDate);
+        $lots = $ddtRowRepository->findExternalProcessingLots($subcontractorId, $startDate, $endDate, $batchCode);
 
         $groupedData = [];
         foreach ($lots as $row) {
@@ -352,6 +357,7 @@ final class DdtRowController extends AbstractController
         methods: ['GET'])]
     public function getExternalProcessingReturnsPdf(Request $request): \Symfony\Component\HttpFoundation\Response
     {
+        $batchCode = $request->query->get('batch_code') ? (string)$request->query->get('batch_code') : null;
         $subcontractorId = $request->query->get('subcontractor_id') ? (int)$request->query->get('subcontractor_id') : null;
         $startDateStr = $request->query->get('start_date');
         $endDateStr = $request->query->get('end_date');
@@ -363,7 +369,7 @@ final class DdtRowController extends AbstractController
         if ($endDate) $endDate->setTime(0, 0, 0);
 
         $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
-        $lots = $ddtRowRepository->findExternalProcessingLots($subcontractorId, $startDate, $endDate);
+        $lots = $ddtRowRepository->findExternalProcessingLots($subcontractorId, $startDate, $endDate, $batchCode);
 
         $groupedData = [];
         $wmRepo = $this->doctrine->getRepository(WarehouseMovement::class);
@@ -1100,6 +1106,7 @@ final class DdtRowController extends AbstractController
         methods: ['GET'])]
     public function getExternalProcessingMovements(Request $request): JsonResponse
     {
+        $batchCode = $request->query->get('batch_code') ? (string)$request->query->get('batch_code') : null;
         $subcontractorId = $request->query->get('subcontractor_id') ? (int)$request->query->get('subcontractor_id') : null;
         $startDateStr = $request->query->get('start_date');
         $endDateStr = $request->query->get('end_date');
@@ -1111,7 +1118,7 @@ final class DdtRowController extends AbstractController
         if ($endDate) $endDate->setTime(23, 59, 59);
 
         $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
-        $lots = $ddtRowRepository->findExternalProcessingLots($subcontractorId, $startDate, $endDate);
+        $lots = $ddtRowRepository->findExternalProcessingLots($subcontractorId, $startDate, $endDate, $batchCode);
 
         $groupedData = [];
         $wmRepo = $this->doctrine->getRepository(WarehouseMovement::class);
