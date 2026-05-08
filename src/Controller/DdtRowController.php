@@ -81,10 +81,15 @@ final class DdtRowController extends AbstractController
     #[Route('/ddt-row/subcontracting-not-returned',
         name: 'get_ddt_row_subcontracting_not_returned',
         methods: ['GET'])]
-    public function getDdtRowSubcontractingNotReturned(): JsonResponse
+    public function getDdtRowSubcontractingNotReturned(Request $request): JsonResponse
     {
+        $batchCode = $request->query->get('batch_code') ? (string)$request->query->get('batch_code') : null;
+        $startDate = $request->query->get('start_date') ? new \DateTime($request->query->get('start_date')) : null;
+        $endDate = $request->query->get('end_date') ? new \DateTime($request->query->get('end_date')) : null;
+        $subcontractorId = $request->query->get('subcontractor_id') ? (int)$request->query->get('subcontractor_id') : null;
+
         $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
-        $ddtRows = $ddtRowRepository->findAll();
+        $ddtRows = $ddtRowRepository->findSubcontractingNotReturned($subcontractorId, $startDate, $endDate, $batchCode);
 
         $ddtRowsSelected = [];
         foreach ($ddtRows as $ddtRow) {
@@ -192,6 +197,7 @@ final class DdtRowController extends AbstractController
         methods: ['GET'])]
     public function getSoldLots(Request $request): JsonResponse
     {
+        $batchCode = $request->query->get('batch_code') ? (string)$request->query->get('batch_code') : null;
         $clientId = $request->query->get('client_id') ? (int)$request->query->get('client_id') : null;
         $startDateStr = $request->query->get('start_date');
         $endDateStr = $request->query->get('end_date');
@@ -203,7 +209,7 @@ final class DdtRowController extends AbstractController
         if ($endDate) $endDate->setTime(0, 0, 0);
 
         $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
-        $soldLots = $ddtRowRepository->findSoldLots($clientId, $startDate, $endDate);
+        $soldLots = $ddtRowRepository->findSoldLots($clientId, $startDate, $endDate, $batchCode);
 
         $results = $this->groupSerializer->serializeGroup($soldLots, 'ddt_row_list_sold');
 
@@ -215,6 +221,7 @@ final class DdtRowController extends AbstractController
         methods: ['GET'])]
     public function getSoldLotsPdf(Request $request): \Symfony\Component\HttpFoundation\Response
     {
+        $batchCode = $request->query->get('batch_code') ? (string)$request->query->get('batch_code') : null;
         $clientId = $request->query->get('client_id') ? (int)$request->query->get('client_id') : null;
         $startDateStr = $request->query->get('start_date');
         $endDateStr = $request->query->get('end_date');
@@ -226,7 +233,7 @@ final class DdtRowController extends AbstractController
         if ($endDate) $endDate->setTime(0, 0, 0);
 
         $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
-        $soldLots = $ddtRowRepository->findSoldLots($clientId, $startDate, $endDate);
+        $soldLots = $ddtRowRepository->findSoldLots($clientId, $startDate, $endDate, $batchCode);
 
         // Recupero i coefficienti di conversione
         $coeffRepo = $this->doctrine->getRepository(MeasurementUnitCoefficient::class);
@@ -276,6 +283,7 @@ final class DdtRowController extends AbstractController
         methods: ['GET'])]
     public function getExternalProcessingLots(Request $request): JsonResponse
     {
+        $batchCode = $request->query->get('batch_code') ? (string)$request->query->get('batch_code') : null;
         $subcontractorId = $request->query->get('subcontractor_id') ? (int)$request->query->get('subcontractor_id') : null;
         $startDateStr = $request->query->get('start_date');
         $endDateStr = $request->query->get('end_date');
@@ -287,7 +295,7 @@ final class DdtRowController extends AbstractController
         if ($endDate) $endDate->setTime(0, 0, 0);
 
         $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
-        $lots = $ddtRowRepository->findExternalProcessingLots($subcontractorId, $startDate, $endDate);
+        $lots = $ddtRowRepository->findExternalProcessingLots($subcontractorId, $startDate, $endDate, $batchCode);
 
         $results = $this->groupSerializer->serializeGroup($lots, ['client_summary_print', 'external_processing_print']);
 
@@ -299,6 +307,7 @@ final class DdtRowController extends AbstractController
         methods: ['GET'])]
     public function getExternalProcessingLotsPdf(Request $request): \Symfony\Component\HttpFoundation\Response
     {
+        $batchCode = $request->query->get('batch_code') ? (string)$request->query->get('batch_code') : null;
         $subcontractorId = $request->query->get('subcontractor_id') ? (int)$request->query->get('subcontractor_id') : null;
         $startDateStr = $request->query->get('start_date');
         $endDateStr = $request->query->get('end_date');
@@ -310,7 +319,7 @@ final class DdtRowController extends AbstractController
         if ($endDate) $endDate->setTime(0, 0, 0);
 
         $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
-        $lots = $ddtRowRepository->findExternalProcessingLots($subcontractorId, $startDate, $endDate);
+        $lots = $ddtRowRepository->findExternalProcessingLots($subcontractorId, $startDate, $endDate, $batchCode);
 
         $groupedData = [];
         foreach ($lots as $row) {
@@ -340,6 +349,96 @@ final class DdtRowController extends AbstractController
         return new \Symfony\Component\HttpFoundation\Response($pdfContent, 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="lotti_lavorazione_esterna.pdf"'
+        ]);
+    }
+
+    #[Route('/ddt-row/external-processing-returns/pdf',
+        name: 'get_external_processing_returns_pdf',
+        methods: ['GET'])]
+    public function getExternalProcessingReturnsPdf(Request $request): \Symfony\Component\HttpFoundation\Response
+    {
+        $batchCode = $request->query->get('batch_code') ? (string)$request->query->get('batch_code') : null;
+        $subcontractorId = $request->query->get('subcontractor_id') ? (int)$request->query->get('subcontractor_id') : null;
+        $startDateStr = $request->query->get('start_date');
+        $endDateStr = $request->query->get('end_date');
+
+        $startDate = $startDateStr ? \DateTime::createFromFormat('Y-m-d', $startDateStr) : null;
+        if ($startDate) $startDate->setTime(0, 0, 0);
+
+        $endDate = $endDateStr ? \DateTime::createFromFormat('Y-m-d', $endDateStr) : null;
+        if ($endDate) $endDate->setTime(0, 0, 0);
+
+        $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
+        $lots = $ddtRowRepository->findExternalProcessingLots($subcontractorId, $startDate, $endDate, $batchCode);
+
+        $groupedData = [];
+        $wmRepo = $this->doctrine->getRepository(WarehouseMovement::class);
+        $wmReasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
+
+        // Cerchiamo le causali di rientro (tipo 'Carico')
+        $returnReasons = $wmReasonRepo->createQueryBuilder('r')
+            ->join('r.reason_type', 'rt')
+            ->andWhere('rt.movement_type = :type')
+            ->setParameter('type', 'Carico')
+            ->getQuery()
+            ->getResult();
+
+        foreach ($lots as $row) {
+            $subcontractor = $row->getDdt()->getSubcontractor();
+            if (!$subcontractor) continue;
+
+            $sId = $subcontractor->getId();
+            if (!isset($groupedData[$sId])) {
+                $groupedData[$sId] = [
+                    'subcontractor' => $this->groupSerializer->serializeGroup($subcontractor, 'client_summary_print'),
+                    'rows' => []
+                ];
+            }
+
+            $serializedRow = $this->groupSerializer->serializeGroup($row, ['client_summary_print', 'external_processing_print']);
+
+            // Cerchiamo i movimenti di rientro per questo lotto e terzista
+            $returns = $wmRepo->createQueryBuilder('wm')
+                ->andWhere('wm.batch = :batch')
+                ->andWhere('wm.contact = :contact')
+                ->andWhere('wm.reason IN (:reasons)')
+                ->andWhere('wm.date >= :ddtDate')
+                ->setParameter('batch', $row->getBatch())
+                ->setParameter('contact', $subcontractor)
+                ->setParameter('reasons', $returnReasons)
+                ->setParameter('ddtDate', $row->getDdt()->getDdtDate())
+                ->orderBy('wm.date', 'DESC')
+                ->getQuery()
+                ->getResult();
+
+            $totalReturnedPieces = 0;
+            $lastReturnDate = null;
+            foreach ($returns as $return) {
+                $totalReturnedPieces += $return->getPiece();
+                if (!$lastReturnDate || $return->getDate() > $lastReturnDate) {
+                    $lastReturnDate = $return->getDate();
+                }
+            }
+
+            $serializedRow['returned_pieces'] = $totalReturnedPieces;
+            $serializedRow['last_return_date'] = $lastReturnDate ? $lastReturnDate->format('Y-m-d') : null;
+
+            $groupedData[$sId]['rows'][] = $serializedRow;
+        }
+
+        // Ordina i terzisti per nome
+        usort($groupedData, fn($a, $b) => $a['subcontractor']['name'] <=> $b['subcontractor']['name']);
+
+        $pdfContent = $this->pdfGenerator->generatePdf('print/external_processing_returns_pdf.html.twig', [
+            'data' => $groupedData,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'orientation' => 'landscape'
+        ], 'rientri_lavorazione_esterna.pdf');
+
+        return new \Symfony\Component\HttpFoundation\Response($pdfContent, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="rientri_lavorazione_esterna.pdf"'
         ]);
     }
 
@@ -1001,6 +1100,85 @@ final class DdtRowController extends AbstractController
                 }
             }
         }
+    }
+    #[Route('/ddt-row/external-processing-movements',
+        name: 'get_external_processing_movements',
+        methods: ['GET'])]
+    public function getExternalProcessingMovements(Request $request): JsonResponse
+    {
+        $batchCode = $request->query->get('batch_code') ? (string)$request->query->get('batch_code') : null;
+        $subcontractorId = $request->query->get('subcontractor_id') ? (int)$request->query->get('subcontractor_id') : null;
+        $startDateStr = $request->query->get('start_date');
+        $endDateStr = $request->query->get('end_date');
+
+        $startDate = $startDateStr ? \DateTime::createFromFormat('Y-m-d', $startDateStr) : null;
+        if ($startDate) $startDate->setTime(0, 0, 0);
+
+        $endDate = $endDateStr ? \DateTime::createFromFormat('Y-m-d', $endDateStr) : null;
+        if ($endDate) $endDate->setTime(23, 59, 59);
+
+        $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
+        $lots = $ddtRowRepository->findExternalProcessingLots($subcontractorId, $startDate, $endDate, $batchCode);
+
+        $groupedData = [];
+        $wmRepo = $this->doctrine->getRepository(WarehouseMovement::class);
+        $wmReasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
+
+        // Cerchiamo le causali di rientro (tipo 'Carico')
+        $returnReasons = $wmReasonRepo->createQueryBuilder('r')
+            ->join('r.reason_type', 'rt')
+            ->andWhere('rt.movement_type = :type')
+            ->setParameter('type', 'Carico')
+            ->getQuery()
+            ->getResult();
+
+        foreach ($lots as $row) {
+            $subcontractor = $row->getDdt()->getSubcontractor();
+            if (!$subcontractor) continue;
+
+            $sId = $subcontractor->getId();
+            if (!isset($groupedData[$sId])) {
+                $groupedData[$sId] = [
+                    'subcontractor' => $this->groupSerializer->serializeGroup($subcontractor, 'client_summary_print'),
+                    'rows' => []
+                ];
+            }
+
+            $serializedRow = $this->groupSerializer->serializeGroup($row, ['client_summary_print', 'external_processing_print']);
+
+            // Cerchiamo i movimenti di rientro per questo lotto e terzista
+            $returns = $wmRepo->createQueryBuilder('wm')
+                ->andWhere('wm.batch = :batch')
+                ->andWhere('wm.contact = :contact')
+                ->andWhere('wm.reason IN (:reasons)')
+                ->andWhere('wm.date >= :ddtDate')
+                ->setParameter('batch', $row->getBatch())
+                ->setParameter('contact', $subcontractor)
+                ->setParameter('reasons', $returnReasons)
+                ->setParameter('ddtDate', $row->getDdt()->getDdtDate())
+                ->orderBy('wm.date', 'DESC')
+                ->getQuery()
+                ->getResult();
+
+            $totalReturnedPieces = 0;
+            $lastReturnDate = null;
+            foreach ($returns as $return) {
+                $totalReturnedPieces += $return->getPiece();
+                if (!$lastReturnDate || $return->getDate() > $lastReturnDate) {
+                    $lastReturnDate = $return->getDate();
+                }
+            }
+
+            $serializedRow['returned_pieces'] = $totalReturnedPieces;
+            $serializedRow['last_return_date'] = $lastReturnDate ? $lastReturnDate->format('Y-m-d') : null;
+
+            $groupedData[$sId]['rows'][] = $serializedRow;
+        }
+
+        // Ordina i terzisti per nome
+        usort($groupedData, fn($a, $b) => $a['subcontractor']['name'] <=> $b['subcontractor']['name']);
+
+        return new JsonResponse($this->doResponse->doResponse(array_values($groupedData)));
     }
 }
 

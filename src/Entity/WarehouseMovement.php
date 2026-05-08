@@ -16,48 +16,49 @@ class WarehouseMovement
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?int $id = null;
 
     #[ORM\Column]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?\DateTime $date = null;
 
     #[ORM\ManyToOne(inversedBy: 'warehouseMovements')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['warehouse_movement_list'])]
     private ?Batch $batch = null;
 
     #[ORM\ManyToOne(inversedBy: 'warehouseMovements')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?WarehouseMovementReason $reason = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?int $piece = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?float $price = null;
 
     #[ORM\Column]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?float $quantity = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?float $total_value = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?string $ddt_number = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?\DateTime $ddt_date = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?string $movement_note = null;
 
     #[ORM\ManyToOne(targetEntity: self::class, inversedBy: 'sonWarehouseMovements')]
@@ -70,7 +71,7 @@ class WarehouseMovement
     private Collection $sonWarehouseMovements;
 
     #[ORM\ManyToOne(inversedBy: 'warehouseMovements')]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     #[MaxDepth(1)]
     private ?Contact $contact = null;
 
