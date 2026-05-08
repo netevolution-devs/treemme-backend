@@ -193,9 +193,9 @@
         <div class="customer-info">
             {% if order.address %}
                 {{ order.address.address }}<br>
-                {{ order.address.address_2 ? order.address.address_2 ~ '<br>' : '' }}
-                {{ order.address.address_3 ? order.address.address_3 ~ '<br>' : '' }}
-                {{ order.address.zip_code ? order.address.zip_code ~ ' ' : '' }}
+                {{ order.address.address2 ? order.address.address2 ~ '<br>' : '' }}
+                {{ order.address.address3 ? order.address.address3 ~ '<br>' : '' }}
+                {{ order.address.zipCode ? order.address.zipCode ~ ' ' : '' }}
                 {{ order.address.nation ? order.address.nation.name : '' }}
             {% endif %}
         </div>
