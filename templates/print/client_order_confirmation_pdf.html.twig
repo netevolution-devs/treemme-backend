@@ -193,8 +193,15 @@
         <div class="customer-info">
             {% if order.address %}
                 {{ order.address.address }}<br>
-                {{ order.address.address2 ? order.address.address2 ~ '<br>' : '' }}
-                {{ order.address.address3 ? order.address.address3 ~ '<br>' : '' }}
+
+                {% if order.address.address2 %}
+                    {{ order.address.address2 }}<br>
+                {% endif %}
+
+                {% if order.address.address3 %}
+                    {{ order.address.address3 }}<br>
+                {% endif %}
+
                 {{ order.address.zipCode ? order.address.zipCode ~ ' ' : '' }}
                 {{ order.address.nation ? order.address.nation.name : '' }}
             {% endif %}
