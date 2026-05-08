@@ -18,7 +18,7 @@ class Nation
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['nation_list', 'nation_detail', 'leather_provenance_detail', 'contact_address_detail', 'contact_detail', 'leather_provenance_list', 'batch_list', 'batch_detail', 'client_summary_print'])]
+    #[Groups(['nation_list', 'nation_detail', 'leather_provenance_detail', 'contact_address_detail', 'contact_detail', 'leather_provenance_list', 'batch_list', 'batch_detail', 'client_order_detail', 'client_summary_print'])]
     private ?string $name = null;
 
     /**
