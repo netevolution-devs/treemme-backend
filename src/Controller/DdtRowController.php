@@ -173,7 +173,7 @@ final class DdtRowController extends AbstractController
                 }
             }
 
-            if ($firstMovementOut !== null) {
+            if ($firstMovementOut !== null || $ddtRow->getPiecesOut() !== null) {
                 $outPieces = $ddtRow->getPiecesOut() ?? abs($firstMovementOut->getPiece() ?? 0);
                 $outQuantity = $ddtRow->getQuantityOut() ?? abs($firstMovementOut->getQuantity() ?? 0);
                 
@@ -869,6 +869,8 @@ final class DdtRowController extends AbstractController
         $newDdtRow->setBatch($batch);
         $newDdtRow->setQuantity($quantity);
         $newDdtRow->setPieces($pieces);
+        $newDdtRow->setQuantityOut($quantity);
+        $newDdtRow->setPiecesOut($pieces);
         $newDdtRow->setMeasurementUnit($ddtRow->getMeasurementUnit());
         $newDdtRow->setCurrency($ddtRow->getCurrency());
         $newDdtRow->setPrice($ddtRow->getPrice());
