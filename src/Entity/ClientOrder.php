@@ -123,6 +123,7 @@ class ClientOrder
     private ?ContactAddress $address = null;
 
     #[ORM\ManyToOne(inversedBy: 'clientOrders')]
+    #[Groups(['client_order_detail'])]
     private ?ShippingCarrier $shipping_carrier = null;
 
     public function __construct()

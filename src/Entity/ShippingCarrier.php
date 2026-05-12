@@ -15,11 +15,11 @@ class ShippingCarrier
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['shipping_carrier_list', 'shipping_carrier_detail'])]
+    #[Groups(['shipping_carrier_list', 'shipping_carrier_detail', 'client_order_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['shipping_carrier_list', 'shipping_carrier_detail'])]
+    #[Groups(['shipping_carrier_list', 'shipping_carrier_detail', 'client_order_detail'])]
     private ?string $name = null;
 
     /**
