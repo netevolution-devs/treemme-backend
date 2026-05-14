@@ -215,7 +215,7 @@ final class BatchController extends AbstractController
             }
         }
 
-        $results = array_values(array_filter($thicknesses, function($item) {
+        $results = array_values(array_filter($thicknesses, function ($item) {
             return $item['total_pieces'] > 0;
         }));
 
@@ -322,7 +322,7 @@ final class BatchController extends AbstractController
 
         $batches = [];
         foreach ($allAvailableBatches as $batch) {
-            if($batch->getBatchType()->getName() === 'Spaccato' && $batch->getLeather()->getType()->getName() === "Fiore"){
+            if ($batch->getBatchType()->getName() === 'Spaccato' && $batch->getLeather()->getType()->getName() === "Fiore") {
                 $batches[] = $batch;
             }
         }
@@ -351,7 +351,7 @@ final class BatchController extends AbstractController
         ValidatorInterface $validator,
     ): JsonResponse
     {
-        return $this->createGenericProductionBatch($request, $validator, 'Rifinizione', 'UF', false);
+        return $this->createGenericProductionBatch($request, $validator, 'Rifinizione', 'UF', true);
     }
 
     private function createGenericProductionBatch(
@@ -447,28 +447,31 @@ final class BatchController extends AbstractController
 
             $this->doctrine->persist($newBatch);
 
-            if ($createProduction && isset($data['scheduled_date']) && isset($data['machine_id'])) {
-                $machine = $this->doctrine->getRepository(Machine::class)->find($data['machine_id']);
-                if ($machine) {
-                    $production = new Production();
-                    $production->setBatch($newBatch);
-                    $production->setMachine($machine);
-                    
-                    $scheduledDate = null;
-                    try {
-                        $scheduledDate = new \DateTime($data['scheduled_date']);
-                    } catch (\Exception $e) {
-                    }
+            if ($createProduction) {
 
-                    if ($scheduledDate) {
-                        $production->setScheduledDate($scheduledDate);
-                        $this->doctrine->persist($production);
-                    }
-
-                    if($orderRow->getProductionRowNote() || $orderRow->getClientOrder()->getOrderNoteProduction()){
-                        $production->setProductionNote($orderRow->getProductionRowNote() ?? $orderRow->getClientOrder()->getOrderNoteProduction());
-                    }
+                if (isset($data['machine_id'])) {
+                    $machine = $this->doctrine->getRepository(Machine::class)->find($data['machine_id']);
+                } else {
+                    $machine = $this->doctrine->getRepository(Machine::class)->findOneBy(['name' => 'Rifinizione', 'prefix' => 'RFZ']);
                 }
+
+                $production = new Production();
+                $production->setBatch($newBatch);
+                $production->setMachine($machine);
+
+                if (isset($data['scheduled_date'])) {
+                    $scheduledDate = new \DateTime($data['scheduled_date']);
+                } else {
+                    $scheduledDate = new \DateTime();
+                }
+
+                $production->setScheduledDate($scheduledDate);
+                $this->doctrine->persist($production);
+
+                if ($orderRow->getProductionRowNote() || $orderRow->getClientOrder()->getOrderNoteProduction()) {
+                    $production->setProductionNote($orderRow->getProductionRowNote() ?? $orderRow->getClientOrder()->getOrderNoteProduction());
+                }
+
             }
 
             $this->handleRelations($newBatch, $data);
@@ -600,7 +603,7 @@ final class BatchController extends AbstractController
         }
 
         $batchComposition = new BatchComposition();
-        if(isset($data['date'])){
+        if (isset($data['date'])) {
             $batchComposition->setDate(new \DateTime($data['date']) ?: new \DateTime());
         }
         $batchComposition->setBatch($newBatch);
@@ -678,7 +681,7 @@ final class BatchController extends AbstractController
         $availablePieces = (float)($reworkedBatch->getStockItems() ?? 0);
         $availableQuantity = (float)($reworkedBatch->getStockQuantity() ?? 0);
 
-        $calculatedQuantity = ($reworkedBatch->getQuantity() / $reworkedBatch->getPieces()) * $pieces ;
+        $calculatedQuantity = ($reworkedBatch->getQuantity() / $reworkedBatch->getPieces()) * $pieces;
 
         if ($pieces > $availablePieces) {
             return $this->doResponse->doErrorJsonResponse('Numero di pezzi superiore alla disponibilità (' . $availablePieces . ')', 400);
@@ -769,7 +772,7 @@ final class BatchController extends AbstractController
         }
 
         $sfComp = new BatchComposition();
-        if(isset($data['date'])){
+        if (isset($data['date'])) {
             $sfComp->setDate(new \DateTime($data['date']) ?: new \DateTime());
         }
         $sfComp->setBatch($sfBatch);
@@ -789,7 +792,7 @@ final class BatchController extends AbstractController
         $this->doctrine->persist($sfComp);
 
         $scComp = new BatchComposition();
-        if(isset($data['date'])){
+        if (isset($data['date'])) {
             $scComp->setDate(new \DateTime($data['date']) ?: new \DateTime());
         }
         $scComp->setBatch($scBatch);
@@ -949,7 +952,7 @@ final class BatchController extends AbstractController
                 $batch->setSqFtAverageExpected($batch->getSqFtAverageFound() ?? (float)0);
             }
 
-            if($batch->getSqFtAverageFound() === null || $batch->getSqFtAverageFound() == 0.0){
+            if ($batch->getSqFtAverageFound() === null || $batch->getSqFtAverageFound() == 0.0) {
                 $batch->setSqFtAverageFound((float)0);
             }
 
@@ -970,7 +973,7 @@ final class BatchController extends AbstractController
             }
 
             if ($batch->getQuantity() === null) {
-                $batch->setQuantity((float) 0);
+                $batch->setQuantity((float)0);
             }
 
             $batch->setSplitSelected(false);
@@ -1007,7 +1010,7 @@ final class BatchController extends AbstractController
             $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
             $inReason = $reasonRepo->findOneBy(['name' => 'Carico']);
 
-            if(!$inReason) {
+            if (!$inReason) {
                 return $this->doResponse->doErrorJsonResponse('Causale "Carico" non trovata', 400);
             }
 
@@ -1041,7 +1044,7 @@ final class BatchController extends AbstractController
         methods: ['PUT'])]
     public function modifyBatchCompensation(
         Request $request,
-        int $id,
+        int     $id,
     ): JsonResponse
     {
         $data = $request->toArray();
@@ -1050,7 +1053,7 @@ final class BatchController extends AbstractController
             return $this->doResponse->doErrorJsonResponse('Dati mancanti: pieces e type sono obbligatori', 400);
         }
 
-        $pieces = (int) $data['pieces'];
+        $pieces = (int)$data['pieces'];
 
         if ($pieces <= 0) {
             return $this->doResponse->doErrorJsonResponse('Il numero di pezzi deve essere maggiore di zero', 400);
@@ -1146,16 +1149,16 @@ final class BatchController extends AbstractController
             $batch = $this->handleRelations($batch, $data);
             $batch = $this->createMethodsByInput->createMethods($batch, $data);
 
-            if($batch->getMeasurementUnit()){
+            if ($batch->getMeasurementUnit()) {
                 $measurementUnit = $batch->getMeasurementUnit();
 
                 if ($measurementUnit->getPrefix() == 'MQ') {
                     $coefficientUm = $measurementUnit->getMeasurementUnitCoefficients()->first();
-                    if($batch->getPieces() > 0 && $batch->getQuantity() > 0) {
+                    if ($batch->getPieces() > 0 && $batch->getQuantity() > 0) {
                         $batch->setSqFtAverageFound($batch->getPieces() / ($coefficientUm->getCoefficient() * $batch->getQuantity()));
                     }
-                } elseif($batch->getMeasurementUnit()->getPrefix() == 'PQ') {
-                    if($batch->getPieces() > 0 && $batch->getQuantity() > 0) {
+                } elseif ($batch->getMeasurementUnit()->getPrefix() == 'PQ') {
+                    if ($batch->getPieces() > 0 && $batch->getQuantity() > 0) {
                         $batch->setSqFtAverageFound($batch->getPieces() / $batch->getQuantity());
                     }
                 }
@@ -1188,15 +1191,15 @@ final class BatchController extends AbstractController
             }
 
             if ($batch->getQuantity() === null) {
-                $batch->setQuantity((float) 0);
+                $batch->setQuantity((float)0);
             }
 
             if ($batch->getSqFtAverageExpected() === null) {
-                $batch->setSqFtAverageExpected((float) 0);
+                $batch->setSqFtAverageExpected((float)0);
             }
 
             if ($batch->getSqFtAverageFound() === null) {
-                $batch->setSqFtAverageFound((float) 0);
+                $batch->setSqFtAverageFound((float)0);
             }
 
             $batch->setUpdatedAt(new \DateTimeImmutable());
