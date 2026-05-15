@@ -426,16 +426,16 @@ final class ClientOrderRowController extends AbstractController
             $price = $currencyExchange != 0 ? round($currencyPrice / $currencyExchange, 2) : 0.0;
             $clientOrderRow->setPrice($price);
             $clientOrderRow->setCurrencyExchange($currencyExchange);
-            $clientOrderRow->setCurrencyPrice(round($currencyPrice, 2));
+            $clientOrderRow->setCurrencyPrice(round($currencyPrice, 4));
         } else {
             $price = $clientOrderRow->getPrice() ?: 0.0;
-            $currencyPrice = round($price * $currencyExchange, 2);
+            $currencyPrice = round($price * $currencyExchange, 4);
             $clientOrderRow->setCurrencyPrice($currencyPrice);
         }
 
         // Totali
-        $totalPrice = round($quantity * $price, 2);
-        $totalCurrencyPrice = round($quantity * $currencyPrice, 2);
+        $totalPrice = round($quantity * $price, 4);
+        $totalCurrencyPrice = round($quantity * $currencyPrice, 4);
 
         $clientOrderRow->setTotalPrice($totalPrice);
         $clientOrderRow->setTotalCurrencyPrice($totalCurrencyPrice);

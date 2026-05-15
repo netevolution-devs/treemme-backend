@@ -247,6 +247,10 @@ class ProductionController extends AbstractController
         $groupedProductions = [];
         foreach ($productions as $production) {
             $machine = $production->getMachine();
+            $batch = $production->getBatch();
+            if(str_starts_with($batch->getBatchCode(), 'UF')){
+                continue;
+            }
             $machineId = $machine ? $machine->getId() : 0;
             if (!isset($groupedProductions[$machineId])) {
                 $groupedProductions[$machineId] = [
