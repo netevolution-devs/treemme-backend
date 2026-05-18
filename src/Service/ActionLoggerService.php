@@ -28,29 +28,52 @@ class ActionLoggerService
      *
      * @param string $action action name
      * @param object|array $data entity modified (object) or other data (array)
+     * @param bool $anonymous whether to log the user or not
      * @return void
      *
      */
-    public function logAction(string $action, object|array $data): void
+    public function logAction(string $action, object|array $data = [], bool $anonymous = false, ?string $scope = null, ?int $recordId = null): void
     {
-        $scope = str_contains($this->requestStack->getCurrentRequest()->getPathInfo(), 'api') ? 'api' : 'to_be_defined';
+        $request = $this->requestStack->getCurrentRequest();
+
+        $path = $request?->getPathInfo() ?? '';
+
+        if ($scope === null) {
+            $scope = str_contains($path, 'api') ? 'api' : (str_contains($path, 'backoffice') ? 'backoffice' : 'other');
+        }
+
         $extra = [
-            'ip' => $this->requestStack->getCurrentRequest()->getClientIp(),
-            'content' => $this->requestStack->getCurrentRequest()->getContent(),
-            'headers' => $this->requestStack->getCurrentRequest()->headers->all(),
-            'method' => $this->requestStack->getCurrentRequest()->getMethod(),
-            'locale' => $this->requestStack->getCurrentRequest()->getLocale()
+            'ip' => $request?->getClientIp(),
+            'headers' => $request?->headers->all() ?? [],
+            'method' => $request?->getMethod(),
+            'path' => $path,
+            'locale' => $request?->getLocale(),
         ];
+
+        if ($recordId !== null) {
+            $extra['record_id'] = $recordId;
+        } else {
+            // Se recordId è null, proviamo a vedere se era una stringa (es. user_code) passata nel path
+            $request = $this->requestStack->getCurrentRequest();
+            if ($request) {
+                $recordIdAttr = $request->attributes->get('id') ?: ($request->attributes->get('user_code') ?: $request->attributes->get('code'));
+                if ($recordIdAttr) {
+                    $extra['record_id_string'] = $recordIdAttr;
+                }
+            }
+        }
 
         $log = new ActionsLogs();
         $log->setScope($scope)
             ->setAction($action)
-            ->setData((array)$data)
+            ->setData(is_array($data) ? $data : [])
             ->setExtra($extra);
 
-        $user = $this->userService->getCurrentUser();
-        if($user){
-            $log->setUser($user->getId());
+        if (!$anonymous) {
+            $user = $this->userService->getCurrentUser();
+            if ($user) {
+                $log->setUser($user->getId());
+            }
         }
 
         $em = $this->em->getManager('logger');
