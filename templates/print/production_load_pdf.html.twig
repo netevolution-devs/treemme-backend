@@ -37,6 +37,7 @@
         }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
+        .text-left { text-align: left; }
         .bold { font-weight: bold; }
         .border-none { border: none !important; }
         .border-left { border-left: 1px solid black !important; }
@@ -95,7 +96,12 @@
                 <td style="width: 10%;" class="border-none border-right">{{ batch.batchCode }}</td>
                 <td style="width: 8%;" class="border-none border-right">{{ article ? article.code : article.clientCode }}</td>
                 <td  colspan=3 style="width: 20%;" class="border-none border-right">{{ article ? article.name : '' }} {{ article ? article.articleVariation : '' }}</td>
-                <td style="width: 5%; padding-right: 2px;" class="text-right border-none">{{ batch.pieces }} PZ</td>
+                <td style="width: 5%; padding-right: 2px;" class="text-left border-none">
+                    <div style="display:flex; gap:12px;">
+                        <span>{{ batch.pieces }} PZ</span>
+                        <span style=" padding-right: 12px; padding-left: 12px">KG</span>
+                    </div>
+                </td>
             </tr>
 
             {% if batch.batchCompositions|length > 0 %}

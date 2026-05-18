@@ -145,7 +145,8 @@ final class DdtRowController extends AbstractController
                 // Identifica il primo movimento in uscita con la causale del DDT che corrisponde al numero DDT della riga
                 if ($firstMovementOut === null && 
                     $reasonName === $ddtReasonName && 
-                    $reasonTypeName === 'Scarico'
+                    $reasonTypeName === 'Scarico' &&
+                    $movement->getDdtNumber() === $ddt->getDdtNumber()
                 ) {
                     $firstMovementOut = $movement;
                     continue;
@@ -162,8 +163,8 @@ final class DdtRowController extends AbstractController
                             
                             // Nel trasferimento bisogna prendere la quantity di un pezzo e moltiplicarlo per i pezzi trasferiti, questo vale anche per i resi....
                             $unitQuantity = 0;
-                            $pOut = $ddtRow->getPiecesOut() ?? 0;
-                            $qOut = $ddtRow->getQuantityOut() ?? 0;
+                            $pOut = $ddtRow->getPiecesOut() ?? $ddtRow->getPieces() ?? 0;
+                            $qOut = $ddtRow->getQuantityOut() ?? $ddtRow->getQuantity() ?? 0;
                             if ($pOut > 0) {
                                 $unitQuantity = $qOut / $pOut;
                             }
@@ -173,9 +174,9 @@ final class DdtRowController extends AbstractController
                 }
             }
 
-            if ($firstMovementOut !== null || $ddtRow->getPiecesOut() !== null) {
-                $outPieces = $ddtRow->getPiecesOut() ?? abs($firstMovementOut->getPiece() ?? 0);
-                $outQuantity = $ddtRow->getQuantityOut() ?? abs($firstMovementOut->getQuantity() ?? 0);
+            if ($firstMovementOut !== null || $ddtRow->getPiecesOut() !== null || $ddtRow->getPieces() !== null) {
+                $outPieces = $ddtRow->getPiecesOut() ?? $ddtRow->getPieces() ?? abs($firstMovementOut->getPiece() ?? 0);
+                $outQuantity = $ddtRow->getQuantityOut() ?? $ddtRow->getQuantity() ?? abs($firstMovementOut->getQuantity() ?? 0);
                 
                 $remainingPieces = $outPieces - $returnedPieces;
                 $remainingQuantity = $outQuantity - $returnedQuantity;
@@ -810,8 +811,21 @@ final class DdtRowController extends AbstractController
             return $this->doResponse->doErrorJsonResponse('Terzista non trovato', 404);
         }
 
-        $quantity = (float)($data['quantity'] ?? $ddtRow->getQuantity());
         $pieces = (int)($data['pieces'] ?? $ddtRow->getPieces());
+        $quantity = (float)($data['quantity'] ?? null);
+
+        if ($quantity === null && isset($data['pieces'])) {
+            // Se sono stati passati i pezzi ma non la quantità, ricalcolo la quantità proporzionalmente
+            $oldPieces = $ddtRow->getPieces();
+            $oldQuantity = $ddtRow->getQuantity();
+            if ($oldPieces > 0) {
+                $quantity = ($oldQuantity / $oldPieces) * $pieces;
+            } else {
+                $quantity = 0.0;
+            }
+        } elseif ($quantity === null) {
+            $quantity = $ddtRow->getQuantity();
+        }
 
         $ddt = $ddtRow->getDdt();
 

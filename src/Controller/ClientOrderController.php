@@ -7,6 +7,7 @@ use App\Entity\Contact;
 use App\Entity\ContactAddress;
 use App\Entity\Payment;
 use App\Entity\ShipmentCondition;
+use App\Entity\ShippingCarrier;
 use App\Entity\User;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
@@ -304,6 +305,13 @@ final class ClientOrderController extends AbstractController
                 $clientOrder->setAddress($address);
             }
             unset($data['address_id']);
+        }
+        if(isset($data['shipping_carrier_id'])) {
+            $carrier = $this->doctrine->getRepository(ShippingCarrier::class)->find($data['shipping_carrier_id']);
+            if ($carrier) {
+                $clientOrder->setShippingCarrier($carrier);
+            }
+            unset($data['shipping_carrier_id']);
         }
 
         return $clientOrder;
