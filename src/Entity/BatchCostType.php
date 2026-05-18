@@ -14,11 +14,11 @@ class BatchCostType
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['batch_cost_type_list', 'batch_cost_type_detail', 'batch_cost_detail'])]
+    #[Groups(['batch_cost_type_list', 'batch_cost_type_detail', 'batch_cost_list', 'batch_cost_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['batch_cost_type_list', 'batch_cost_type_detail', 'batch_cost_detail'])]
+    #[Groups(['batch_cost_type_list', 'batch_cost_type_detail', 'batch_cost_list', 'batch_cost_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(nullable: true)]

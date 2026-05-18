@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Stampa Rientri Lavorazione Esterna</title>
+    <style>
+        @page { size: A4 landscape; margin: 0.5cm; }
+        body { font-family: Arial, sans-serif; font-size: 8pt; color: #000; margin: 0; }
+        .page { page-break-after: always; padding: 0; }
+        .page:last-child { page-break-after: avoid; }
+        h1 { font-size: 12pt; margin-bottom: 10px; text-align: center; border-bottom: 1px solid #000; padding-bottom: 5px; text-transform: uppercase; }
+        
+        .rows-table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+        .rows-table th { border-bottom: 1px solid #000;  text-align: center; font-size: 8pt; text-transform: uppercase; }
+        .rows-table td { vertical-align: middle; font-size: 8pt; border: none;  border-bottom: 1px solid #000;}
+
+        .text-center { text-align: center; }
+        
+        .footer { position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 7pt; color: #777; }
+    </style>
+</head>
+<body>
+    <div class="page-content">
+        
+        <h1 style="text-align: left;">RIEPILOGO LOTTI IN CONTO LAVORAZIONE</h1>
+
+        {% for subGroup in data %}
+        <table class="rows-table" style="margin-top: 20px;">
+            <thead>
+                <tr>
+                    <th colspan="9" style="font-size: 10pt; border-bottom: 2px solid #000; padding-top: 10px;">{{ subGroup.subcontractor.name }}</th>
+                </tr>
+                <tr>
+                    <th style="width: 70px;">DATA DDT</th>
+                    <th class="text-center" style="width: 50px;">DDT</th>
+                    <th style="width: 70px;">LOTTO</th>
+                    <th style="width: 120px; text-align: left;">CLIENTE</th>
+                    <th style="width: 280px; text-align: left;">ARTICOLO</th>
+                    <th class="text-center" style="width: 40px;  border-right: 1px solid #000;">PEZZI</th>
+                    <th class="text-center" style="width: 80px;">DATA</th>
+                    <th class="text-center" style="width: 40px;">PEZZI</th>
+                    <th style="text-align: left;">LAVORAZIONI</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set totalPieces = 0 %}
+                {% set totalReturnedSub = 0 %}
+                {% set batchCodes = [] %}
+                
+                {% for row in subGroup.rows %}
+                    <tr>
+                        <td class="text-center">{{ row.ddt.ddt_date|date('d/m/Y') }}</td>
+                        <td style="text-align: center">{{ row.ddt.ddt_number }}</td>
+                        <td>{{ row.batch.batch_code }}</td>
+                        <td>
+                            {% set clientNames = [] %}
+                            {% for bo in row.batch.batch_orders %}
+                                {% if bo.order_row and bo.order_row.client_order and bo.order_row.client_order.client %}
+                                    {% if bo.order_row.client_order.client.name not in clientNames %}
+                                        {% set clientNames = clientNames|merge([bo.order_row.client_order.client.name]) %}
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                            {{ clientNames|join(', ') }}
+                        </td>
+                        <td>{{ row.batch.article.client_code ?? row.batch.leather.name ?? '' }}</td>
+                        <td class="text-center" style="border-right: 1px solid #000">{{ row.pieces }}</td>
+                        <td class="text-center">{{ row.last_return_date ? row.last_return_date|date('d/m/Y') : '-' }}</td>
+                        <td class="text-center">{{ row.returned_pieces > 0 ? '-' ~ row.returned_pieces : '-' }}</td>
+                        <td>
+                            {% set processings = [] %}
+                            {% for drp in row.ddt_row_processings %}
+                                {% if drp.processing %}
+                                    {% set processings = processings|merge([drp.processing.name]) %}
+                                {% endif %}
+                            {% endfor %}
+                            {{ processings|join(', ') }}
+                        </td>
+                    </tr>
+                    {% set totalPieces = totalPieces + row.pieces %}
+                    {% set totalReturnedSub = totalReturnedSub + row.returned_pieces %}
+                    {% if row.batch.batch_code not in batchCodes %}
+                        {% set batchCodes = batchCodes|merge([row.batch.batch_code]) %}
+                    {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endfor %}
+
+    </div>
+    
+    <div class="footer">
+        Documento generato il {{ "now"|date('d/m/Y H:i') }}
+    </div>
+</body>
+</html>

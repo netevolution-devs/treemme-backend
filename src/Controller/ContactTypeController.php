@@ -46,10 +46,10 @@ final class ContactTypeController extends AbstractController
         if($id) {
             $contactType = [$contactTypeRepository->find($id)];
             if (!$contactType[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('ContactType not found', 404));
+                return $this->doResponse->doErrorJsonResponse('ContactType not found', 404);
             }
         } else {
-            $contactType = $contactTypeRepository->findBy([], ['id' => 'DESC']);
+            $contactType = $contactTypeRepository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($contactType, $id ? 'contact_type_detail' : 'contact_type_list');
 
@@ -85,7 +85,7 @@ final class ContactTypeController extends AbstractController
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
 
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $em = $this->doctrine;
@@ -97,7 +97,7 @@ final class ContactTypeController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
     #[Route('/contact-type/{id}',
@@ -113,7 +113,7 @@ final class ContactTypeController extends AbstractController
 
         $contactType = $this->doctrine->getRepository(ContactType::class)->find($id);
         if (!$contactType) {
-            return new JsonResponse($this->doResponse->doErrorResponse('ContactType not found', 404));
+            return $this->doResponse->doErrorJsonResponse('ContactType not found', 404);
         }
 
         $contactType = $this->createMethodsByInput->createMethods($contactType, $data);
@@ -127,7 +127,7 @@ final class ContactTypeController extends AbstractController
         if (count($errors) > 0) {
             $errors = $this->validatorOutputFormatter->formatOutput($errors);
 
-            return new JsonResponse($this->doResponse->doErrorResponse($errors));
+            return $this->doResponse->doErrorJsonResponse($errors);
         }
         $this->doctrine->persist($contactType);
         $this->doctrine->flush();
@@ -144,7 +144,7 @@ final class ContactTypeController extends AbstractController
     {
         $contactType = $this->doctrine->getRepository(ContactType::class)->find($id);
         if (!$contactType) {
-            return new JsonResponse($this->doResponse->doErrorResponse('ContactType not found', 404));
+            return $this->doResponse->doErrorJsonResponse('ContactType not found', 404);
         }
 
         $this->doctrine->remove($contactType);
@@ -152,3 +152,4 @@ final class ContactTypeController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
     }
 }
+

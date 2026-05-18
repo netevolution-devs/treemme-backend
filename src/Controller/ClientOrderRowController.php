@@ -5,13 +5,16 @@ namespace App\Controller;
 use App\Entity\Article;
 use App\Entity\ClientOrderRow;
 use App\Entity\ClientOrder;
+use App\Entity\ContactAddress;
 use App\Entity\Currency;
-use App\Entity\Product;
 use App\Entity\MeasurementUnit;
+use App\Entity\Selection;
+use App\Service\PdfGeneratorService;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
 use App\Service\ValidatorOutputFormatter;
+use App\Service\ActionLoggerService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -26,6 +29,8 @@ final class ClientOrderRowController extends AbstractController
     private $doResponse;
     private $groupSerializer;
     private $validatorOutputFormatter;
+    private $actionLogger;
+    private $pdfGenerator;
 
     public function __construct(
         CreateMethodsByInput     $createMethodsByInput,
@@ -33,6 +38,8 @@ final class ClientOrderRowController extends AbstractController
         DoResponseService        $doResponseService,
         GroupSerializerService   $groupSerializer,
         ValidatorOutputFormatter $validatorOutputFormatter,
+        ActionLoggerService      $actionLogger,
+        PdfGeneratorService      $pdfGenerator,
     )
     {
         $this->createMethodsByInput = $createMethodsByInput;
@@ -40,6 +47,191 @@ final class ClientOrderRowController extends AbstractController
         $this->doResponse = $doResponseService;
         $this->groupSerializer = $groupSerializer;
         $this->validatorOutputFormatter = $validatorOutputFormatter;
+        $this->actionLogger = $actionLogger;
+        $this->pdfGenerator = $pdfGenerator;
+    }
+
+    #[Route('/client-order-row-report',
+        name: 'get_client_order_row_report',
+        methods: ['GET'])]
+    public function getClientOrderRowsReport(Request $request): JsonResponse
+    {
+        $startDate = $request->query->get('start_date');
+        $endDate = $request->query->get('end_date');
+        $shippingStatus = $request->query->get('shipping_status'); // 'to_ship', 'shipped'
+        $productionStatus = $request->query->get('production_status'); // 'to_produce', 'produced'
+        $printStatus = $request->query->get('print_status'); // 'to_print', 'printed'
+        $clientId = $request->query->get('client_id');
+
+        $qb = $this->doctrine->getRepository(ClientOrderRow::class)->createQueryBuilder('cor');
+        $qb->join('cor.client_order', 'co')
+           ->join('co.client', 'c');
+
+        if ($startDate) {
+            $qb->andWhere('co.order_date >= :startDate')
+               ->setParameter('startDate', new \DateTime($startDate));
+        }
+        if ($endDate) {
+            $qb->andWhere('co.order_date <= :endDate')
+               ->setParameter('endDate', new \DateTime($endDate));
+        }
+
+        if ($clientId) {
+            $qb->andWhere('c.id = :clientId')
+               ->setParameter('clientId', $clientId);
+        }
+
+        if ($shippingStatus === 'to_ship') {
+            $qb->andWhere('cor.quantity_to_ship > 0');
+        } elseif ($shippingStatus === 'shipped') {
+            $qb->andWhere('cor.quantity_to_ship <= 0 OR cor.quantity_to_ship IS NULL');
+        }
+
+        // Filtro produzione tramite query per efficienza se possibile, 
+        // ma la logica della somma quantità lotti è complessa per DQL puro in questo contesto.
+        // Manteniamo la logica post-query per precisione sulla somma delle quantità dei lotti.
+
+        if ($printStatus === 'printed') {
+            $qb->andWhere('co.printed = true');
+        } elseif ($printStatus === 'to_print') {
+            $qb->andWhere('co.printed = false OR co.printed IS NULL');
+        }
+
+        $rows = $qb->getQuery()->getResult();
+
+        // Filtro produzione e preparazione report (lista piatta)
+        $report = [];
+        foreach ($rows as $row) {
+            $totalProduced = 0;
+            foreach ($row->getBatchOrders() as $bo) {
+                $batch = $bo->getBatch();
+                if ($batch) {
+                    $totalProduced += (float)$batch->getQuantity();
+                }
+            }
+
+            // Consideriamo "prodotto" se la quantità totale associata ai lotti è >= alla quantità ordinata
+            $isProduced = $totalProduced >= (float)$row->getQuantity();
+
+            if ($productionStatus === 'produced' && !$isProduced) continue;
+            if ($productionStatus === 'to_produce' && $isProduced) continue;
+
+            $report[] = $this->groupSerializer->serializeGroup($row, 'client_order_row_list');
+        }
+
+        return new JsonResponse($this->doResponse->doResponse($report));
+    }
+
+    #[Route('/client/client-order-row-summary-print',
+        name: 'get_client_order_row_summary_print',
+        methods: ['GET'])]
+    public function getClientSummaryPrint(Request $request): \Symfony\Component\HttpFoundation\Response
+    {
+        $clientId = $request->query->get('client_id');
+        $startDate = $request->query->get('start_date');
+        $endDate = $request->query->get('end_date');
+
+        $qb = $this->doctrine->getRepository(ClientOrderRow::class)->createQueryBuilder('cor');
+        $qb->join('cor.client_order', 'co')
+            ->join('co.client', 'c')
+            ->orderBy('c.name', 'ASC')
+            ->addOrderBy('co.order_date', 'ASC')
+            ->addOrderBy('cor.id', 'ASC');
+
+        if ($startDate) {
+            $qb->andWhere('co.order_date >= :startDate')
+                ->setParameter('startDate', new \DateTime($startDate));
+        }
+        if ($endDate) {
+            $qb->andWhere('co.order_date <= :endDate')
+                ->setParameter('endDate', new \DateTime($endDate));
+        }
+        if ($clientId) {
+            $qb->andWhere('c.id = :clientId')
+                ->setParameter('clientId', $clientId);
+        }
+
+        /** @var ClientOrderRow[] $rows */
+        $rows = $qb->getQuery()->getResult();
+
+        $groupedData = [];
+        foreach ($rows as $row) {
+            $client = $row->getClientOrder()->getClient();
+            if (!$client) continue;
+
+            $cId = $client->getId();
+            if (!isset($groupedData[$cId])) {
+                // Prendi la prima destinazione (ID più basso)
+                $firstAddress = null;
+                $addresses = $client->getContactAddresses()->toArray();
+                if (!empty($addresses)) {
+                    usort($addresses, fn($a, $b) => $a->getId() <=> $b->getId());
+                    $firstAddress = $addresses[0];
+                }
+
+                // Prendi il primo agente associato
+                $firstAgent = null;
+                $agents = $client->getContactAgents();
+                if (!$agents->isEmpty()) {
+                    $firstAgent = $agents->first()->getAgent();
+                }
+
+                $groupedData[$cId] = [
+                    'client' => $this->groupSerializer->serializeGroup($client, 'client_summary_print'),
+                    'firstAddress' => $firstAddress ? $this->groupSerializer->serializeGroup($firstAddress, 'client_summary_print') : null,
+                    'firstAgent' => $firstAgent ? $this->groupSerializer->serializeGroup($firstAgent, 'client_summary_print') : null,
+                    'orders' => []
+                ];
+            }
+
+            $orderId = $row->getClientOrder()->getId();
+            if (!isset($groupedData[$cId]['orders'][$orderId])) {
+                $groupedData[$cId]['orders'][$orderId] = [
+                    'details' => $this->groupSerializer->serializeGroup($row->getClientOrder(), 'client_summary_print'),
+                    'rows' => []
+                ];
+            }
+
+            // Dati DDT: OrderRow->BatchOrder->Batch->ddtRow solo per ddt di tipo Vendita
+            $ddtData = null;
+            foreach ($row->getBatchOrders() as $bo) {
+                $batch = $bo->getBatch();
+                if ($batch) {
+                    foreach ($batch->getDdtRows() as $dr) {
+                        $ddt = $dr->getDdt();
+                        if ($ddt && $ddt->getReason() && $ddt->getReason()->getName() === 'Vendita') {
+                            $ddtData = $this->groupSerializer->serializeGroup($dr, 'client_summary_print');
+                            break 2;
+                        }
+                    }
+                }
+            }
+
+            $rowSerialized = $this->groupSerializer->serializeGroup($row, 'client_summary_print');
+            $rowSerialized['ddt_row'] = $ddtData;
+            $rowSerialized['batch_orders'] = $this->groupSerializer->serializeGroup($row->getBatchOrders(), 'client_summary_print');
+
+            $groupedData[$cId]['orders'][$orderId]['rows'][] = $rowSerialized;
+        }
+
+        // Trasformiamo in array semplice per Twig
+        $finalData = [];
+        foreach ($groupedData as $clientData) {
+            $clientData['orders'] = array_values($clientData['orders']);
+            $finalData[] = $clientData;
+        }
+
+        $pdfContent = $this->pdfGenerator->generatePdf('print/client_summary_pdf.html.twig', [
+            'data' => $finalData,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'orientation' => 'landscape'
+        ], 'riepilogo_clienti.pdf');
+
+        return new \Symfony\Component\HttpFoundation\Response($pdfContent, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="riepilogo_clienti.pdf"'
+        ]);
     }
 
     #[Route('/client-order-row/{id}',
@@ -54,10 +246,10 @@ final class ClientOrderRowController extends AbstractController
         if ($id) {
             $clientOrderRow = [$clientOrderRowRepository->find($id)];
             if (!$clientOrderRow[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('ClientOrderRow not found', 404));
+                return $this->doResponse->doErrorJsonResponse('ClientOrderRow not found', 404);
             }
         } else {
-            $clientOrderRow = $clientOrderRowRepository->findBy([], ['id' => 'DESC']);
+            $clientOrderRow = $clientOrderRowRepository->findBy([], ['id' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($clientOrderRow, $id ? 'client_order_row_detail' : 'client_order_row_list');
 
@@ -80,12 +272,20 @@ final class ClientOrderRowController extends AbstractController
 
         try {
             $clientOrderRow = $this->handleRelations($clientOrderRow, $data);
+
             $clientOrderRow = $this->createMethodsByInput->createMethods($clientOrderRow, $data);
+
+            if ($clientOrderRow->getClientOrder() && (!$clientOrderRow->getWeight() || $clientOrderRow->getWeight() === 0)) {
+                $maxWeight = $this->doctrine->getRepository(ClientOrderRow::class)->findMaxWeightByOrder($clientOrderRow->getClientOrder()->getId());
+                $clientOrderRow->setWeight($maxWeight + 1);
+            }
+
+            $this->calculatePrices($clientOrderRow);
 
             $errors = $validator->validate($clientOrderRow);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $em = $this->doctrine;
@@ -96,7 +296,7 @@ final class ClientOrderRowController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -113,17 +313,28 @@ final class ClientOrderRowController extends AbstractController
         $clientOrderRow = $this->doctrine->getRepository(ClientOrderRow::class)->find($id);
 
         if (!$clientOrderRow) {
-            return new JsonResponse($this->doResponse->doErrorResponse('ClientOrderRow not found', 404));
+            return $this->doResponse->doErrorJsonResponse('ClientOrderRow not found', 404);
+        }
+
+        if ($clientOrderRow->getClientOrder() && $clientOrderRow->getClientOrder()->isChecked()) {
+            return $this->doResponse->doErrorJsonResponse('Non è possibile modificare una riga di un ordine già controllato', 403);
         }
 
         try {
             $clientOrderRow = $this->handleRelations($clientOrderRow, $data);
             $clientOrderRow = $this->createMethodsByInput->createMethods($clientOrderRow, $data);
 
+            if ($clientOrderRow->getClientOrder() && (!$clientOrderRow->getWeight() || $clientOrderRow->getWeight() === 0)) {
+                $maxWeight = $this->doctrine->getRepository(ClientOrderRow::class)->findMaxWeightByOrder($clientOrderRow->getClientOrder()->getId());
+                $clientOrderRow->setWeight($maxWeight + 1);
+            }
+
+            $this->calculatePrices($clientOrderRow);
+
             $errors = $validator->validate($clientOrderRow);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($clientOrderRow);
@@ -132,7 +343,7 @@ final class ClientOrderRowController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($clientOrderRow, 'client_order_row_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -143,7 +354,7 @@ final class ClientOrderRowController extends AbstractController
     {
         $clientOrderRow = $this->doctrine->getRepository(ClientOrderRow::class)->find($id);
         if (!$clientOrderRow) {
-            return new JsonResponse($this->doResponse->doErrorResponse('ClientOrderRow not found', 404));
+            return $this->doResponse->doErrorJsonResponse('ClientOrderRow not found', 404);
         }
 
         $this->doctrine->remove($clientOrderRow);
@@ -186,6 +397,49 @@ final class ClientOrderRowController extends AbstractController
             unset($data['currency_id']);
         }
 
+        if (isset($data['selection_id'])) {
+            $selection = $this->doctrine->getRepository(Selection::class)->find($data['selection_id']);
+            if ($selection) {
+                $clientOrderRow->setSelection($selection);
+            }
+            unset($data['selection_id']);
+        }
+        if (isset($data['address_id'])) {
+            $address = $this->doctrine->getRepository(ContactAddress::class)->find($data['address_id']);
+            if ($address) {
+                $clientOrderRow->setAddress($address);
+            }
+            unset($data['address_id']);
+        }
+
         return $clientOrderRow;
     }
+
+    private function calculatePrices(ClientOrderRow $clientOrderRow): void
+    {
+
+        $quantity = $clientOrderRow->getQuantity() ?: 0;
+        $currencyPrice = $clientOrderRow->getCurrencyPrice(); // Valuta estera per unità
+        $currencyExchange = $clientOrderRow->getCurrencyExchange() ?: 1.0; // quanta valuta estera per 1 EUR
+
+        // Se arriva currencyPrice, ricalcola sempre price (EUR)
+        if ($currencyPrice !== null) {
+            $price = $currencyExchange != 0 ? round($currencyPrice / $currencyExchange, 2) : 0.0;
+            $clientOrderRow->setPrice($price);
+            $clientOrderRow->setCurrencyExchange($currencyExchange);
+            $clientOrderRow->setCurrencyPrice(round($currencyPrice, 4));
+        } else {
+            $price = $clientOrderRow->getPrice() ?: 0.0;
+            $currencyPrice = round($price * $currencyExchange, 4);
+            $clientOrderRow->setCurrencyPrice($currencyPrice);
+        }
+
+        // Totali
+        $totalPrice = round($quantity * $price, 4);
+        $totalCurrencyPrice = round($quantity * $currencyPrice, 4);
+
+        $clientOrderRow->setTotalPrice($totalPrice);
+        $clientOrderRow->setTotalCurrencyPrice($totalCurrencyPrice);
+    }
 }
+

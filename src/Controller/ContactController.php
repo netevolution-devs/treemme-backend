@@ -7,6 +7,8 @@ use App\Entity\ContactAgent;
 use App\Entity\ContactSubcontractor;
 use App\Entity\ContactType;
 use App\Entity\ContactTitle;
+use App\Entity\Payment;
+use App\Entity\ShipmentCondition;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -63,7 +65,7 @@ final class ContactController extends AbstractController
         if ($id) {
             $contact = [$contactRepository->find($id)];
             if (!$contact[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('Contact not found', 404));
+                return $this->doResponse->doErrorJsonResponse('Contact not found', 404);
             }
         } else {
             $name = $request->query->get('contact_name');
@@ -74,16 +76,16 @@ final class ContactController extends AbstractController
                 $contact = $contactRepository->searchContacts($name, $detailName);
             } else if ($type) {
                 if ($type == 'client') {
-                    $contact = $contactRepository->findBy(['client' => true], ['id' => 'DESC']);
+                    $contact = $contactRepository->findBy(['client' => true], ['name' => 'ASC']);
                 } else if ($type == 'supplier') {
-                    $contact = $contactRepository->findBy(['supplier' => true], ['id' => 'DESC']);
+                    $contact = $contactRepository->findBy(['supplier' => true], ['name' => 'ASC']);
                 } else if ($type == 'agent') {
-                    $contact = $contactRepository->findBy(['agent' => true], ['id' => 'DESC']);
+                    $contact = $contactRepository->findBy(['agent' => true], ['name' => 'ASC']);
                 } else if ($type == 'subcontractor') {
-                    $contact = $contactRepository->findBy(['subcontractor' => true], ['id' => 'DESC']);
+                    $contact = $contactRepository->findBy(['subcontractor' => true], ['name' => 'ASC']);
                 }
             } else {
-                $contact = $contactRepository->findBy([], ['id' => 'DESC']);
+                $contact = $contactRepository->findBy([], ['name' => 'ASC']);
             }
 
         }
@@ -135,7 +137,7 @@ final class ContactController extends AbstractController
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
 
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $em = $this->doctrine;
@@ -147,7 +149,7 @@ final class ContactController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -164,7 +166,7 @@ final class ContactController extends AbstractController
 
         $contact = $this->doctrine->getRepository(Contact::class)->find($id);
         if (!$contact) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Contact not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Contact not found', 404);
         }
 
         try {
@@ -178,7 +180,7 @@ final class ContactController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($contact, 'contact_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -188,7 +190,7 @@ final class ContactController extends AbstractController
         $contact = $this->doctrine->getRepository(Contact::class)->find($id);
 
         if (!$contact) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Contact not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Contact not found', 404);
         }
 
         $em = $this->doctrine;
@@ -209,20 +211,20 @@ final class ContactController extends AbstractController
         $agent = $contactRepository->find($agentId);
 
         if (!$contact) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Contact not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Contact not found', 404);
         }
 
         if (!$agent) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Agent not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Agent not found', 404);
         }
 
         if (!$agent->isAgent()) {
-            return new JsonResponse($this->doResponse->doErrorResponse('The selected contact is not an agent', 400));
+            return $this->doResponse->doErrorJsonResponse('The selected contact is not an agent', 400);
         }
 
         foreach ($contact->getContactAgents() as $existingContactAgent) {
             if ($existingContactAgent->getAgent()->getId() === $agent->getId()) {
-                return new JsonResponse($this->doResponse->doErrorResponse('Agent already associated', 400));
+                return $this->doResponse->doErrorJsonResponse('Agent already associated', 400);
             }
         }
 
@@ -247,7 +249,7 @@ final class ContactController extends AbstractController
         $contact = $contactRepository->find($id);
 
         if (!$contact) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Contact not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Contact not found', 404);
         }
 
         $contactAgentRepository = $this->doctrine->getRepository(ContactAgent::class);
@@ -257,10 +259,78 @@ final class ContactController extends AbstractController
         ]);
 
         if (!$contactAgent) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Association not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Association not found', 404);
         }
 
         $this->doctrine->remove($contactAgent);
+        $this->doctrine->flush();
+
+        return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
+    }
+
+    #[Route('/contact/{id}/subcontractor/{subcontractorId}',
+        name: 'add_contact_subcontractor',
+        requirements: ['id' => '\d+', 'subcontractorId' => '\d+'],
+        methods: ['POST'])]
+    public function addSubcontractorToContact(int $id, int $subcontractorId): JsonResponse
+    {
+        $contactRepository = $this->doctrine->getRepository(Contact::class);
+        $contact = $contactRepository->find($id);
+        $subcontractor = $contactRepository->find($subcontractorId);
+
+        if (!$contact) {
+            return $this->doResponse->doErrorJsonResponse('Contact not found', 404);
+        }
+
+        if (!$subcontractor) {
+            return $this->doResponse->doErrorJsonResponse('Subcontractor not found', 404);
+        }
+
+        if (!$subcontractor->isSubcontractor()) {
+            return $this->doResponse->doErrorJsonResponse('The selected contact is not a subcontractor', 400);
+        }
+
+        foreach ($contact->getContactSubcontractors() as $existingContactSubcontractor) {
+            if ($existingContactSubcontractor->getSubcontractor()->getId() === $subcontractor->getId()) {
+                return $this->doResponse->doErrorJsonResponse('Subcontractor already associated', 400);
+            }
+        }
+
+        $contactSubcontractor = new ContactSubcontractor();
+        $contactSubcontractor->setContact($contact);
+        $contactSubcontractor->setSubcontractor($subcontractor);
+
+        $this->doctrine->persist($contactSubcontractor);
+        $this->doctrine->flush();
+
+        $result = $this->groupSerializer->serializeGroup([$contact], 'contact_detail');
+        return new JsonResponse($this->doResponse->doResponse($result[0]));
+    }
+
+    #[Route('/contact/{id}/subcontractor/{subcontractorId}',
+        name: 'remove_contact_subcontractor',
+        requirements: ['id' => '\d+', 'subcontractorId' => '\d+'],
+        methods: ['DELETE'])]
+    public function removeSubcontractorFromContact(int $id, int $subcontractorId): JsonResponse
+    {
+        $contactRepository = $this->doctrine->getRepository(Contact::class);
+        $contact = $contactRepository->find($id);
+
+        if (!$contact) {
+            return $this->doResponse->doErrorJsonResponse('Contact not found', 404);
+        }
+
+        $contactSubcontractorRepository = $this->doctrine->getRepository(ContactSubcontractor::class);
+        $contactSubcontractor = $contactSubcontractorRepository->findOneBy([
+            'contact' => $contact,
+            'subcontractor' => $subcontractorId
+        ]);
+
+        if (!$contactSubcontractor) {
+            return $this->doResponse->doErrorJsonResponse('Association not found', 404);
+        }
+
+        $this->doctrine->remove($contactSubcontractor);
         $this->doctrine->flush();
 
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
@@ -282,6 +352,22 @@ final class ContactController extends AbstractController
                 $contact->setContactTitle($contactTitle);
             }
             unset($data['contact_title_id']);
+        }
+
+        if (isset($data['payment_id'])) {
+            $payment = $this->doctrine->getRepository(Payment::class)->find($data['payment_id']);
+            if ($payment) {
+                $contact->setPayment($payment);
+            }
+            unset($data['payment_id']);
+        }
+
+        if (isset($data['shipment_condition_id'])) {
+            $shipmentCondition = $this->doctrine->getRepository(ShipmentCondition::class)->find($data['shipment_condition_id']);
+            if ($shipmentCondition) {
+                $contact->setShipmentCondition($shipmentCondition);
+            }
+            unset($data['shipment_condition_id']);
         }
 
         if (isset($data['agent_id'])) {
@@ -329,3 +415,4 @@ final class ContactController extends AbstractController
         return $contact;
     }
 }
+

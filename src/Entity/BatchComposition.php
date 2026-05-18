@@ -18,7 +18,7 @@ class BatchComposition
 
     #[ORM\ManyToOne(inversedBy: 'batchCompositions')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['batch_composition_list', 'batch_composition_detail'])]
+    #[Groups(['batch_composition_list', 'batch_composition_detail', 'batch_detail'])]
     private ?Batch $batch = null;
 
     #[ORM\ManyToOne(inversedBy: 'sonBatches')]
@@ -37,6 +37,24 @@ class BatchComposition
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     #[Groups(['batch_composition_list', 'batch_composition_detail', 'batch_detail'])]
     private ?string $composition_note = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['batch_composition_list', 'batch_composition_detail', 'batch_detail'])]
+    private ?\DateTime $date = null;
+
+    #[ORM\ManyToOne(inversedBy: 'batchCompositions')]
+    private ?BatchSelection $selection = null;
+
+    #[ORM\ManyToOne(inversedBy: 'batchCompositions')]
+    #[ORM\JoinColumn(nullable: true)]
+    #[Groups(['batch_composition_list', 'batch_composition_detail', 'batch_detail'])]
+    private ?LeatherThickness $thickness = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?int $father_batch_piece_available = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?float $father_batch_quantity_available = null;
 
     public function getId(): ?int
     {
@@ -86,7 +104,7 @@ class BatchComposition
 
     public function setFatherBatchQuantity(?float $father_batch_quantity): static
     {
-        $this->father_batch_quantity = $father_batch_quantity;
+        $this->father_batch_quantity = $father_batch_quantity !== null ? round($father_batch_quantity, 3) : null;
 
         return $this;
     }
@@ -99,6 +117,66 @@ class BatchComposition
     public function setCompositionNote(?string $composition_note): static
     {
         $this->composition_note = $composition_note;
+
+        return $this;
+    }
+
+    public function getDate(): ?\DateTime
+    {
+        return $this->date;
+    }
+
+    public function setDate(?\DateTime $date): static
+    {
+        $this->date = $date;
+
+        return $this;
+    }
+
+    public function getSelection(): ?BatchSelection
+    {
+        return $this->selection;
+    }
+
+    public function setSelection(?BatchSelection $selection): static
+    {
+        $this->selection = $selection;
+
+        return $this;
+    }
+
+    public function getThickness(): ?LeatherThickness
+    {
+        return $this->thickness;
+    }
+
+    public function setThickness(?LeatherThickness $thickness): static
+    {
+        $this->thickness = $thickness;
+
+        return $this;
+    }
+
+    public function getFatherBatchPieceAvailable(): ?int
+    {
+        return $this->father_batch_piece_available;
+    }
+
+    public function setFatherBatchPieceAvailable(?int $father_batch_piece_available): static
+    {
+        $this->father_batch_piece_available = $father_batch_piece_available;
+
+        return $this;
+    }
+
+    public function getFatherBatchQuantityAvailable(): ?float
+    {
+        return $this->father_batch_quantity_available;
+    }
+
+    public function setFatherBatchQuantityAvailable(?float $father_batch_quantity_available): static
+    {
+        $this->father_batch_quantity_available = $father_batch_quantity_available;
 
         return $this;
     }

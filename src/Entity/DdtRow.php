@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\DdtRowRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\Serializer\Annotation\Groups;
@@ -14,57 +16,57 @@ class DdtRow
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_summary_print', 'client_order_row_list', 'external_processing_print'])]
     private ?int $id = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_order_row_list'])]
     private ?string $order_note = null;
 
     #[ORM\ManyToOne(inversedBy: 'ddtRows')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_summary_print', 'external_processing_print'])]
     private ?Batch $batch = null;
 
     #[ORM\Column]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
-    private ?int $pieces = null;
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_order_row_list', 'client_summary_print', 'external_processing_print'])]
+    private ?float $pieces = null;
 
     #[ORM\ManyToOne(inversedBy: 'ddtRows')]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?MeasurementUnit $measurement_unit = null;
 
     #[ORM\Column]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?float $quantity = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?float $price = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?float $total_value = null;
 
     #[ORM\ManyToOne(inversedBy: 'ddtRows')]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?Currency $currency = null;
 
     #[ORM\ManyToOne(inversedBy: 'ddtRows')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_summary_print', 'client_order_row_list', 'external_processing_print'])]
     private ?Ddt $ddt = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail'])]
     private ?float $currency_price = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
-    private ?float $currency_change = null;
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail'])]
+    private ?float $currency_exchange = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail'])]
     private ?float $currency_total_value = null;
 
     #[ORM\Column(nullable: true)]
@@ -73,20 +75,40 @@ class DdtRow
     private ?float $KG_weight = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail'])]
     private ?string $row_note = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail'])]
     private ?int $whole_piece = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_list_sold', 'ddt_row_detail', 'client_summary_print'])]
     private ?int $half_piece = null;
 
     #[ORM\ManyToOne(inversedBy: 'ddtRows')]
     #[Groups(['ddt_row_detail'])]
     private ?Selection $selection = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    private ?float $pieces_out = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    private ?float $quantity_out = null;
+
+    /**
+     * @var Collection<int, DdtRowProcessing>
+     */
+    #[ORM\OneToMany(mappedBy: 'ddt_row', targetEntity: DdtRowProcessing::class, orphanRemoval: true)]
+    #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'external_processing_print'])]
+    private Collection $ddtRowProcessings;
+
+    public function __construct()
+    {
+        $this->ddtRowProcessings = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -117,12 +139,12 @@ class DdtRow
         return $this;
     }
 
-    public function getPieces(): ?int
+    public function getPieces(): ?float
     {
         return $this->pieces;
     }
 
-    public function setPieces(int $pieces): static
+    public function setPieces(float $pieces): static
     {
         $this->pieces = $pieces;
 
@@ -148,7 +170,7 @@ class DdtRow
 
     public function setQuantity(float $quantity): static
     {
-        $this->quantity = $quantity;
+        $this->quantity = round($quantity, 3);
 
         return $this;
     }
@@ -213,14 +235,14 @@ class DdtRow
         return $this;
     }
 
-    public function getCurrencyChange(): ?float
+    public function getCurrencyExchange(): ?float
     {
-        return $this->currency_change;
+        return $this->currency_exchange;
     }
 
-    public function setCurrencyChange(?float $currency_change): static
+    public function setCurrencyExchange(?float $currency_exchange): static
     {
-        $this->currency_change = $currency_change;
+        $this->currency_exchange = $currency_exchange;
 
         return $this;
     }
@@ -293,6 +315,60 @@ class DdtRow
     public function setSelection(?Selection $selection): static
     {
         $this->selection = $selection;
+
+        return $this;
+    }
+
+    public function getPiecesOut(): ?float
+    {
+        return $this->pieces_out;
+    }
+
+    public function setPiecesOut(?float $pieces_out): static
+    {
+        $this->pieces_out = $pieces_out;
+
+        return $this;
+    }
+
+    public function getQuantityOut(): ?float
+    {
+        return $this->quantity_out;
+    }
+
+    public function setQuantityOut(?float $quantity_out): static
+    {
+        $this->quantity_out = $quantity_out;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, DdtRowProcessing>
+     */
+    public function getDdtRowProcessings(): Collection
+    {
+        return $this->ddtRowProcessings;
+    }
+
+    public function addDdtRowProcessing(DdtRowProcessing $ddtRowProcessing): static
+    {
+        if (!$this->ddtRowProcessings->contains($ddtRowProcessing)) {
+            $this->ddtRowProcessings->add($ddtRowProcessing);
+            $ddtRowProcessing->setDdtRow($this);
+        }
+
+        return $this;
+    }
+
+    public function removeDdtRowProcessing(DdtRowProcessing $ddtRowProcessing): static
+    {
+        if ($this->ddtRowProcessings->removeElement($ddtRowProcessing)) {
+            // set the owning side to null (unless already changed)
+            if ($ddtRowProcessing->getDdtRow() === $this) {
+                $ddtRowProcessing->setDdtRow(null);
+            }
+        }
 
         return $this;
     }

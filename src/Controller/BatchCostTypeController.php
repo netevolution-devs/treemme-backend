@@ -49,10 +49,10 @@ final class BatchCostTypeController extends AbstractController
         if ($id) {
             $batchCostType = [$batchCostTypeRepository->find($id)];
             if (!$batchCostType[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('BatchCostType not found', 404));
+                return $this->doResponse->doErrorJsonResponse('BatchCostType not found', 404);
             }
         } else {
-            $batchCostType = $batchCostTypeRepository->findBy([], ['id' => 'DESC']);
+            $batchCostType = $batchCostTypeRepository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($batchCostType, $id ? 'batch_cost_type_detail' : 'batch_cost_type_list');
 
@@ -79,7 +79,7 @@ final class BatchCostTypeController extends AbstractController
             $errors = $validator->validate($batchCostType);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $em = $this->doctrine;
@@ -90,7 +90,7 @@ final class BatchCostTypeController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -107,7 +107,7 @@ final class BatchCostTypeController extends AbstractController
         $batchCostType = $this->doctrine->getRepository(BatchCostType::class)->find($id);
 
         if (!$batchCostType) {
-            return new JsonResponse($this->doResponse->doErrorResponse('BatchCostType not found', 404));
+            return $this->doResponse->doErrorJsonResponse('BatchCostType not found', 404);
         }
 
         try {
@@ -116,7 +116,7 @@ final class BatchCostTypeController extends AbstractController
             $errors = $validator->validate($batchCostType);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($batchCostType);
@@ -125,7 +125,7 @@ final class BatchCostTypeController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($batchCostType, 'batch_cost_type_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -136,7 +136,7 @@ final class BatchCostTypeController extends AbstractController
     {
         $batchCostType = $this->doctrine->getRepository(BatchCostType::class)->find($id);
         if (!$batchCostType) {
-            return new JsonResponse($this->doResponse->doErrorResponse('BatchCostType not found', 404));
+            return $this->doResponse->doErrorJsonResponse('BatchCostType not found', 404);
         }
 
         $this->doctrine->remove($batchCostType);
@@ -145,3 +145,4 @@ final class BatchCostTypeController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
     }
 }
+

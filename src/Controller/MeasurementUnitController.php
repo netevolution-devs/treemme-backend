@@ -49,10 +49,10 @@ final class MeasurementUnitController extends AbstractController
         if ($id) {
             $unit = [$repository->find($id)];
             if (!$unit[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('MeasurementUnit not found', 404));
+                return $this->doResponse->doErrorJsonResponse('MeasurementUnit not found', 404);
             }
         } else {
-            $unit = $repository->findBy([], ['id' => 'DESC']);
+            $unit = $repository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($unit, $id ? 'measurement_unit_detail' : 'measurement_unit_list');
 
@@ -83,7 +83,7 @@ final class MeasurementUnitController extends AbstractController
             $errors = $validator->validate($unit);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($unit);
@@ -93,7 +93,7 @@ final class MeasurementUnitController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -110,7 +110,7 @@ final class MeasurementUnitController extends AbstractController
         $unit = $this->doctrine->getRepository(MeasurementUnit::class)->find($id);
 
         if (!$unit) {
-            return new JsonResponse($this->doResponse->doErrorResponse('MeasurementUnit not found', 404));
+            return $this->doResponse->doErrorJsonResponse('MeasurementUnit not found', 404);
         }
 
         try {
@@ -120,7 +120,7 @@ final class MeasurementUnitController extends AbstractController
             $errors = $validator->validate($unit);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($unit);
@@ -129,7 +129,7 @@ final class MeasurementUnitController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($unit, 'measurement_unit_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -140,7 +140,7 @@ final class MeasurementUnitController extends AbstractController
     {
         $unit = $this->doctrine->getRepository(MeasurementUnit::class)->find($id);
         if (!$unit) {
-            return new JsonResponse($this->doResponse->doErrorResponse('MeasurementUnit not found', 404));
+            return $this->doResponse->doErrorJsonResponse('MeasurementUnit not found', 404);
         }
 
         $this->doctrine->remove($unit);
@@ -149,3 +149,4 @@ final class MeasurementUnitController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
     }
 }
+

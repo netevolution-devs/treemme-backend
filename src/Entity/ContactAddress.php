@@ -15,7 +15,7 @@ class ContactAddress
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail'])]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'contactAddresses')]
@@ -24,23 +24,23 @@ class ContactAddress
     private ?Contact $contact = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail'])]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?string $address_name = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail'])]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?string $address = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail'])]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?string $address_2 = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail'])]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail', 'client_order_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?string $address_3 = null;
 
     #[ORM\Column(length: 10, nullable: true)]
-    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail'])]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail', 'client_order_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?string $address_4 = null;
 
     #[ORM\Column(nullable: true)]
@@ -55,22 +55,36 @@ class ContactAddress
 
 
     #[ORM\ManyToOne(inversedBy: 'contactAddress')]
-    #[Groups(['contact_address_detail', 'contact_detail'])]
+    #[Groups(['contact_address_detail', 'contact_detail', 'client_order_detail', 'client_summary_print'])]
     private ?Nation $nation = null;
 
-    #[ORM\ManyToOne(inversedBy: 'contactAddresses')]
-    #[Groups(['contact_address_detail', 'contact_detail'])]
-    private ?Town $town = null;
+
 
     /**
      * @var Collection<int, ClientOrder>
      */
     #[ORM\OneToMany(mappedBy: 'address', targetEntity: ClientOrder::class)]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail'])]
     private Collection $clientOrders;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail', 'client_order_row_list', 'client_summary_print'])]
+    private ?string $zip_code = null;
+
+    /**
+     * @var Collection<int, ClientOrderRow>
+     */
+    #[ORM\OneToMany(mappedBy: 'address', targetEntity: ClientOrderRow::class)]
+    private Collection $clientOrderRows;
+
+    #[ORM\Column]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail'])]
+    private ?bool $default_address = null;
 
     public function __construct()
     {
         $this->clientOrders = new ArrayCollection();
+        $this->clientOrderRows = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -198,18 +212,6 @@ class ContactAddress
         return $this;
     }
 
-    public function getTown(): ?Town
-    {
-        return $this->town;
-    }
-
-    public function setTown(?Town $town): static
-    {
-        $this->town = $town;
-
-        return $this;
-    }
-
     /**
      * @return Collection<int, ClientOrder>
      */
@@ -236,6 +238,60 @@ class ContactAddress
                 $clientOrder->setAddress(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getZipCode(): ?string
+    {
+        return $this->zip_code;
+    }
+
+    public function setZipCode(?string $zip_code): static
+    {
+        $this->zip_code = $zip_code;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ClientOrderRow>
+     */
+    public function getClientOrderRows(): Collection
+    {
+        return $this->clientOrderRows;
+    }
+
+    public function addClientOrderRow(ClientOrderRow $clientOrderRow): static
+    {
+        if (!$this->clientOrderRows->contains($clientOrderRow)) {
+            $this->clientOrderRows->add($clientOrderRow);
+            $clientOrderRow->setAddress($this);
+        }
+
+        return $this;
+    }
+
+    public function removeClientOrderRow(ClientOrderRow $clientOrderRow): static
+    {
+        if ($this->clientOrderRows->removeElement($clientOrderRow)) {
+            // set the owning side to null (unless already changed)
+            if ($clientOrderRow->getAddress() === $this) {
+                $clientOrderRow->setAddress(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function isDefaultAddress(): ?bool
+    {
+        return $this->default_address;
+    }
+
+    public function setDefaultAddress(bool $default_address): static
+    {
+        $this->default_address = $default_address;
 
         return $this;
     }

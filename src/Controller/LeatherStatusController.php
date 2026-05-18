@@ -50,10 +50,10 @@ final class LeatherStatusController extends AbstractController
         if ($id) {
             $leatherStatus = [$leatherStatusRepository->find($id)];
             if (!$leatherStatus[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('LeatherStatus not found', 404));
+                return $this->doResponse->doErrorJsonResponse('LeatherStatus not found', 404);
             }
         } else {
-            $leatherStatus = $leatherStatusRepository->findBy([], ['id' => 'DESC']);
+            $leatherStatus = $leatherStatusRepository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($leatherStatus, $id ? 'leather_status_detail' : 'leather_status_list');
 
@@ -81,7 +81,7 @@ final class LeatherStatusController extends AbstractController
             $errors = $validator->validate($leatherStatus);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $em = $this->doctrine;
@@ -92,7 +92,7 @@ final class LeatherStatusController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -109,7 +109,7 @@ final class LeatherStatusController extends AbstractController
         $leatherStatus = $this->doctrine->getRepository(LeatherStatus::class)->find($id);
 
         if (!$leatherStatus) {
-            return new JsonResponse($this->doResponse->doErrorResponse('LeatherStatus not found', 404));
+            return $this->doResponse->doErrorJsonResponse('LeatherStatus not found', 404);
         }
 
         try {
@@ -119,7 +119,7 @@ final class LeatherStatusController extends AbstractController
             $errors = $validator->validate($leatherStatus);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($leatherStatus);
@@ -128,7 +128,7 @@ final class LeatherStatusController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($leatherStatus, 'leather_status_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -139,7 +139,7 @@ final class LeatherStatusController extends AbstractController
     {
         $leatherStatus = $this->doctrine->getRepository(LeatherStatus::class)->find($id);
         if (!$leatherStatus) {
-            return new JsonResponse($this->doResponse->doErrorResponse('LeatherStatus not found', 404));
+            return $this->doResponse->doErrorJsonResponse('LeatherStatus not found', 404);
         }
 
         $this->doctrine->remove($leatherStatus);
@@ -161,3 +161,4 @@ final class LeatherStatusController extends AbstractController
         return $leatherStatus;
     }
 }
+

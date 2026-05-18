@@ -52,10 +52,10 @@ final class GroupController extends AbstractController
         if ($id) {
             $group = [$groupRepository->find($id)];
             if (!$group[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('WorkArea not found', '404'));
+                return $this->doResponse->doErrorJsonResponse('WorkArea not found', '404');
             }
         } else {
-            $group = $groupRepository->findBy([], ['id' => 'DESC']);
+            $group = $groupRepository->findBy([], ['name' => 'ASC']);
         }
 
         $results = $this->groupSerializer->serializeGroup($group, $id ? 'group_detail' : 'group_list');
@@ -93,11 +93,28 @@ final class GroupController extends AbstractController
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
 
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $em = $this->doctrine;
             $em->persist($group);
+
+            $workAreas = $em->getRepository(WorkArea::class)->findAll();
+            $role = $em->getRepository(Role::class)->findOneBy(['name' => 'USER']) ?? $em->getRepository(Role::class)->findOneBy([]);
+
+            if ($role) {
+                foreach ($workAreas as $workArea) {
+                    $groupRoleWorkArea = new GroupRoleWorkArea();
+                    $groupRoleWorkArea->setGroup($group);
+                    $groupRoleWorkArea->setWorkArea($workArea);
+                    $groupRoleWorkArea->setRole($role);
+                    $groupRoleWorkArea->setCanGet(true);
+                    $groupRoleWorkArea->setCreatedAt($now);
+                    $groupRoleWorkArea->setUpdatedAt($now);
+                    $em->persist($groupRoleWorkArea);
+                }
+            }
+
             $em->flush();
 
             $result = $this->groupSerializer->serializeGroup($group, 'group_detail');
@@ -105,7 +122,7 @@ final class GroupController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
     #[Route('/group/{id}',
@@ -122,7 +139,7 @@ final class GroupController extends AbstractController
         $group = $this->doctrine->getRepository(Group::class)->find($id);
 
         if (!$group) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Group not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Group not found', 404);
         }
 
         $group = $this->createMethodsByInput->createMethods($group, $data);
@@ -134,7 +151,7 @@ final class GroupController extends AbstractController
         $errors = $validator->validate($group);
         if (count($errors) > 0) {
             $errors = $this->validatorOutputFormatter->formatOutput($errors);
-            return new JsonResponse($this->doResponse->doErrorResponse($errors));
+            return $this->doResponse->doErrorJsonResponse($errors);
         }
 
         $em = $this->doctrine;
@@ -155,7 +172,7 @@ final class GroupController extends AbstractController
         $group = $this->doctrine->getRepository(Group::class)->find($id);
 
         if (!$group) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Group not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Group not found', 404);
         }
 
         $em = $this->doctrine;
@@ -178,14 +195,14 @@ final class GroupController extends AbstractController
         $userId = $data['user_id'] ?? null;
 
         if (!$groupId || !$userId) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Missing group_id or user_id', 400));
+            return $this->doResponse->doErrorJsonResponse('Missing group_id or user_id', 400);
         }
 
         $group = $this->doctrine->getRepository(Group::class)->find($groupId);
         $user = $this->doctrine->getRepository(User::class)->find($userId);
 
         if (!$group || !$user) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Group or User not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Group or User not found', 404);
         }
 
         // Verifica se l'utente è già nel gruppo
@@ -195,7 +212,7 @@ final class GroupController extends AbstractController
         ]);
 
         if ($existing) {
-            return new JsonResponse($this->doResponse->doErrorResponse('User already in this group', 400));
+            return $this->doResponse->doErrorJsonResponse('User already in this group', 400);
         }
 
         $groupUser = new GroupUser();
@@ -212,7 +229,7 @@ final class GroupController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse('User added to group successfully'));
     }
 
-    #[Route('/group/assign-role',
+    #[Route('/api/user/assign-group',
         name: 'group_assign_role',
         methods: ['POST'])]
     public function assignRoleToGroupWorkArea(
@@ -226,7 +243,7 @@ final class GroupController extends AbstractController
         $workAreaId = $data['work_area_id'] ?? null;
 
         if (!$groupId || !$roleId || !$workAreaId) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Missing group_id, role_id or work_area_id', 400));
+            return $this->doResponse->doErrorJsonResponse('Missing group_id, role_id or work_area_id', 400);
         }
 
         $group = $this->doctrine->getRepository(Group::class)->find($groupId);
@@ -234,7 +251,7 @@ final class GroupController extends AbstractController
         $workArea = $this->doctrine->getRepository(WorkArea::class)->find($workAreaId);
 
         if (!$group || !$role || !$workArea) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Group, Role or WorkArea not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Group, Role or WorkArea not found', 404);
         }
 
         // Verifica se il ruolo è già assegnato a questo gruppo per questa work_area
@@ -245,7 +262,7 @@ final class GroupController extends AbstractController
         ]);
 
         if ($existing) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Role already assigned to this group in this work area', 400));
+            return $this->doResponse->doErrorJsonResponse('Role already assigned to this group in this work area', 400);
         }
 
         $groupRoleWorkArea = new GroupRoleWorkArea();
@@ -256,10 +273,103 @@ final class GroupController extends AbstractController
         $groupRoleWorkArea->setCreatedAt($now);
         $groupRoleWorkArea->setUpdatedAt($now);
 
+        $groupRoleWorkArea->setCanGet((bool)($data['can_get'] ?? false));
+        $groupRoleWorkArea->setCanPost((bool)($data['can_post'] ?? false));
+        $groupRoleWorkArea->setCanPut((bool)($data['can_put'] ?? false));
+        $groupRoleWorkArea->setCanDelete((bool)($data['can_delete'] ?? false));
+
+        $groupRoleWorkArea->setCheckOrder((int)($data['check_order'] ?? false));
+
         $em = $this->doctrine;
         $em->persist($groupRoleWorkArea);
         $em->flush();
 
         return new JsonResponse($this->doResponse->doResponse('Role assigned to group in work area successfully'));
     }
+
+    #[Route('/api/user/remove-group/{id}',
+        name: 'group_remove_role',
+        requirements: ['id' => '\d+'],
+        methods: ['DELETE'])]
+    public function removeRoleToGroupWorkArea( int $id): JsonResponse
+    {
+        $GroupRoleWorkArea = $this->doctrine->getRepository(GroupRoleWorkArea::class)->find($id);
+        if (!$GroupRoleWorkArea) {
+            return $this->doResponse->doErrorJsonResponse('GroupRoleWorkArea not found', 404);
+        }
+
+        $em = $this->doctrine;
+        $em->remove($GroupRoleWorkArea);
+        $em->flush();
+        return new JsonResponse($this->doResponse->doResponse('Role removed from group in work area successfully'));
+    }
+
+    #[Route('/api/user/assign-user',
+        name: 'user_assign_group',
+        methods: ['POST'])]
+    public function assignUserToGroup(
+        Request $request
+    ): JsonResponse
+    {
+        $data = $request->toArray();
+
+        $userId = $data['user_id'] ?? null;
+        $groupId = $data['group_id'] ?? null;
+
+        if (!$userId || !$groupId) {
+            return $this->doResponse->doErrorJsonResponse('Missing user_id or group_id', 400);
+        }
+
+        $user = $this->doctrine->getRepository(User::class)->find($userId);
+
+        if (!$user) {
+            return $this->doResponse->doErrorJsonResponse('User not found', 404);
+        }
+
+        $group = $this->doctrine->getRepository(Group::class)->find($groupId);
+
+        if (!$group) {
+            return $this->doResponse->doErrorJsonResponse('Group not found', 404);
+        }
+
+        $GroupUser = new GroupUser();
+
+        $GroupUser->setUser($user);
+        $GroupUser->setGroup($group);
+        $now = new \DateTimeImmutable();
+        $GroupUser->setCreatedAt($now);
+        $GroupUser->setUpdatedAt($now);
+
+        $em = $this->doctrine;
+        $em->persist($GroupUser);
+        $em->flush();
+
+        return new JsonResponse($this->doResponse->doResponse('Role assigned to user successfully'));
+    }
+
+    #[Route('/api/user/remove-user/{id}/{id_group}',
+        name: 'user_remove_group',
+        requirements: ['id' => '\d+'],
+        methods: ['DELETE'])]
+    public function removeUserToGroup(
+        Request $request,
+        int $id,
+        int $id_group
+    ): JsonResponse
+    {
+        $user = $this->doctrine->getRepository(User::class)->find($id);
+        $group = $this->doctrine->getRepository(Group::class)->find($id_group);
+
+        $GroupUser = $this->doctrine->getRepository(GroupUser::class)->findOneBy(['user' => $user, 'group' => $group]);
+        if (!$GroupUser) {
+            return $this->doResponse->doErrorJsonResponse('GroupUser not found', 404);
+        }
+
+        $em = $this->doctrine;
+        $em->remove($GroupUser);
+        $em->flush();
+
+        return new JsonResponse($this->doResponse->doResponse('User removed from group successfully'));
+    }
 }
+

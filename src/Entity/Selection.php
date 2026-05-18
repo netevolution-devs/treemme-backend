@@ -14,18 +14,21 @@ class Selection
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['batch_selection_detail', 'batch_detail', 'selection_list', 'selection_detail', 'batch_list', 'ddt_row_detail'])]
+    #[Groups(['batch_selection_detail', 'batch_detail', 'selection_list', 'selection_detail', 'batch_list',
+        'ddt_row_detail', 'client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['batch_selection_detail', 'batch_detail', 'selection_list', 'selection_detail', 'batch_list', 'ddt_row_detail'])]
+    #[Groups(['batch_selection_detail', 'batch_detail', 'selection_list', 'selection_detail', 'batch_list', 'ddt_row_detail',
+        'client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(nullable: true)]
     private ?int $weight = null;
 
-    #[ORM\Column]
-    #[Groups(['batch_selection_detail', 'batch_detail', 'selection_list', 'selection_detail', 'batch_list', 'ddt_row_detail'])]
+    #[ORM\Column(nullable: true)]
+    #[Groups(['batch_selection_detail', 'batch_detail', 'selection_detail', 'batch_list', 'ddt_row_detail',
+        'client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?float $value = null;
 
     #[ORM\ManyToOne(targetEntity: self::class, inversedBy: 'selections')]
@@ -49,11 +52,18 @@ class Selection
     #[ORM\OneToMany(mappedBy: 'selection', targetEntity: DdtRow::class)]
     private Collection $ddtRows;
 
+    /**
+     * @var Collection<int, ClientOrderRow>
+     */
+    #[ORM\OneToMany(mappedBy: 'selection', targetEntity: ClientOrderRow::class)]
+    private Collection $cleintOrderRows;
+
     public function __construct()
     {
         $this->selections = new ArrayCollection();
         $this->batchSelections = new ArrayCollection();
         $this->ddtRows = new ArrayCollection();
+        $this->cleintOrderRows = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -90,7 +100,7 @@ class Selection
         return $this->value;
     }
 
-    public function setValue(float $value): static
+    public function setValue(?float $value): static
     {
         $this->value = $value;
 
@@ -193,6 +203,36 @@ class Selection
             // set the owning side to null (unless already changed)
             if ($ddtRow->getSelection() === $this) {
                 $ddtRow->setSelection(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ClientOrderRow>
+     */
+    public function getCleintOrderRows(): Collection
+    {
+        return $this->cleintOrderRows;
+    }
+
+    public function addCleintOrderRow(ClientOrderRow $cleintOrderRow): static
+    {
+        if (!$this->cleintOrderRows->contains($cleintOrderRow)) {
+            $this->cleintOrderRows->add($cleintOrderRow);
+            $cleintOrderRow->setSelection($this);
+        }
+
+        return $this;
+    }
+
+    public function removeCleintOrderRow(ClientOrderRow $cleintOrderRow): static
+    {
+        if ($this->cleintOrderRows->removeElement($cleintOrderRow)) {
+            // set the owning side to null (unless already changed)
+            if ($cleintOrderRow->getSelection() === $this) {
+                $cleintOrderRow->setSelection(null);
             }
         }
 

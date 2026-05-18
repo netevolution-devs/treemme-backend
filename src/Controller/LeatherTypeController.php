@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\LeatherThickness;
 use App\Entity\LeatherType;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
@@ -49,10 +50,10 @@ final class LeatherTypeController extends AbstractController
         if ($id) {
             $leatherType = [$leatherTypeRepository->find($id)];
             if (!$leatherType[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('LeatherType not found', 404));
+                return $this->doResponse->doErrorJsonResponse('LeatherType not found', 404);
             }
         } else {
-            $leatherType = $leatherTypeRepository->findBy([], ['id' => 'DESC']);
+            $leatherType = $leatherTypeRepository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($leatherType, $id ? 'leather_type_detail' : 'leather_type_list');
 
@@ -74,12 +75,13 @@ final class LeatherTypeController extends AbstractController
         $leatherType = new LeatherType();
 
         try {
+            $leatherType = $this->handleRelations($leatherType, $data);
             $leatherType = $this->createMethodsByInput->createMethods($leatherType, $data);
 
             $errors = $validator->validate($leatherType);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $em = $this->doctrine;
@@ -90,7 +92,7 @@ final class LeatherTypeController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -107,16 +109,17 @@ final class LeatherTypeController extends AbstractController
         $leatherType = $this->doctrine->getRepository(LeatherType::class)->find($id);
 
         if (!$leatherType) {
-            return new JsonResponse($this->doResponse->doErrorResponse('LeatherType not found', 404));
+            return $this->doResponse->doErrorJsonResponse('LeatherType not found', 404);
         }
 
         try {
+            $leatherType = $this->handleRelations($leatherType, $data);
             $leatherType = $this->createMethodsByInput->createMethods($leatherType, $data);
 
             $errors = $validator->validate($leatherType);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($leatherType);
@@ -125,7 +128,7 @@ final class LeatherTypeController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($leatherType, 'leather_type_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -136,7 +139,7 @@ final class LeatherTypeController extends AbstractController
     {
         $leatherType = $this->doctrine->getRepository(LeatherType::class)->find($id);
         if (!$leatherType) {
-            return new JsonResponse($this->doResponse->doErrorResponse('LeatherType not found', 404));
+            return $this->doResponse->doErrorJsonResponse('LeatherType not found', 404);
         }
 
         $this->doctrine->remove($leatherType);
@@ -144,4 +147,18 @@ final class LeatherTypeController extends AbstractController
 
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
     }
+
+    private function handleRelations(LeatherType $leatherType, array &$data): LeatherType
+    {
+        if (isset($data['thickness_id'])) {
+            $thickness = $this->doctrine->getRepository(LeatherThickness::class)->find($data['thickness_id']);
+            if ($thickness) {
+                $leatherType->setThickness($thickness);
+            }
+            unset($data['thickness_id']);
+        }
+
+        return $leatherType;
+    }
 }
+

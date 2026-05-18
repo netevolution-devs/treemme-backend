@@ -34,7 +34,7 @@ class ArticleTypeController extends AbstractController
     public function show(?int $id): JsonResponse
     {
         if ($id === null) {
-            $types = $this->articleTypeRepository->findAll();
+            $types = $this->articleTypeRepository->findBy([], ['name' => 'ASC']);
             $results = $this->groupSerializer->serializeGroup($types, 'article_type_list');
             return new JsonResponse($this->doResponse->doResponse($results));
         }
@@ -42,7 +42,7 @@ class ArticleTypeController extends AbstractController
         $type = $this->articleTypeRepository->find($id);
 
         if (!$type) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Tipo articolo non trovato', status_code: 404));
+            return $this->doResponse->doErrorJsonResponse('Tipo articolo non trovato', status_code: 404);
         }
 
         $results = $this->groupSerializer->serializeGroup($type, 'article_type_detail');
@@ -60,13 +60,13 @@ class ArticleTypeController extends AbstractController
         try {
             $this->mapDataToEntity($type, $data);
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
 
         $errors = $validator->validate($type);
         if (count($errors) > 0) {
             $formattedErrors = $this->validatorOutputFormatter->formatErrors($errors);
-            return new JsonResponse($this->doResponse->doErrorResponse($formattedErrors));
+            return $this->doResponse->doErrorJsonResponse($formattedErrors);
         }
 
         $this->entityManager->persist($type);
@@ -82,7 +82,7 @@ class ArticleTypeController extends AbstractController
         $type = $this->articleTypeRepository->find($id);
 
         if (!$type) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Tipo articolo non trovato', status_code: 404));
+            return $this->doResponse->doErrorJsonResponse('Tipo articolo non trovato', status_code: 404);
         }
 
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
@@ -90,13 +90,13 @@ class ArticleTypeController extends AbstractController
         try {
             $this->mapDataToEntity($type, $data);
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
 
         $errors = $validator->validate($type);
         if (count($errors) > 0) {
             $formattedErrors = $this->validatorOutputFormatter->formatErrors($errors);
-            return new JsonResponse($this->doResponse->doErrorResponse($formattedErrors));
+            return $this->doResponse->doErrorJsonResponse($formattedErrors);
         }
 
         $this->entityManager->flush();
@@ -111,7 +111,7 @@ class ArticleTypeController extends AbstractController
         $type = $this->articleTypeRepository->find($id);
 
         if (!$type) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Tipo articolo non trovato', status_code: 404));
+            return $this->doResponse->doErrorJsonResponse('Tipo articolo non trovato', status_code: 404);
         }
 
         $this->entityManager->remove($type);
@@ -143,3 +143,4 @@ class ArticleTypeController extends AbstractController
         $this->createMethodsByInput->createMethods($type, $data);
     }
 }
+

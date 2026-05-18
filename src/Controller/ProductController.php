@@ -54,10 +54,10 @@ final class ProductController extends AbstractController
         if ($id) {
             $product = [$repository->find($id)];
             if (!$product[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('Product not found', 404));
+                return $this->doResponse->doErrorJsonResponse('Product not found', 404);
             }
         } else {
-            $product = $repository->findBy([], ['id' => 'DESC']);
+            $product = $repository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($product, $id ? 'product_detail' : 'product_list');
 
@@ -95,7 +95,7 @@ final class ProductController extends AbstractController
             $errors = $validator->validate($product);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($product);
@@ -105,7 +105,7 @@ final class ProductController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -122,7 +122,7 @@ final class ProductController extends AbstractController
         $product = $this->doctrine->getRepository(Product::class)->find($id);
 
         if (!$product) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Product not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Product not found', 404);
         }
 
         try {
@@ -133,7 +133,7 @@ final class ProductController extends AbstractController
             $errors = $validator->validate($product);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($product);
@@ -142,7 +142,7 @@ final class ProductController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($product, 'product_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -153,7 +153,7 @@ final class ProductController extends AbstractController
     {
         $product = $this->doctrine->getRepository(Product::class)->find($id);
         if (!$product) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Product not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Product not found', 404);
         }
 
         $this->doctrine->remove($product);
@@ -230,3 +230,4 @@ final class ProductController extends AbstractController
         return $product;
     }
 }
+

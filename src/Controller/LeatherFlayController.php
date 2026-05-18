@@ -49,10 +49,10 @@ final class LeatherFlayController extends AbstractController
         if ($id) {
             $leatherFlay = [$leatherFlayRepository->find($id)];
             if (!$leatherFlay[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('LeatherFlay not found', 404));
+                return $this->doResponse->doErrorJsonResponse('LeatherFlay not found', 404);
             }
         } else {
-            $leatherFlay = $leatherFlayRepository->findBy([], ['id' => 'DESC']);
+            $leatherFlay = $leatherFlayRepository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($leatherFlay, $id ? 'leather_flay_detail' : 'leather_flay_list');
 
@@ -79,7 +79,7 @@ final class LeatherFlayController extends AbstractController
             $errors = $validator->validate($leatherFlay);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $em = $this->doctrine;
@@ -90,7 +90,7 @@ final class LeatherFlayController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -107,7 +107,7 @@ final class LeatherFlayController extends AbstractController
         $leatherFlay = $this->doctrine->getRepository(LeatherFlay::class)->find($id);
 
         if (!$leatherFlay) {
-            return new JsonResponse($this->doResponse->doErrorResponse('LeatherFlay not found', 404));
+            return $this->doResponse->doErrorJsonResponse('LeatherFlay not found', 404);
         }
 
         try {
@@ -116,7 +116,7 @@ final class LeatherFlayController extends AbstractController
             $errors = $validator->validate($leatherFlay);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($leatherFlay);
@@ -125,7 +125,7 @@ final class LeatherFlayController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($leatherFlay, 'leather_flay_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -136,7 +136,7 @@ final class LeatherFlayController extends AbstractController
     {
         $leatherFlay = $this->doctrine->getRepository(LeatherFlay::class)->find($id);
         if (!$leatherFlay) {
-            return new JsonResponse($this->doResponse->doErrorResponse('LeatherFlay not found', 404));
+            return $this->doResponse->doErrorJsonResponse('LeatherFlay not found', 404);
         }
 
         $this->doctrine->remove($leatherFlay);
@@ -145,3 +145,4 @@ final class LeatherFlayController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
     }
 }
+

@@ -49,10 +49,10 @@ final class LeatherProvenanceAreaController extends AbstractController
         if ($id) {
             $leatherProvenanceArea = [$leatherProvenanceAreaRepository->find($id)];
             if (!$leatherProvenanceArea[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('LeatherProvenanceArea not found', 404));
+                return $this->doResponse->doErrorJsonResponse('LeatherProvenanceArea not found', 404);
             }
         } else {
-            $leatherProvenanceArea = $leatherProvenanceAreaRepository->findBy([], ['id' => 'DESC']);
+            $leatherProvenanceArea = $leatherProvenanceAreaRepository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($leatherProvenanceArea, $id ? 'leather_provenance_area_detail' : 'leather_provenance_area_list');
 
@@ -79,7 +79,7 @@ final class LeatherProvenanceAreaController extends AbstractController
             $errors = $validator->validate($leatherProvenanceArea);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $em = $this->doctrine;
@@ -90,7 +90,7 @@ final class LeatherProvenanceAreaController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -107,7 +107,7 @@ final class LeatherProvenanceAreaController extends AbstractController
         $leatherProvenanceArea = $this->doctrine->getRepository(LeatherProvenanceArea::class)->find($id);
 
         if (!$leatherProvenanceArea) {
-            return new JsonResponse($this->doResponse->doErrorResponse('LeatherProvenanceArea not found', 404));
+            return $this->doResponse->doErrorJsonResponse('LeatherProvenanceArea not found', 404);
         }
 
         try {
@@ -116,7 +116,7 @@ final class LeatherProvenanceAreaController extends AbstractController
             $errors = $validator->validate($leatherProvenanceArea);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($leatherProvenanceArea);
@@ -125,7 +125,7 @@ final class LeatherProvenanceAreaController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($leatherProvenanceArea, 'leather_provenance_area_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -136,7 +136,7 @@ final class LeatherProvenanceAreaController extends AbstractController
     {
         $leatherProvenanceArea = $this->doctrine->getRepository(LeatherProvenanceArea::class)->find($id);
         if (!$leatherProvenanceArea) {
-            return new JsonResponse($this->doResponse->doErrorResponse('LeatherProvenanceArea not found', 404));
+            return $this->doResponse->doErrorJsonResponse('LeatherProvenanceArea not found', 404);
         }
 
         $this->doctrine->remove($leatherProvenanceArea);
@@ -145,3 +145,4 @@ final class LeatherProvenanceAreaController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
     }
 }
+

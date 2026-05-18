@@ -48,20 +48,29 @@ class UserController extends AbstractController
     }
 
 
-    /**
-     * @OA\Response(
-     *     response=200,
-     *     description="Returns a new User",
-     *     @OA\JsonContent(
-     *        type="array",
-     *        @OA\Items(ref=@Model(type=User::class, groups={"detail"}))
-     *     )
-     * )
-     *
-     * @OA\Tag(name="add_user")
-     * @Security(name="Bearer")
-     *
-     */
+    #[Route('/api/user', name: 'get_users', methods: ['GET'])]
+    public function getUsers(): JsonResponse
+    {
+        $users = $this->doctrine->getRepository(User::class)->findBy([], ['email' => 'ASC']);
+        $userData = $this->groupSerializer->serializeGroup($users, 'user_detail');
+
+        return new JsonResponse($this->doResponse->doResponse($userData));
+    }
+
+    #[Route('/api/user/{id}', name: 'get_user_detail', methods: ['GET'])]
+    public function getUserDetail(int $id): JsonResponse
+    {
+        $user = $this->doctrine->getRepository(User::class)->find($id);
+
+        if (!$user) {
+            return $this->doResponse->doErrorJsonResponse('Utente non trovato', 404);
+        }
+
+        $userData = $this->groupSerializer->serializeGroup($user, 'user_detail');
+
+        return new JsonResponse($this->doResponse->doResponse($userData));
+    }
+
     #[Route('/api/user', name: 'add_user', methods: ['POST'])]
     public function addUser(
         UserPasswordHasherInterface $passwordHasher,
@@ -73,8 +82,12 @@ class UserController extends AbstractController
     {
         $data = $this->request->getCurrentRequest()->request->all();
 
-        $email = $data['email'];
-        $password = $data['password'];
+        $email = $data['email'] ?? null;
+        $password = $data['password'] ?? null;
+
+        if (!$email || !$password) {
+            return $this->doResponse->doErrorJsonResponse('Email e password obbligatori', 400);
+        }
 
         $role = $data['role'] ?? 'ROLE_USER';
         $roles = explode(',', $role);
@@ -109,12 +122,108 @@ class UserController extends AbstractController
             $this->doctrine->flush();
         } catch (Exception $e) {
 
-            return new JsonResponse($this->doResponse->doErrorResponse('indirizzo email già esistente',$e->getFile()));
+            return $this->doResponse->doErrorJsonResponse('indirizzo email già esistente',$e->getFile());
         }
 
         $actionLoggerService->logAction('add_new_user', $this->groupSerializer->serializeGroup($user, 'user_detail'));
 
         return new JsonResponse($this->doResponse->doResponse(['id' => $user->getId()]));
+    }
+
+    #[Route('/api/user/{id}', name: 'edit_user', methods: ['PUT'])]
+    public function editUser(
+        int $id,
+        UserPasswordHasherInterface $passwordHasher,
+        CreateMethodsByInput $createMethodsByInput,
+        ValidatorInterface $validator,
+        ValidatorOutputFormatter $validatorOutputFormatter,
+        ActionLoggerService $actionLoggerService,
+    ): JsonResponse
+    {
+        $user = $this->doctrine->getRepository(User::class)->find($id);
+
+        if (!$user) {
+            return $this->doResponse->doErrorJsonResponse('Utente non trovato', 404);
+        }
+
+        $data = $this->request->getCurrentRequest()->request->all();
+
+        if (isset($data['password']) && !empty($data['password'])) {
+            $hashedPassword = $passwordHasher->hashPassword(
+                $user,
+                $data['password']
+            );
+            $user->setPassword($hashedPassword);
+            unset($data['password']);
+        }
+
+        if (isset($data['role'])) {
+            $roles = explode(',', $data['role']);
+            $user->setRoles($roles);
+            unset($data['role']);
+        }
+
+        try {
+            $createMethodsByInput->createMethods($user, $data);
+        } catch (Exception $e) {
+            return $this->doResponse->doErrorJsonResponse($e->getMessage(), 400);
+        }
+
+        $errors = $validator->validate($user);
+
+        if (count($errors) > 0) {
+            return new JsonResponse(array('errors' => $validatorOutputFormatter->formatOutput($errors)), 400);
+        }
+
+        try {
+            $this->doctrine->flush();
+        } catch (Exception $e) {
+            return $this->doResponse->doErrorJsonResponse('Errore durante il salvataggio o email già esistente', $e->getFile());
+        }
+
+        $actionLoggerService->logAction('edit_user', $this->groupSerializer->serializeGroup($user, 'user_detail'));
+
+        return new JsonResponse($this->doResponse->doResponse(['id' => $user->getId()]));
+    }
+
+    /**
+     * @OA\Response(
+     *     response=200,
+     *     description="Delete a User",
+     *     @OA\JsonContent(
+     *        type="object",
+     *        @OA\Property(property="status", type="string", example="ok")
+     *     )
+     * )
+     *
+     * @OA\Tag(name="delete_user")
+     * @Security(name="Bearer")
+     *
+     */
+    #[Route('/api/user/{id}', name: 'delete_user', methods: ['DELETE'])]
+    public function deleteUser(
+        int $id,
+        ActionLoggerService $actionLoggerService,
+    ): JsonResponse
+    {
+        $user = $this->doctrine->getRepository(User::class)->find($id);
+
+        if (!$user) {
+            return $this->doResponse->doErrorJsonResponse('Utente non trovato', 404);
+        }
+
+        $userData = $this->groupSerializer->serializeGroup($user, 'user_detail');
+
+        $this->doctrine->remove($user);
+        try {
+            $this->doctrine->flush();
+        } catch (Exception $e) {
+            return $this->doResponse->doErrorJsonResponse('Errore durante la cancellazione', $e->getFile());
+        }
+
+        $actionLoggerService->logAction('delete_user', $userData);
+
+        return new JsonResponse($this->doResponse->doResponse(['status' => 'deleted']));
     }
 
     #[Route('/api/whoami', name: 'whoami', methods: ['GET'])]
@@ -146,6 +255,7 @@ class UserController extends AbstractController
                         'can_post' => $grwa->isCanPost(),
                         'can_put' => $grwa->isCanPut(),
                         'can_delete' => $grwa->isCanDelete(),
+                        'check_order' => $grwa->isCheckOrder(),
                     ];
                 }
             }
@@ -185,4 +295,44 @@ class UserController extends AbstractController
 
         return $response;
     }
+
+    #[Route('/api/change-password', name: 'change_password')]
+    public function changePassword(UserPasswordHasherInterface $passwordHasher,
+                                   CreateMethodsByInput $createMethodsByInput,
+                                   ValidatorInterface $validator,
+                                   ValidatorOutputFormatter $validatorOutputFormatter,
+                                   ActionLoggerService $actionLoggerService): JsonResponse
+    {
+        $data = $this->request->getCurrentRequest()->toArray();
+
+        if(!isset($data['new_password']) && !isset($data['old_password'])) {
+            return new JsonResponse($this->doResponse->doErrorJsonResponse('Old password and new password are required'));
+        }
+
+        $currentUser = $this->getUser();
+
+        if(!$currentUser) {
+            return new JsonResponse($this->doResponse->doErrorJsonResponse('User not found'));
+        }
+
+        if(!$passwordHasher->isPasswordValid($currentUser, $data['old_password'])) {
+            return new JsonResponse($this->doResponse->doErrorJsonResponse('Old password is incorrect'));
+        }
+
+        $newPassword = $data['new_password'];
+
+        if(strlen($newPassword) < 8) {
+            return new JsonResponse($this->doResponse->doErrorJsonResponse('New password must be at least 8 characters long'));
+        }
+
+        $currentUser->setPassword($passwordHasher->hashPassword($currentUser, $newPassword));
+
+        $this->doctrine->persist($currentUser);
+        $this->doctrine->flush();
+
+        $actionLoggerService->logAction('Change password', $currentUser);
+
+        return new JsonResponse('Change password success');
+    }
 }
+

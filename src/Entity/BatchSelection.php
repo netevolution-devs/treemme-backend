@@ -3,6 +3,9 @@
 namespace App\Entity;
 
 use App\Repository\BatchSelectionRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\Serializer\Annotation\Groups;
 
@@ -12,12 +15,12 @@ class BatchSelection
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['batch_selection_detail', 'batch_detail'])]
+    #[Groups(['batch_selection_detail', 'batch_detail', 'batch_list'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'batchSelections')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['batch_selection_detail'])]
+    #[Groups(['batch_selection_detail', 'batch_list'])]
     private ?Batch $batch = null;
 
     #[ORM\ManyToOne(inversedBy: 'batchSelections')]
@@ -43,7 +46,23 @@ class BatchSelection
 
     #[ORM\ManyToOne(inversedBy: 'batchSelections')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['batch_selection_detail', 'batch_detail', 'batch_list'])]
     private ?LeatherThickness $thickness = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['batch_selection_detail', 'batch_detail', 'batch_list'])]
+    private ?string $note = null;
+
+    /**
+     * @var Collection<int, BatchComposition>
+     */
+    #[ORM\OneToMany(mappedBy: 'selection', targetEntity: BatchComposition::class)]
+    private Collection $batchCompositions;
+
+    public function __construct()
+    {
+        $this->batchCompositions = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -93,7 +112,7 @@ class BatchSelection
 
     public function setQuantity(?float $quantity): static
     {
-        $this->quantity = $quantity;
+        $this->quantity = $quantity !== null ? round($quantity, 3) : null;
 
         return $this;
     }
@@ -117,7 +136,7 @@ class BatchSelection
 
     public function setStockQuantity(?float $stock_quantity): static
     {
-        $this->stock_quantity = $stock_quantity;
+        $this->stock_quantity = $stock_quantity !== null ? round($stock_quantity, 3) : null;
 
         return $this;
     }
@@ -130,6 +149,48 @@ class BatchSelection
     public function setThickness(?LeatherThickness $thickness): static
     {
         $this->thickness = $thickness;
+
+        return $this;
+    }
+
+    public function getNote(): ?string
+    {
+        return $this->note;
+    }
+
+    public function setNote(?string $note): static
+    {
+        $this->note = $note;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, BatchComposition>
+     */
+    public function getBatchCompositions(): Collection
+    {
+        return $this->batchCompositions;
+    }
+
+    public function addBatchComposition(BatchComposition $batchComposition): static
+    {
+        if (!$this->batchCompositions->contains($batchComposition)) {
+            $this->batchCompositions->add($batchComposition);
+            $batchComposition->setSelection($this);
+        }
+
+        return $this;
+    }
+
+    public function removeBatchComposition(BatchComposition $batchComposition): static
+    {
+        if ($this->batchCompositions->removeElement($batchComposition)) {
+            // set the owning side to null (unless already changed)
+            if ($batchComposition->getSelection() === $this) {
+                $batchComposition->setSelection(null);
+            }
+        }
 
         return $this;
     }

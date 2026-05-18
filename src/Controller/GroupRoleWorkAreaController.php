@@ -40,6 +40,19 @@ final class GroupRoleWorkAreaController extends AbstractController
         $this->validatorOutputFormatter = $validatorOutputFormatter;
     }
 
+    #[Route('/group-role-work-area/work-areas',
+        name: 'get_work_area_associations',
+        methods: ['GET', 'HEAD'])]
+    public function getWorkAreaAssociations(): JsonResponse
+    {
+        $repository = $this->doctrine->getRepository(WorkArea::class);
+        $items = $repository->findBy([], ['name' => 'ASC']);
+
+        $results = $this->groupSerializer->serializeGroup($items, 'work_area_list');
+
+        return new JsonResponse($this->doResponse->doResponse($results));
+    }
+
     #[Route('/group-role-work-area/{id}',
         name: 'get_group_role_work_area',
         defaults: ['id' => null],
@@ -52,10 +65,10 @@ final class GroupRoleWorkAreaController extends AbstractController
         if ($id) {
             $item = [$repository->find($id)];
             if (!$item[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('GroupRoleWorkArea not found', 404));
+                return $this->doResponse->doErrorJsonResponse('GroupRoleWorkArea not found', 404);
             }
         } else {
-            $item = $repository->findBy([], ['id' => 'DESC']);
+            $item = $repository->findBy([], ['id' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($item, $id ? 'group_role_work_area_detail' : 'group_role_work_area_list');
 
@@ -87,7 +100,7 @@ final class GroupRoleWorkAreaController extends AbstractController
             $errors = $validator->validate($item);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($item);
@@ -97,7 +110,7 @@ final class GroupRoleWorkAreaController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -114,7 +127,7 @@ final class GroupRoleWorkAreaController extends AbstractController
         $item = $this->doctrine->getRepository(GroupRoleWorkArea::class)->find($id);
 
         if (!$item) {
-            return new JsonResponse($this->doResponse->doErrorResponse('GroupRoleWorkArea not found', 404));
+            return $this->doResponse->doErrorJsonResponse('GroupRoleWorkArea not found', 404);
         }
 
         try {
@@ -125,7 +138,7 @@ final class GroupRoleWorkAreaController extends AbstractController
             $errors = $validator->validate($item);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($item);
@@ -134,7 +147,7 @@ final class GroupRoleWorkAreaController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($item, 'group_role_work_area_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -145,7 +158,7 @@ final class GroupRoleWorkAreaController extends AbstractController
     {
         $item = $this->doctrine->getRepository(GroupRoleWorkArea::class)->find($id);
         if (!$item) {
-            return new JsonResponse($this->doResponse->doErrorResponse('GroupRoleWorkArea not found', 404));
+            return $this->doResponse->doErrorJsonResponse('GroupRoleWorkArea not found', 404);
         }
 
         $this->doctrine->remove($item);
@@ -183,3 +196,4 @@ final class GroupRoleWorkAreaController extends AbstractController
         return $item;
     }
 }
+

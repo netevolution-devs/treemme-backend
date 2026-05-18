@@ -32,10 +32,10 @@ class RecipeTypeController extends AbstractController
         if ($id) {
             $recipeType = $repository->find($id);
             if (!$recipeType) {
-                return new JsonResponse($this->doResponse->doErrorResponse('RecipeType not found', 404));
+                return $this->doResponse->doErrorJsonResponse('RecipeType not found', 404);
             }
         } else {
-            $recipeType = $repository->findBy([], ['id' => 'DESC']);
+            $recipeType = $repository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($recipeType, $id ? 'recipe_type_detail' : 'recipe_type_list');
 
@@ -57,7 +57,7 @@ class RecipeTypeController extends AbstractController
             $errors = $validator->validate($recipeType);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($recipeType);
@@ -67,7 +67,7 @@ class RecipeTypeController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -78,7 +78,7 @@ class RecipeTypeController extends AbstractController
         $recipeType = $this->doctrine->getRepository(RecipeType::class)->find($id);
 
         if (!$recipeType) {
-            return new JsonResponse($this->doResponse->doErrorResponse('RecipeType not found', 404));
+            return $this->doResponse->doErrorJsonResponse('RecipeType not found', 404);
         }
 
         try {
@@ -87,7 +87,7 @@ class RecipeTypeController extends AbstractController
             $errors = $validator->validate($recipeType);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($recipeType);
@@ -96,7 +96,7 @@ class RecipeTypeController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($recipeType, 'recipe_type_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -105,7 +105,7 @@ class RecipeTypeController extends AbstractController
     {
         $recipeType = $this->doctrine->getRepository(RecipeType::class)->find($id);
         if (!$recipeType) {
-            return new JsonResponse($this->doResponse->doErrorResponse('RecipeType not found', 404));
+            return $this->doResponse->doErrorJsonResponse('RecipeType not found', 404);
         }
 
         $this->doctrine->remove($recipeType);
@@ -114,3 +114,4 @@ class RecipeTypeController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
     }
 }
+

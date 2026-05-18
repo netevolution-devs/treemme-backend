@@ -49,10 +49,10 @@ final class PaymentController extends AbstractController
         if ($id) {
             $payment = [$paymentRepository->find($id)];
             if (!$payment[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('Payment not found', 404));
+                return $this->doResponse->doErrorJsonResponse('Payment not found', 404);
             }
         } else {
-            $payment = $paymentRepository->findBy([], ['id' => 'DESC']);
+            $payment = $paymentRepository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($payment, $id ? 'payment_detail' : 'payment_list');
 
@@ -79,7 +79,7 @@ final class PaymentController extends AbstractController
             $errors = $validator->validate($payment);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $em = $this->doctrine;
@@ -90,7 +90,7 @@ final class PaymentController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -107,7 +107,7 @@ final class PaymentController extends AbstractController
         $payment = $this->doctrine->getRepository(Payment::class)->find($id);
 
         if (!$payment) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Payment not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Payment not found', 404);
         }
 
         try {
@@ -116,7 +116,7 @@ final class PaymentController extends AbstractController
             $errors = $validator->validate($payment);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($payment);
@@ -125,7 +125,7 @@ final class PaymentController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($payment, 'payment_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -136,7 +136,7 @@ final class PaymentController extends AbstractController
     {
         $payment = $this->doctrine->getRepository(Payment::class)->find($id);
         if (!$payment) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Payment not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Payment not found', 404);
         }
 
         $this->doctrine->remove($payment);
@@ -145,3 +145,4 @@ final class PaymentController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
     }
 }
+

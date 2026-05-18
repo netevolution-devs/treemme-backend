@@ -8,6 +8,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\Serializer\Annotation\Groups;
+use JMS\Serializer\Annotation\MaxDepth;
 
 #[ORM\Entity(repositoryClass: ColorRepository::class)]
 class Color
@@ -15,32 +16,27 @@ class Color
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['color_list', 'color_detail', 'color_type_detail', 'product_list', 'product_detail'])]
+    #[Groups(['color_list', 'color_detail', 'color_type_detail', 'article_list', 'article_detail', 'internal_color_detail'])]
     private ?int $id = null;
 
-    #[ORM\ManyToOne(inversedBy: 'colors')]
-    #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['color_list', 'color_detail'])]
-    private ?ColorType $color_type = null;
-
     #[ORM\Column(length: 255)]
-    #[Groups(['color_list', 'color_detail', 'color_type_detail', 'product_list', 'product_detail'])]
+    #[Groups(['color_list', 'color_detail', 'color_type_detail', 'article_list', 'article_detail', 'internal_color_detail'])]
     private ?string $color = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['color_list', 'color_detail', 'product_list', 'product_detail'])]
+    #[Groups(['color_list', 'color_detail', 'article_list', 'article_detail'])]
     private ?string $shade = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['color_list', 'color_detail'])]
+    #[Groups(['color_list', 'color_detail', 'article_list', 'article_detail'])]
     private ?string $var_color = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     #[Groups(['color_detail'])]
     private ?string $color_note = null;
 
-    #[ORM\Column(length: 255)]
-    #[Groups(['color_list', 'color_detail'])]
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['color_list', 'color_detail', 'article_list', 'article_detail'])]
     private ?string $client_color = null;
 
     /**
@@ -56,26 +52,31 @@ class Color
     #[ORM\Column]
     private ?\DateTimeImmutable $updated_at = null;
 
+    /**
+     * @var Collection<int, Article>
+     */
+    #[ORM\OneToMany(mappedBy: 'color', targetEntity: Article::class)]
+    #[Groups(['color_detail'])]
+    #[MaxDepth(1)]
+    private Collection $articles;
+
+    #[ORM\ManyToOne(inversedBy: 'colors')]
+    #[Groups(['color_list', 'color_detail'])]
+    private ?contact $client = null;
+
+    #[ORM\ManyToOne(inversedBy: 'colors')]
+    #[Groups(['color_list', 'color_detail'])]
+    private ?InternalColor $internal_color = null;
+
     public function __construct()
     {
         $this->products = new ArrayCollection();
+        $this->articles = new ArrayCollection();
     }
 
     public function getId(): ?int
     {
         return $this->id;
-    }
-
-    public function getColorType(): ?ColorType
-    {
-        return $this->color_type;
-    }
-
-    public function setColorType(?ColorType $color_type): static
-    {
-        $this->color_type = $color_type;
-
-        return $this;
     }
 
     public function getColor(): ?string
@@ -131,7 +132,7 @@ class Color
         return $this->client_color;
     }
 
-    public function setClientColor(string $client_color): static
+    public function setClientColor(?string $client_color): static
     {
         $this->client_color = $client_color;
 
@@ -188,6 +189,60 @@ class Color
     public function setUpdatedAt(\DateTimeImmutable $updated_at): static
     {
         $this->updated_at = $updated_at;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Article>
+     */
+    public function getArticles(): Collection
+    {
+        return $this->articles;
+    }
+
+    public function addArticle(Article $article): static
+    {
+        if (!$this->articles->contains($article)) {
+            $this->articles->add($article);
+            $article->setColor($this);
+        }
+
+        return $this;
+    }
+
+    public function removeArticle(Article $article): static
+    {
+        if ($this->articles->removeElement($article)) {
+            // set the owning side to null (unless already changed)
+            if ($article->getColor() === $this) {
+                $article->setColor(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function getClient(): ?contact
+    {
+        return $this->client;
+    }
+
+    public function setClient(?contact $client): static
+    {
+        $this->client = $client;
+
+        return $this;
+    }
+
+    public function getInternalColor(): ?InternalColor
+    {
+        return $this->internal_color;
+    }
+
+    public function setInternalColor(?InternalColor $internal_color): static
+    {
+        $this->internal_color = $internal_color;
 
         return $this;
     }

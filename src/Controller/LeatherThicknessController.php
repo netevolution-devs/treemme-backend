@@ -49,10 +49,10 @@ final class LeatherThicknessController extends AbstractController
         if ($id) {
             $leatherThickness = [$leatherThicknessRepository->find($id)];
             if (!$leatherThickness[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('LeatherThickness not found', 404));
+                return $this->doResponse->doErrorJsonResponse('LeatherThickness not found', 404);
             }
         } else {
-            $leatherThickness = $leatherThicknessRepository->findBy([], ['id' => 'DESC']);
+            $leatherThickness = $leatherThicknessRepository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($leatherThickness, $id ? 'leather_thickness_detail' : 'leather_thickness_list');
 
@@ -79,7 +79,7 @@ final class LeatherThicknessController extends AbstractController
             $errors = $validator->validate($leatherThickness);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $em = $this->doctrine;
@@ -90,7 +90,7 @@ final class LeatherThicknessController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -107,7 +107,7 @@ final class LeatherThicknessController extends AbstractController
         $leatherThickness = $this->doctrine->getRepository(LeatherThickness::class)->find($id);
 
         if (!$leatherThickness) {
-            return new JsonResponse($this->doResponse->doErrorResponse('LeatherThickness not found', 404));
+            return $this->doResponse->doErrorJsonResponse('LeatherThickness not found', 404);
         }
 
         try {
@@ -116,7 +116,7 @@ final class LeatherThicknessController extends AbstractController
             $errors = $validator->validate($leatherThickness);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($leatherThickness);
@@ -125,7 +125,7 @@ final class LeatherThicknessController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($leatherThickness, 'leather_thickness_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -136,7 +136,7 @@ final class LeatherThicknessController extends AbstractController
     {
         $leatherThickness = $this->doctrine->getRepository(LeatherThickness::class)->find($id);
         if (!$leatherThickness) {
-            return new JsonResponse($this->doResponse->doErrorResponse('LeatherThickness not found', 404));
+            return $this->doResponse->doErrorJsonResponse('LeatherThickness not found', 404);
         }
 
         $this->doctrine->remove($leatherThickness);
@@ -145,3 +145,4 @@ final class LeatherThicknessController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
     }
 }
+

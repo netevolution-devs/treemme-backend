@@ -14,14 +14,15 @@ class ShipmentCondition
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['shipmentCondition_detail',  'shipmentCondition_list', 'client_order_detail'])]
+    #[Groups(['shipmentCondition_detail',  'shipmentCondition_list', 'client_order_detail', 'contact_list', 'contact_detail', 'batch_data_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['shipmentCondition_detail',  'shipmentCondition_list', 'client_order_detail'])]
+    #[Groups(['shipmentCondition_detail',  'shipmentCondition_list', 'client_order_detail', 'contact_list', 'contact_detail', 'batch_data_detail', 'client_summary_print'])]
     private ?string $name = null;
 
     #[ORM\Column]
+    #[Groups(['shipmentCondition_detail'])]
     private ?bool $borne_by_customer = null;
 
     /**
@@ -30,9 +31,23 @@ class ShipmentCondition
     #[ORM\OneToMany(mappedBy: 'shipment_condition', targetEntity: ClientOrder::class)]
     private Collection $clientOrders;
 
+    /**
+     * @var Collection<int, Contact>
+     */
+    #[ORM\OneToMany(mappedBy: 'shipment_condition', targetEntity: Contact::class)]
+    private Collection $contacts;
+
+    /**
+     * @var Collection<int, BatchData>
+     */
+    #[ORM\OneToMany(mappedBy: 'shipmentCondition', targetEntity: BatchData::class)]
+    private Collection $batchData;
+
     public function __construct()
     {
         $this->clientOrders = new ArrayCollection();
+        $this->contacts = new ArrayCollection();
+        $this->batchData = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -88,6 +103,66 @@ class ShipmentCondition
             // set the owning side to null (unless already changed)
             if ($clientOrder->getShipmentCondition() === $this) {
                 $clientOrder->setShipmentCondition(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Contact>
+     */
+    public function getContacts(): Collection
+    {
+        return $this->contacts;
+    }
+
+    public function addContact(Contact $contact): static
+    {
+        if (!$this->contacts->contains($contact)) {
+            $this->contacts->add($contact);
+            $contact->setShipmentCondition($this);
+        }
+
+        return $this;
+    }
+
+    public function removeContact(Contact $contact): static
+    {
+        if ($this->contacts->removeElement($contact)) {
+            // set the owning side to null (unless already changed)
+            if ($contact->getShipmentCondition() === $this) {
+                $contact->setShipmentCondition(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, BatchData>
+     */
+    public function getBatchData(): Collection
+    {
+        return $this->batchData;
+    }
+
+    public function addBatchData(BatchData $batchData): static
+    {
+        if (!$this->batchData->contains($batchData)) {
+            $this->batchData->add($batchData);
+            $batchData->setShipmentCondition($this);
+        }
+
+        return $this;
+    }
+
+    public function removeBatchData(BatchData $batchData): static
+    {
+        if ($this->batchData->removeElement($batchData)) {
+            // set the owning side to null (unless already changed)
+            if ($batchData->getShipmentCondition() === $this) {
+                $batchData->setShipmentCondition(null);
             }
         }
 

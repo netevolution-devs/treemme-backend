@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\WorkAreaRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\Serializer\Annotation\Groups;
@@ -17,11 +19,11 @@ class WorkArea
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['work_area_list','work_area_detail'])]
+    #[Groups(['work_area_list','work_area_detail', 'group_role_work_area_list', 'group_role_work_area_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['work_area_detail'])]
+    #[Groups(['work_area_detail', 'group_role_work_area_detail'])]
     private ?string $description = null;
 
     #[ORM\Column]
@@ -29,6 +31,18 @@ class WorkArea
 
     #[ORM\Column]
     private ?\DateTimeImmutable $updated_at = null;
+
+    /**
+     * @var Collection<int, GroupRoleWorkArea>
+     */
+    #[ORM\OneToMany(mappedBy: 'workArea', targetEntity: GroupRoleWorkArea::class)]
+    #[Groups(['work_area_list', 'work_area_detail'])]
+    private Collection $groupRoleWorkAreas;
+
+    public function __construct()
+    {
+        $this->groupRoleWorkAreas = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -79,6 +93,36 @@ class WorkArea
     public function setUpdatedAt(\DateTimeImmutable $updated_at): static
     {
         $this->updated_at = $updated_at;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, GroupRoleWorkArea>
+     */
+    public function getGroupRoleWorkAreas(): Collection
+    {
+        return $this->groupRoleWorkAreas;
+    }
+
+    public function addGroupRoleWorkArea(GroupRoleWorkArea $groupRoleWorkArea): static
+    {
+        if (!$this->groupRoleWorkAreas->contains($groupRoleWorkArea)) {
+            $this->groupRoleWorkAreas->add($groupRoleWorkArea);
+            $groupRoleWorkArea->setWorkArea($this);
+        }
+
+        return $this;
+    }
+
+    public function removeGroupRoleWorkArea(GroupRoleWorkArea $groupRoleWorkArea): static
+    {
+        if ($this->groupRoleWorkAreas->removeElement($groupRoleWorkArea)) {
+            // set the owning side to null (unless already changed)
+            if ($groupRoleWorkArea->getWorkArea() === $this) {
+                $groupRoleWorkArea->setWorkArea(null);
+            }
+        }
 
         return $this;
     }

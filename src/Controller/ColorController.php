@@ -4,6 +4,8 @@ namespace App\Controller;
 
 use App\Entity\Color;
 use App\Entity\ColorType;
+use App\Entity\Contact;
+use App\Entity\InternalColor;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -43,18 +45,26 @@ final class ColorController extends AbstractController
         defaults: ['id' => null],
         requirements: ['id' => '\d*'],
         methods: ['GET', 'HEAD'])]
-    public function getColor(?int $id): JsonResponse
+    public function getColor(?int $id, Request $request): JsonResponse
     {
         $colorRepository = $this->doctrine->getRepository(Color::class);
 
         if ($id) {
             $color = [$colorRepository->find($id)];
             if (!$color[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('Color not found', 404));
+                return $this->doResponse->doErrorJsonResponse('Color not found', 404);
             }
         } else {
-            $color = $colorRepository->findBy([], ['id' => 'DESC']);
+            $clientId = $request->query->get('client');
+
+            if ($clientId) {
+                $client = $this->doctrine->getRepository(Contact::class)->find($clientId);
+                $color = $colorRepository->findBy(['client' => $client], ['color' => 'ASC']);
+            } else {
+                $color = $colorRepository->findBy([], ['color' => 'ASC']);
+            }
         }
+
         $results = $this->groupSerializer->serializeGroup($color, $id ? 'color_detail' : 'color_list');
 
         if ($id) {
@@ -85,7 +95,7 @@ final class ColorController extends AbstractController
             $errors = $validator->validate($color);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($color);
@@ -95,7 +105,7 @@ final class ColorController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -112,7 +122,7 @@ final class ColorController extends AbstractController
         $color = $this->doctrine->getRepository(Color::class)->find($id);
 
         if (!$color) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Color not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Color not found', 404);
         }
 
         try {
@@ -123,7 +133,7 @@ final class ColorController extends AbstractController
             $errors = $validator->validate($color);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($color);
@@ -132,7 +142,7 @@ final class ColorController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($color, 'color_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -143,7 +153,7 @@ final class ColorController extends AbstractController
     {
         $color = $this->doctrine->getRepository(Color::class)->find($id);
         if (!$color) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Color not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Color not found', 404);
         }
 
         $this->doctrine->remove($color);
@@ -154,14 +164,23 @@ final class ColorController extends AbstractController
 
     private function handleRelations(Color $color, array &$data): Color
     {
-        if (isset($data['color_type_id'])) {
-            $colorType = $this->doctrine->getRepository(ColorType::class)->find($data['color_type_id']);
-            if ($colorType) {
-                $color->setColorType($colorType);
+        if (isset($data['client_id'])) {
+            $client = $this->doctrine->getRepository(Contact::class)->find($data['client_id']);
+            if ($client) {
+                $color->setClient($client);
             }
-            unset($data['color_type_id']);
+            unset($data['client_id']);
+        }
+
+        if (isset($data['internal_color_id'])) {
+            $internalColor = $this->doctrine->getRepository(InternalColor::class)->find($data['internal_color_id']);
+            if ($internalColor) {
+                $color->setInternalColor($internalColor);
+            }
+            unset($data['internal_color_id']);
         }
 
         return $color;
     }
 }
+

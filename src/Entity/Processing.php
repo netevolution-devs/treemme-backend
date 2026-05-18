@@ -14,11 +14,11 @@ class Processing
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['processing_list', 'processing_detail', 'material_bill_detail', 'recipe_detail'])]
+    #[Groups(['processing_list', 'processing_detail', 'material_bill_detail', 'recipe_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'external_processing_print'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['processing_list', 'processing_detail', 'material_bill_detail', 'recipe_detail'])]
+    #[Groups(['processing_list', 'processing_detail', 'material_bill_detail', 'recipe_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'external_processing_print'])]
     private ?string $name = null;
 
     #[ORM\Column]
@@ -49,10 +49,17 @@ class Processing
     #[ORM\OneToMany(mappedBy: 'processing', targetEntity: MaterialBillStep::class)]
     private Collection $materialBillSteps;
 
+    /**
+     * @var Collection<int, DdtRowProcessing>
+     */
+    #[ORM\OneToMany(mappedBy: 'processing', targetEntity: DdtRowProcessing::class)]
+    private Collection $ProcessingDdtRows;
+
     public function __construct()
     {
         $this->recipes = new ArrayCollection();
         $this->materialBillSteps = new ArrayCollection();
+        $this->ProcessingDdtRows = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -174,6 +181,36 @@ class Processing
             // set the owning side to null (unless already changed)
             if ($materialBillStep->getProcessing() === $this) {
                 $materialBillStep->setProcessing(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, DdtRowProcessing>
+     */
+    public function getProcessingDdtRows(): Collection
+    {
+        return $this->ProcessingDdtRows;
+    }
+
+    public function addProcessingDdtRow(DdtRowProcessing $processingDdtRow): static
+    {
+        if (!$this->ProcessingDdtRows->contains($processingDdtRow)) {
+            $this->ProcessingDdtRows->add($processingDdtRow);
+            $processingDdtRow->setProcessing($this);
+        }
+
+        return $this;
+    }
+
+    public function removeProcessingDdtRow(DdtRowProcessing $processingDdtRow): static
+    {
+        if ($this->ProcessingDdtRows->removeElement($processingDdtRow)) {
+            // set the owning side to null (unless already changed)
+            if ($processingDdtRow->getProcessing() === $this) {
+                $processingDdtRow->setProcessing(null);
             }
         }
 

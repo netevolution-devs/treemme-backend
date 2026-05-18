@@ -49,13 +49,13 @@ final class DdtReasonController extends AbstractController
         if ($id) {
             $reason = $repository->find($id);
             if (!$reason) {
-                return new JsonResponse($this->doResponse->doErrorResponse('Causale DDT non trovata', 404));
+                return $this->doResponse->doErrorJsonResponse('Causale DDT non trovata', 404);
             }
             $results = $this->groupSerializer->serializeGroup([$reason], 'ddt_reason_detail');
             return new JsonResponse($this->doResponse->doResponse($results[0]));
         }
 
-        $reasons = $repository->findBy([], ['id' => 'DESC']);
+        $reasons = $repository->findBy([], ['name' => 'ASC']);
         $results = $this->groupSerializer->serializeGroup($reasons, 'ddt_reason_list');
         return new JsonResponse($this->doResponse->doResponse($results));
     }
@@ -74,12 +74,12 @@ final class DdtReasonController extends AbstractController
             $reason = $this->createMethodsByInput->createMethods($reason, $data);
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage(), 400));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage(), 400);
         }
 
         $errors = $validator->validate($reason);
         if (count($errors) > 0) {
-            return new JsonResponse($this->doResponse->doErrorResponse($this->validatorOutputFormatter->formatOutput($errors), 400));
+            return $this->doResponse->doErrorJsonResponse($this->validatorOutputFormatter->formatOutput($errors), 400);
         }
 
         $this->doctrine->persist($reason);
@@ -97,7 +97,7 @@ final class DdtReasonController extends AbstractController
     {
         $reason = $this->doctrine->getRepository(DdtReason::class)->find($id);
         if (!$reason) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Causale DDT non trovata', 404));
+            return $this->doResponse->doErrorJsonResponse('Causale DDT non trovata', 404);
         }
 
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
@@ -106,12 +106,12 @@ final class DdtReasonController extends AbstractController
             $this->handleRelations($reason, $data);
             $this->createMethodsByInput->createMethods($reason, $data);
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage(), 400));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage(), 400);
         }
 
         $errors = $validator->validate($reason);
         if (count($errors) > 0) {
-            return new JsonResponse($this->doResponse->doErrorResponse($this->validatorOutputFormatter->formatOutput($errors), 400));
+            return $this->doResponse->doErrorJsonResponse($this->validatorOutputFormatter->formatOutput($errors), 400);
         }
 
         $this->doctrine->flush();
@@ -128,7 +128,7 @@ final class DdtReasonController extends AbstractController
     {
         $reason = $this->doctrine->getRepository(DdtReason::class)->find($id);
         if (!$reason) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Causale DDT non trovata', 404));
+            return $this->doResponse->doErrorJsonResponse('Causale DDT non trovata', 404);
         }
 
         $this->doctrine->remove($reason);
@@ -150,3 +150,4 @@ final class DdtReasonController extends AbstractController
         }
     }
 }
+

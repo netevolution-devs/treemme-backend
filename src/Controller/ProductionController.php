@@ -10,10 +10,12 @@ use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
 use App\Service\ValidatorOutputFormatter;
+use App\Service\PdfGeneratorService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -24,6 +26,7 @@ class ProductionController extends AbstractController
     private $doResponse;
     private $groupSerializer;
     private $validatorOutputFormatter;
+    private $pdfGenerator;
 
     public function __construct(
         CreateMethodsByInput     $createMethodsByInput,
@@ -31,6 +34,7 @@ class ProductionController extends AbstractController
         DoResponseService        $doResponseService,
         GroupSerializerService   $groupSerializer,
         ValidatorOutputFormatter $validatorOutputFormatter,
+        PdfGeneratorService      $pdfGenerator,
     )
     {
         $this->createMethodsByInput = $createMethodsByInput;
@@ -38,6 +42,7 @@ class ProductionController extends AbstractController
         $this->doResponse = $doResponseService;
         $this->groupSerializer = $groupSerializer;
         $this->validatorOutputFormatter = $validatorOutputFormatter;
+        $this->pdfGenerator = $pdfGenerator;
     }
 
     #[Route('/production/{id}', name: 'app_production_index', methods: ['GET'], defaults: ['id' => null], requirements: ['id' => '\d+'])]
@@ -47,7 +52,7 @@ class ProductionController extends AbstractController
             $production = $this->doctrine->getRepository(Production::class)->find($id);
 
             if (!$production) {
-                return new JsonResponse($this->doResponse->doErrorResponse('Produzione non trovata', status_code: 404));
+                return $this->doResponse->doErrorJsonResponse('Produzione non trovata', 404);
             }
 
             $results = $this->groupSerializer->serializeGroup($production, 'production_detail');
@@ -55,8 +60,32 @@ class ProductionController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($results));
         }
 
-        $productions = $this->doctrine->getRepository(Production::class)->findAll();
+        $productions = [];
+        $scheduledDate = $request->query->get('scheduled_date');
+
+        if ($scheduledDate) {
+            try {
+                $date = new \DateTimeImmutable($scheduledDate);
+            } catch (\Exception $e) {
+                return $this->doResponse->doErrorJsonResponse('Formato data non valido per scheduled_date', 404);
+            }
+
+            $productions = $this->doctrine->getRepository(Production::class)->findBy(['scheduled_date' => $date]);
+        } else {
+            $productions = $this->doctrine->getRepository(Production::class)->findAll();
+        }
+
         $results = $this->groupSerializer->serializeGroup($productions, 'production_list');
+
+        foreach ( $productions as $index => $production ) {
+            $batchOrder = $production->getBatch()->getBatchOrders()->first();
+            if ($batchOrder) {
+                $results[$index]['client_name'] = $batchOrder->getOrderRow()->getClientOrder()->getClient()->getName();
+            } else {
+                $results[$index]['client_name'] = null;
+            }
+        }
+
 
         return new JsonResponse($this->doResponse->doResponse($results));
     }
@@ -68,13 +97,13 @@ class ProductionController extends AbstractController
     public function getProductionByBatch(Request $request, ?int $batch_id = null): JsonResponse
     {
         if (!$batch_id) {
-            return new JsonResponse($this->doResponse->doErrorResponse('ID lotto non specificato', status_code: 400));
+            return $this->doResponse->doErrorJsonResponse('ID lotto non specificato', status_code: 400);
         }
 
         $batch = $this->doctrine->getRepository(Batch::class)->find($batch_id);
 
         if (!$batch) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Lotto non trovato', status_code: 404));
+            return $this->doResponse->doErrorJsonResponse('Lotto non trovato', status_code: 404);
         }
 
         $productions = $this->doctrine->getRepository(Production::class)->findBy(['batch' => $batch]);
@@ -93,13 +122,13 @@ class ProductionController extends AbstractController
         try {
             $this->mapDataToEntity($production, $data);
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
 
         $errors = $validator->validate($production);
         if (count($errors) > 0) {
             $formattedErrors = $this->validatorOutputFormatter->formatOutput($errors);
-            return new JsonResponse($this->doResponse->doErrorResponse($formattedErrors));
+            return $this->doResponse->doErrorJsonResponse($formattedErrors);
         }
 
         $this->doctrine->persist($production);
@@ -115,7 +144,7 @@ class ProductionController extends AbstractController
         $production = $this->doctrine->getRepository(Production::class)->find($id);
 
         if (!$production) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Produzione non trovata', status_code: 404));
+            return $this->doResponse->doErrorJsonResponse('Produzione non trovata', status_code: 404);
         }
 
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
@@ -123,13 +152,13 @@ class ProductionController extends AbstractController
         try {
             $this->mapDataToEntity($production, $data);
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
 
         $errors = $validator->validate($production);
         if (count($errors) > 0) {
             $formattedErrors = $this->validatorOutputFormatter->formatOutput($errors);
-            return new JsonResponse($this->doResponse->doErrorResponse($formattedErrors));
+            return $this->doResponse->doErrorJsonResponse($formattedErrors);
         }
 
         $this->doctrine->flush();
@@ -144,7 +173,7 @@ class ProductionController extends AbstractController
         $production = $this->doctrine->getRepository(Production::class)->find($id);
 
         if (!$production) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Produzione non trovata', status_code: 404));
+            return $this->doResponse->doErrorJsonResponse('Produzione non trovata', status_code: 404);
         }
 
         $this->doctrine->remove($production);
@@ -185,4 +214,64 @@ class ProductionController extends AbstractController
         // Mappatura campi semplici
         $this->createMethodsByInput->createMethods($production, $data);
     }
+
+    #[Route('/production/daily-print', name: 'production_daily_print', methods: ['GET'])]
+    public function generateDailyPrint(Request $request): Response
+    {
+        $dateParam = $request->query->get('date');
+        if (!$dateParam) {
+            return $this->doResponse->doErrorJsonResponse('Parametro "date" mancante (formato atteso: YYYY-MM-DD)', 400);
+        }
+
+        try {
+            $day = \DateTimeImmutable::createFromFormat('!Y-m-d', $dateParam);
+            $errors = \DateTimeImmutable::getLastErrors();
+
+            if (
+                !$day ||
+                ($errors !== false && (($errors['warning_count'] ?? 0) > 0 || ($errors['error_count'] ?? 0) > 0))
+            ) {
+                throw new \Exception();
+            }
+        } catch (\Exception $e) {
+            return $this->doResponse->doErrorJsonResponse('Formato data non valido per "date" (atteso: YYYY-MM-DD)', 400);
+        }
+
+        $start = $day->setTime(0, 0, 0);
+        $end = $day->modify('+1 day')->setTime(0, 0, 0);
+
+        $repo = $this->doctrine->getRepository(Production::class);
+
+        $productions = $repo->findBy(['scheduled_date' => $day]);
+
+        $groupedProductions = [];
+        foreach ($productions as $production) {
+            $machine = $production->getMachine();
+            $batch = $production->getBatch();
+            if(str_starts_with($batch->getBatchCode(), 'UF')){
+                continue;
+            }
+            $machineId = $machine ? $machine->getId() : 0;
+            if (!isset($groupedProductions[$machineId])) {
+                $groupedProductions[$machineId] = [
+                    'machine' => $machine,
+                    'items' => []
+                ];
+            }
+            $groupedProductions[$machineId]['items'][] = $production;
+        }
+
+        $pdfContent = $this->pdfGenerator->generatePdf('print/production_load_pdf.html.twig', [
+            'day' => $day->format('d/m/Y'),
+            'grouped_productions' => $groupedProductions,
+            'app_root' => $this->getParameter('kernel.project_dir')
+        ], 'carico_bottali_' . $day->format('Ymd') . '.pdf');
+
+        return new Response($pdfContent, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="carico_bottali_' . $day->format('Ymd') . '.pdf"'
+        ]);
+    }
 }
+
+

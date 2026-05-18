@@ -49,10 +49,10 @@ final class NationController extends AbstractController
         if ($id) {
             $nation = [$nationRepository->find($id)];
             if (!$nation[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('Nation not found', 404));
+                return $this->doResponse->doErrorJsonResponse('Nation not found', 404);
             }
         } else {
-            $nation = $nationRepository->findBy([], ['id' => 'DESC']);
+            $nation = $nationRepository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($nation, $id ? 'nation_detail' : 'nation_list');
 
@@ -79,7 +79,7 @@ final class NationController extends AbstractController
             $errors = $validator->validate($nation);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $em = $this->doctrine;
@@ -90,7 +90,7 @@ final class NationController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -107,7 +107,7 @@ final class NationController extends AbstractController
         $nation = $this->doctrine->getRepository(Nation::class)->find($id);
 
         if (!$nation) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Nation not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Nation not found', 404);
         }
 
         try {
@@ -116,7 +116,7 @@ final class NationController extends AbstractController
             $errors = $validator->validate($nation);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($nation);
@@ -125,7 +125,7 @@ final class NationController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($nation, 'nation_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -136,7 +136,7 @@ final class NationController extends AbstractController
     {
         $nation = $this->doctrine->getRepository(Nation::class)->find($id);
         if (!$nation) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Nation not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Nation not found', 404);
         }
 
         $this->doctrine->remove($nation);
@@ -145,3 +145,4 @@ final class NationController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
     }
 }
+

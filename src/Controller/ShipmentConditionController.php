@@ -44,10 +44,10 @@ final class ShipmentConditionController extends AbstractController
         if ($id) {
             $items = [$repo->find($id)];
             if (!$items[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('ShipmentCondition not found', 404));
+                return $this->doResponse->doErrorJsonResponse('ShipmentCondition not found', 404);
             }
         } else {
-            $items = $repo->findBy([], ['id' => 'DESC']);
+            $items = $repo->findBy([], ['name' => 'ASC']);
         }
 
         $results = $this->groupSerializer->serializeGroup($items, $id ? 'shipmentCondition_detail' : 'shipmentCondition_list');
@@ -73,7 +73,7 @@ final class ShipmentConditionController extends AbstractController
             $errors = $validator->validate($shipmentCondition);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($shipmentCondition);
@@ -82,7 +82,7 @@ final class ShipmentConditionController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($shipmentCondition, 'shipmentCondition_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -96,7 +96,7 @@ final class ShipmentConditionController extends AbstractController
         $data = $request->toArray();
         $shipmentCondition = $this->doctrine->getRepository(ShipmentCondition::class)->find($id);
         if (!$shipmentCondition) {
-            return new JsonResponse($this->doResponse->doErrorResponse('ShipmentCondition not found', 404));
+            return $this->doResponse->doErrorJsonResponse('ShipmentCondition not found', 404);
         }
 
         try {
@@ -105,7 +105,7 @@ final class ShipmentConditionController extends AbstractController
             $errors = $validator->validate($shipmentCondition);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($shipmentCondition);
@@ -114,7 +114,7 @@ final class ShipmentConditionController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($shipmentCondition, 'shipmentCondition_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -123,7 +123,7 @@ final class ShipmentConditionController extends AbstractController
     {
         $shipmentCondition = $this->doctrine->getRepository(ShipmentCondition::class)->find($id);
         if (!$shipmentCondition) {
-            return new JsonResponse($this->doResponse->doErrorResponse('ShipmentCondition not found', 404));
+            return $this->doResponse->doErrorJsonResponse('ShipmentCondition not found', 404);
         }
 
         $this->doctrine->remove($shipmentCondition);
@@ -132,3 +132,4 @@ final class ShipmentConditionController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
     }
 }
+

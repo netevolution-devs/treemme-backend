@@ -8,6 +8,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\Serializer\Annotation\Groups;
+use JMS\Serializer\Annotation\MaxDepth;
 
 #[ORM\Entity(repositoryClass: WarehouseMovementRepository::class)]
 class WarehouseMovement
@@ -15,48 +16,49 @@ class WarehouseMovement
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?int $id = null;
 
     #[ORM\Column]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?\DateTime $date = null;
 
     #[ORM\ManyToOne(inversedBy: 'warehouseMovements')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['warehouse_movement_list'])]
     private ?Batch $batch = null;
 
     #[ORM\ManyToOne(inversedBy: 'warehouseMovements')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?WarehouseMovementReason $reason = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?int $piece = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?float $price = null;
 
     #[ORM\Column]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?float $quantity = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?float $total_value = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?string $ddt_number = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?\DateTime $ddt_date = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?string $movement_note = null;
 
     #[ORM\ManyToOne(targetEntity: self::class, inversedBy: 'sonWarehouseMovements')]
@@ -67,6 +69,11 @@ class WarehouseMovement
      */
     #[ORM\OneToMany(mappedBy: 'father_movement', targetEntity: self::class)]
     private Collection $sonWarehouseMovements;
+
+    #[ORM\ManyToOne(inversedBy: 'warehouseMovements')]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
+    #[MaxDepth(1)]
+    private ?Contact $contact = null;
 
     public function __construct()
     {
@@ -111,6 +118,14 @@ class WarehouseMovement
     {
         $this->reason = $reason;
 
+        if ($this->piece !== null) {
+            $this->setPiece($this->piece);
+        }
+
+        if ($this->quantity !== null) {
+            $this->setQuantity($this->quantity);
+        }
+
         return $this;
     }
 
@@ -121,7 +136,11 @@ class WarehouseMovement
 
     public function setPiece(?int $piece): static
     {
-        $this->piece = $piece;
+        if ($piece !== null && $this->getReason() && $this->getReason()->getReasonType() && $this->getReason()->getReasonType()->getMovementType() === '-') {
+            $this->piece = -abs($piece);
+        } else {
+            $this->piece = $piece;
+        }
 
         return $this;
     }
@@ -145,7 +164,11 @@ class WarehouseMovement
 
     public function setQuantity(float $quantity): static
     {
-        $this->quantity = $quantity;
+        if ($this->getReason() && $this->getReason()->getReasonType() && $this->getReason()->getReasonType()->getMovementType() === '-') {
+            $this->quantity = -abs(round($quantity, 3));
+        } else {
+            $this->quantity = round($quantity, 3);
+        }
 
         return $this;
     }
@@ -236,6 +259,18 @@ class WarehouseMovement
                 $sonWarehouseMovement->setFatherMovement(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getContact(): ?Contact
+    {
+        return $this->contact;
+    }
+
+    public function setContact(?Contact $contact): static
+    {
+        $this->contact = $contact;
 
         return $this;
     }

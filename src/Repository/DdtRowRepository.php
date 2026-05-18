@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\DdtRow;
+use App\Entity\WarehouseMovement;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -16,29 +17,7 @@ class DdtRowRepository extends ServiceEntityRepository
         parent::__construct($registry, DdtRow::class);
     }
 
-    /**
-     * @return DdtRow[] Returns an array of DdtRow objects that are in subcontracting and not yet returned
-     */
-    public function findSubcontractingNotReturned(): array
-    {
-        $qb = $this->createQueryBuilder('dr');
 
-        return $qb
-            ->join('dr.ddt', 'd')
-            ->join('d.reason', 'drn')
-            ->join('dr.batch', 'b')
-            ->join('b.warehouseMovements', 'wm')
-            ->join('wm.reason', 'wmr')
-            ->join('wmr.reason_type', 'rt')
-            ->andWhere('drn.name = :ddtReasonName')
-            ->andWhere('wmr.name = :movementReasonName')
-            ->andWhere('rt.name = :movementType')
-            ->setParameter('ddtReasonName', 'C/O Lavorazione')
-            ->setParameter('movementReasonName', 'C/O Lavorazione')
-            ->setParameter('movementType', 'Scarico')
-            ->getQuery()
-            ->getResult();
-    }
 
     //    /**
     //     * @return DdtRow[] Returns an array of DdtRow objects
@@ -64,4 +43,104 @@ class DdtRowRepository extends ServiceEntityRepository
     //            ->getOneOrNullResult()
     //        ;
     //    }
+    public function findSoldLots(?int $clientId = null, ?\DateTime $startDate = null, ?\DateTime $endDate = null, ?string $batchCode = null): array
+    {
+        $qb = $this->createQueryBuilder('dr')
+            ->join('dr.ddt', 'd')
+            ->join('d.reason', 'r')
+            ->leftJoin('dr.batch', 'b')
+            ->andWhere('r.name = :reasonName')
+            ->setParameter('reasonName', 'Vendita');
+
+        if ($batchCode) {
+            $qb->andWhere('b.batch_code = :batchCode')
+                ->setParameter('batchCode', $batchCode);
+        }
+
+        if ($clientId) {
+            $qb->andWhere('IDENTITY(d.client) = :clientId')
+                ->setParameter('clientId', $clientId);
+        }
+
+        if ($startDate) {
+            $qb->andWhere('d.ddt_date >= :startDate')
+                ->setParameter('startDate', $startDate);
+        }
+
+        if ($endDate) {
+            $endDate->setTime(23, 59, 59);
+            $qb->andWhere('d.ddt_date <= :endDate')
+                ->setParameter('endDate', $endDate);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    public function findExternalProcessingLots(?int $subcontractorId = null, ?\DateTime $startDate = null, ?\DateTime $endDate = null, ?string $batchCode = null): array
+    {
+        $qb = $this->createQueryBuilder('dr')
+            ->join('dr.ddt', 'd')
+            ->join('d.reason', 'r')
+            ->join('dr.batch', 'b')
+            ->andWhere('r.name = :reasonName')
+            ->setParameter('reasonName', 'C/O Lavorazione');
+
+        if ($subcontractorId) {
+            $qb->andWhere('IDENTITY(d.subcontractor) = :subcontractorId')
+                ->setParameter('subcontractorId', $subcontractorId);
+        }
+
+        if ($startDate) {
+            $qb->andWhere('d.ddt_date >= :startDate')
+                ->setParameter('startDate', $startDate);
+        }
+
+        if ($endDate) {
+            $endDate->setTime(23, 59, 59);
+            $qb->andWhere('d.ddt_date <= :endDate')
+                ->setParameter('endDate', $endDate);
+        }
+
+        if ($batchCode) {
+            $normalizedCode = str_replace('0', '', $batchCode);
+            $qb->andWhere("REPLACE(b.batch_code, '0', '') LIKE :code")
+                ->setParameter('code', '%' . $normalizedCode . '%');
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    public function findSubcontractingNotReturned(?int $subcontractorId = null, ?\DateTime $startDate = null, ?\DateTime $endDate = null, ?string $batchCode = null): array
+    {
+        $qb = $this->createQueryBuilder('dr')
+            ->join('dr.ddt', 'd')
+            ->join('d.reason', 'r')
+            ->join('dr.batch', 'b')
+            ->andWhere('r.name != :vendita')
+            ->setParameter('vendita', 'Vendita');
+
+        if ($subcontractorId) {
+            $qb->andWhere('IDENTITY(d.subcontractor) = :subcontractorId')
+                ->setParameter('subcontractorId', $subcontractorId);
+        }
+
+        if ($startDate) {
+            $qb->andWhere('d.ddt_date >= :startDate')
+                ->setParameter('startDate', $startDate);
+        }
+
+        if ($endDate) {
+            $endDate->setTime(23, 59, 59);
+            $qb->andWhere('d.ddt_date <= :endDate')
+                ->setParameter('endDate', $endDate);
+        }
+
+        if ($batchCode) {
+            $normalizedCode = str_replace('0', '', $batchCode);
+            $qb->andWhere("REPLACE(b.batch_code, '0', '') LIKE :code")
+                ->setParameter('code', '%' . $normalizedCode . '%');
+        }
+
+        return $qb->getQuery()->getResult();
+    }
 }

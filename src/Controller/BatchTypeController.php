@@ -49,10 +49,10 @@ final class BatchTypeController extends AbstractController
         if ($id) {
             $batchType = [$batchTypeRepository->find($id)];
             if (!$batchType[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('BatchType not found', 404));
+                return $this->doResponse->doErrorJsonResponse('BatchType not found', 404);
             }
         } else {
-            $batchType = $batchTypeRepository->findBy([], ['id' => 'DESC']);
+            $batchType = $batchTypeRepository->findBy([], ['name' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($batchType, $id ? 'batch_type_detail' : 'batch_type_list');
 
@@ -83,7 +83,7 @@ final class BatchTypeController extends AbstractController
             $errors = $validator->validate($batchType);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $em = $this->doctrine;
@@ -94,7 +94,7 @@ final class BatchTypeController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -111,7 +111,7 @@ final class BatchTypeController extends AbstractController
         $batchType = $this->doctrine->getRepository(BatchType::class)->find($id);
 
         if (!$batchType) {
-            return new JsonResponse($this->doResponse->doErrorResponse('BatchType not found', 404));
+            return $this->doResponse->doErrorJsonResponse('BatchType not found', 404);
         }
 
         try {
@@ -121,7 +121,7 @@ final class BatchTypeController extends AbstractController
             $errors = $validator->validate($batchType);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->doctrine->persist($batchType);
@@ -130,7 +130,7 @@ final class BatchTypeController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($batchType, 'batch_type_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -141,7 +141,7 @@ final class BatchTypeController extends AbstractController
     {
         $batchType = $this->doctrine->getRepository(BatchType::class)->find($id);
         if (!$batchType) {
-            return new JsonResponse($this->doResponse->doErrorResponse('BatchType not found', 404));
+            return $this->doResponse->doErrorJsonResponse('BatchType not found', 404);
         }
 
         $this->doctrine->remove($batchType);
@@ -150,3 +150,4 @@ final class BatchTypeController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
     }
 }
+

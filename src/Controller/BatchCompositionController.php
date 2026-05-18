@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\BatchSelection;
 use App\Entity\MeasurementUnitCoefficient;
 use App\Entity\WarehouseMovement;
 use App\Entity\WarehouseMovementReason;
@@ -53,10 +54,10 @@ final class BatchCompositionController extends AbstractController
         if ($id) {
             $batchComposition = [$batchCompositionRepository->find($id)];
             if (!$batchComposition[0]) {
-                return new JsonResponse($this->doResponse->doErrorResponse('BatchComposition not found', 404));
+                return $this->doResponse->doErrorJsonResponse('BatchComposition not found', 404);
             }
         } else {
-            $batchComposition = $batchCompositionRepository->findBy([], ['id' => 'DESC']);
+            $batchComposition = $batchCompositionRepository->findBy([], ['id' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($batchComposition, $id ? 'batch_composition_detail' : 'batch_composition_list');
 
@@ -76,7 +77,7 @@ final class BatchCompositionController extends AbstractController
         $batch = $this->doctrine->getRepository(Batch::class)->find($batch_id);
 
         if (!$batch) {
-            return new JsonResponse($this->doResponse->doErrorResponse('Batch not found', 404));
+            return $this->doResponse->doErrorJsonResponse('Batch not found', 404);
         }
 
         $batchComposition = $this->doctrine->getRepository(BatchComposition::class)->findBy(['batch' => $batch]);
@@ -98,30 +99,58 @@ final class BatchCompositionController extends AbstractController
 
         try {
             $fatherBatch = null;
-            if (isset($data['father_batch_id'])) {
-                $fatherBatch = $this->doctrine->getRepository(Batch::class)->find($data['father_batch_id']);
+            $batchSelection = null;
+            if (isset($data['batch_selection_id'])) {
+                $batchSelection = $this->doctrine->getRepository(BatchSelection::class)->find($data['batch_selection_id']);
+                $batchComposition->setSelection($batchSelection);
+                if ($batchSelection) {
+                    $fatherBatch = $batchSelection->getBatch();
+                }
+
+                unset($data['batch_selection_id']);
             }
 
-            $quantityToConvert = null;
-            if ($fatherBatch) {
+            if ($fatherBatch && (!isset($data['father_batch_quantity']) || $data['father_batch_quantity'] === null || $data['father_batch_quantity'] === '')) {
                 $fatherBatchPiecesToConvert = isset($data['father_batch_piece']) ? (float) $data['father_batch_piece'] : 0.0;
-                $fatherBatchPiecesTotal = (float) ($fatherBatch->getPieces() ?? 0);
-                $fatherBatchQuantityTotal = (float) ($fatherBatch->getQuantity() ?? 0);
+                
+                if ($fatherBatch->getSqFtAverageExpected() > 0) {
+                    $quantityToConvert = $fatherBatchPiecesToConvert * $fatherBatch->getSqFtAverageExpected();
+                } elseif ($batchSelection) {
+                    $fatherBatchPiecesTotal = (float) ($batchSelection->getPieces() ?? 0);
+                    $fatherBatchQuantityTotal = (float) ($batchSelection->getQuantity() ?? 0);
 
-                if ($fatherBatchPiecesTotal > 0) {
-                    $pieceQuantity = $fatherBatchQuantityTotal / $fatherBatchPiecesTotal;
-                    $quantityToConvert = $fatherBatchPiecesToConvert * $pieceQuantity;
+                    if ($fatherBatchPiecesTotal > 0) {
+                        $pieceQuantity = $fatherBatchQuantityTotal / $fatherBatchPiecesTotal;
+                        $quantityToConvert = $fatherBatchPiecesToConvert * $pieceQuantity;
+                    } else {
+                        $quantityToConvert = 0.0;
+                    }
                 } else {
-                    $quantityToConvert = 0.0;
+                    $fatherBatchPiecesTotal = (float) ($fatherBatch->getPieces() ?? 0);
+                    $fatherBatchQuantityTotal = (float) ($fatherBatch->getQuantity() ?? 0);
+
+                    if ($fatherBatchPiecesTotal > 0) {
+                        $pieceQuantity = $fatherBatchQuantityTotal / $fatherBatchPiecesTotal;
+                        $quantityToConvert = $fatherBatchPiecesToConvert * $pieceQuantity;
+                    } else {
+                        $quantityToConvert = 0.0;
+                    }
                 }
+
+                if ($quantityToConvert !== null) {
+                    $data['father_batch_quantity'] = $quantityToConvert;
+                }
+            }
+
+            if ($fatherBatch && !isset($data['father_batch_id'])) {
+                $data['father_batch_id'] = $fatherBatch->getId();
             }
 
             $batchComposition = $this->handleRelations($batchComposition, $data);
             $batchComposition = $this->createMethodsByInput->createMethods($batchComposition, $data);
 
-            if ($batchComposition->getFatherBatchQuantity() === null && $quantityToConvert !== null) {
-                $batchComposition->setFatherBatchQuantity($quantityToConvert);
-            }
+            $batchComposition->setFatherBatchPieceAvailable($batchComposition->getFatherBatchPiece());
+            $batchComposition->setFatherBatchQuantityAvailable($batchComposition->getFatherBatchQuantity());
 
             $batch = $batchComposition->getBatch();
             $childQuantity = (float) ($batchComposition->getFatherBatchQuantity() ?? 0.0);
@@ -151,13 +180,19 @@ final class BatchCompositionController extends AbstractController
             $errors = $validator->validate($batchComposition);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             if ($fatherBatch) {
                 $fatherBatch->setStockItems($fatherBatch->getStockItems() - $batchComposition->getFatherBatchPiece());
                 $fatherBatch->setStockQuantity($fatherBatch->getStockQuantity() - (float) ($batchComposition->getFatherBatchQuantity() ?? 0.0));
                 $this->doctrine->persist($fatherBatch);
+
+                if ($batchSelection) {
+                    $batchSelection->setStockPieces($batchSelection->getStockPieces() - $batchComposition->getFatherBatchPiece());
+                    $batchSelection->setStockQuantity($batchSelection->getStockQuantity() - (float) ($batchComposition->getFatherBatchQuantity() ?? 0.0));
+                    $this->doctrine->persist($batchSelection);
+                }
             }
 
             $em = $this->doctrine;
@@ -170,7 +205,7 @@ final class BatchCompositionController extends AbstractController
             return new JsonResponse($this->doResponse->doResponse($result));
 
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -187,7 +222,7 @@ final class BatchCompositionController extends AbstractController
         $batchComposition = $this->doctrine->getRepository(BatchComposition::class)->find($id);
 
         if (!$batchComposition) {
-            return new JsonResponse($this->doResponse->doErrorResponse('BatchComposition not found', 404));
+            return $this->doResponse->doErrorJsonResponse('BatchComposition not found', 404);
         }
 
         try {
@@ -197,7 +232,7 @@ final class BatchCompositionController extends AbstractController
             $errors = $validator->validate($batchComposition);
             if (count($errors) > 0) {
                 $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return new JsonResponse($this->doResponse->doErrorResponse($errors));
+                return $this->doResponse->doErrorJsonResponse($errors);
             }
 
             $this->deleteExistingMovements($batchComposition);
@@ -209,7 +244,7 @@ final class BatchCompositionController extends AbstractController
             $result = $this->groupSerializer->serializeGroup($batchComposition, 'batch_composition_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
         } catch (\Exception $e) {
-            return new JsonResponse($this->doResponse->doErrorResponse($e->getMessage()));
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
     }
 
@@ -220,7 +255,7 @@ final class BatchCompositionController extends AbstractController
     {
         $batchComposition = $this->doctrine->getRepository(BatchComposition::class)->find($id);
         if (!$batchComposition) {
-            return new JsonResponse($this->doResponse->doErrorResponse('BatchComposition not found', 404));
+            return $this->doResponse->doErrorJsonResponse('BatchComposition not found', 404);
         }
 
         $this->deleteExistingMovements($batchComposition);
@@ -327,3 +362,4 @@ final class BatchCompositionController extends AbstractController
         return $batchComposition;
     }
 }
+

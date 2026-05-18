@@ -14,15 +14,18 @@ class LeatherThickness
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['leather_thickness_list', 'leather_thickness_detail', 'leather_list', 'leather_detail', 'leather_type_detail', 'article_detail'])]
+    #[Groups(['leather_thickness_list', 'leather_thickness_detail', 'leather_list', 'leather_detail',
+        'batch_detail', 'leather_type_detail', 'article_detail', 'batch_selection_detail', 'batch_list'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['leather_thickness_list', 'leather_thickness_detail', 'leather_list', 'leather_detail', 'leather_type_detail', 'article_detail'])]
+    #[Groups(['leather_thickness_list', 'leather_thickness_detail', 'leather_list', 'leather_detail',
+        'batch_detail', 'leather_type_detail', 'article_detail', 'batch_selection_detail', 'batch_list'])]
     private ?string $name = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['leather_thickness_list', 'leather_thickness_detail', 'leather_detail', 'leather_type_detail', 'article_detail'])]
+    #[Groups(['leather_thickness_list', 'leather_thickness_detail', 'leather_detail', 'batch_detail',
+        'leather_type_detail', 'article_detail', 'batch_selection_detail', 'batch_list'])]
     private ?float $thickness_mm = null;
 
     /**
@@ -49,12 +52,19 @@ class LeatherThickness
     #[ORM\OneToMany(mappedBy: 'thickness', targetEntity: Article::class)]
     private Collection $articles;
 
+    /**
+     * @var Collection<int, BatchComposition>
+     */
+    #[ORM\OneToMany(mappedBy: 'thickness', targetEntity: BatchComposition::class)]
+    private Collection $batchCompositions;
+
     public function __construct()
     {
         $this->leatherTypes = new ArrayCollection();
         $this->leather = new ArrayCollection();
         $this->batchSelections = new ArrayCollection();
         $this->articles = new ArrayCollection();
+        $this->batchCompositions = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -200,6 +210,36 @@ class LeatherThickness
             // set the owning side to null (unless already changed)
             if ($article->getThickness() === $this) {
                 $article->setThickness(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, BatchComposition>
+     */
+    public function getBatchCompositions(): Collection
+    {
+        return $this->batchCompositions;
+    }
+
+    public function addBatchComposition(BatchComposition $batchComposition): static
+    {
+        if (!$this->batchCompositions->contains($batchComposition)) {
+            $this->batchCompositions->add($batchComposition);
+            $batchComposition->setThickness($this);
+        }
+
+        return $this;
+    }
+
+    public function removeBatchComposition(BatchComposition $batchComposition): static
+    {
+        if ($this->batchCompositions->removeElement($batchComposition)) {
+            // set the owning side to null (unless already changed)
+            if ($batchComposition->getThickness() === $this) {
+                $batchComposition->setThickness(null);
             }
         }
 

@@ -8,6 +8,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\Serializer\Annotation\Groups;
+use JMS\Serializer\Annotation\SerializedName;
 
 #[ORM\Entity(repositoryClass: ContactRepository::class)]
 class Contact
@@ -16,12 +17,20 @@ class Contact
     #[ORM\GeneratedValue]
     #[ORM\Column]
     #[Groups(['contact_list','contact_detail','contact_type_detail', 'leather_list',
-        'leather_detail','contact_client','contact_supplier','contact_agent_list','contact_subcontractor_list','client_order_list', 'client_order_detail', 'article_detail', 'ddt_list', 'ddt_detail'])]
+        'leather_detail','contact_client','contact_supplier',
+        'contact_agent_list','contact_subcontractor_list','client_order_list', 'client_order_detail',
+        'article_list', 'article_detail', 'ddt_list', 'ddt_detail', 'batch_detail', 'ddt_row_list',
+        'color_list', 'color_detail', 'batch_data_detail',
+        'client_order_row_list', 'client_summary_print', 'client_order_row_list', 'ddt_row_list_sold', 'external_processing_print'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
     #[Groups(['contact_list','contact_detail','contact_type_detail','leather_list',
-        'leather_detail','contact_client','contact_supplier','contact_agent_list','contact_subcontractor_list','client_order_list', 'client_order_detail', 'article_detail', 'ddt_list', 'ddt_detail'])]
+        'leather_detail','contact_client','contact_supplier',
+        'contact_agent_list','contact_subcontractor_list','client_order_list', 'client_order_detail',
+        'article_list', 'article_detail', 'ddt_list', 'ddt_detail', 'batch_detail', 'ddt_row_list',
+        'color_list', 'color_detail', 'batch_data_detail',
+        'client_order_row_list', 'client_summary_print', 'client_order_row_list', 'ddt_row_list_sold', 'external_processing_print'])]
     private ?string $name = null;
 
     #[ORM\ManyToOne(inversedBy: 'contacts')]
@@ -36,7 +45,8 @@ class Contact
      * @var Collection<int, ContactAddress>
      */
     #[ORM\OneToMany(mappedBy: 'contact', targetEntity: ContactAddress::class, orphanRemoval: true)]
-    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list','contact_subcontractor_list'])]
+    #[ORM\OrderBy(['default_address' => 'DESC'])]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list','contact_subcontractor_list', 'client_summary_print'])]
     private Collection $contactAddresses;
 
     #[ORM\Column]
@@ -71,14 +81,15 @@ class Contact
     private ?float $tolerance_quantity = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['contact_detail','contact_client'])]
+    #[Groups(['contact_detail','contact_client', 'client_summary_print'])]
     private ?string $client_note = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list'])]
     private ?string $client_shipment_note = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['contact_detail','contact_client'])]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list'])]
     private ?int $tolerance_start_days = null;
 
     #[ORM\Column(nullable: true)]
@@ -94,6 +105,7 @@ class Contact
     private ?User $check_user = null;
 
     #[ORM\ManyToOne(inversedBy: 'clients')]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list', 'client_summary_print'])]
     private ?Payment $payment = null;
 
     #[ORM\Column]
@@ -117,10 +129,12 @@ class Contact
      * @var Collection<int, ContactAgent>
      */
     #[ORM\OneToMany(mappedBy: 'contact', targetEntity: ContactAgent::class, orphanRemoval: true)]
-    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier'])]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier', 'client_summary_print'])]
     private Collection $contactAgents;
 
     #[ORM\OneToMany(mappedBy: 'agent', targetEntity: ContactAgent::class, orphanRemoval: true)]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier'])]
+    #[SerializedName('agent_clients')]
     private Collection $agentContacts;
 
     #[ORM\Column]
@@ -157,12 +171,15 @@ class Contact
      * @var Collection<int, ContactSubcontractor>
      */
     #[ORM\OneToMany(mappedBy: 'contact', targetEntity: ContactSubcontractor::class, orphanRemoval: true)]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier'])]
     private Collection $contactSubcontractors;
 
     /**
      * @var Collection<int, ContactSubcontractor>
      */
     #[ORM\OneToMany(mappedBy: 'subcontractor', targetEntity: ContactSubcontractor::class, orphanRemoval: true)]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier'])]
+    #[SerializedName('subcontractor_suppliers')]
     private Collection $subcontractorContacts;
 
     /**
@@ -170,6 +187,28 @@ class Contact
      */
     #[ORM\OneToMany(mappedBy: 'subcontractor', targetEntity: Ddt::class)]
     private Collection $ddts;
+
+    /**
+     * @var Collection<int, Ddt>
+     */
+    #[ORM\OneToMany(mappedBy: 'client', targetEntity: Ddt::class)]
+    private Collection $ddtsFromClient;
+
+    #[ORM\ManyToOne(inversedBy: 'contacts')]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list', 'client_summary_print'])]
+    private ?ShipmentCondition $shipment_condition = null;
+
+    /**
+     * @var Collection<int, WarehouseMovement>
+     */
+    #[ORM\OneToMany(mappedBy: 'contact', targetEntity: WarehouseMovement::class)]
+    private Collection $warehouseMovements;
+
+    /**
+     * @var Collection<int, Color>
+     */
+    #[ORM\OneToMany(mappedBy: 'client', targetEntity: Color::class)]
+    private Collection $colors;
 
     public function __construct()
     {
@@ -186,6 +225,9 @@ class Contact
         $this->contactSubcontractors = new ArrayCollection();
         $this->subcontractorContacts = new ArrayCollection();
         $this->ddts = new ArrayCollection();
+        $this->ddtsFromClient = new ArrayCollection();
+        $this->warehouseMovements = new ArrayCollection();
+        $this->colors = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -786,6 +828,108 @@ class Contact
             // set the owning side to null (unless already changed)
             if ($ddt->getSubcontractor() === $this) {
                 $ddt->setSubcontractor(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Ddt>
+     */
+    public function getDdtsFromClient(): Collection
+    {
+        return $this->ddtsFromClient;
+    }
+
+    public function addDdtsFromClient(Ddt $ddtsFromClient): static
+    {
+        if (!$this->ddtsFromClient->contains($ddtsFromClient)) {
+            $this->ddtsFromClient->add($ddtsFromClient);
+            $ddtsFromClient->setClient($this);
+        }
+
+        return $this;
+    }
+
+    public function removeDdtsFromClient(Ddt $ddtsFromClient): static
+    {
+        if ($this->ddtsFromClient->removeElement($ddtsFromClient)) {
+            // set the owning side to null (unless already changed)
+            if ($ddtsFromClient->getClient() === $this) {
+                $ddtsFromClient->setClient(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function getShipmentCondition(): ?ShipmentCondition
+    {
+        return $this->shipment_condition;
+    }
+
+    public function setShipmentCondition(?ShipmentCondition $shipment_condition): static
+    {
+        $this->shipment_condition = $shipment_condition;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, WarehouseMovement>
+     */
+    public function getWarehouseMovements(): Collection
+    {
+        return $this->warehouseMovements;
+    }
+
+    public function addWarehouseMovement(WarehouseMovement $warehouseMovement): static
+    {
+        if (!$this->warehouseMovements->contains($warehouseMovement)) {
+            $this->warehouseMovements->add($warehouseMovement);
+            $warehouseMovement->setContact($this);
+        }
+
+        return $this;
+    }
+
+    public function removeWarehouseMovement(WarehouseMovement $warehouseMovement): static
+    {
+        if ($this->warehouseMovements->removeElement($warehouseMovement)) {
+            // set the owning side to null (unless already changed)
+            if ($warehouseMovement->getContact() === $this) {
+                $warehouseMovement->setContact(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Color>
+     */
+    public function getColors(): Collection
+    {
+        return $this->colors;
+    }
+
+    public function addColor(Color $color): static
+    {
+        if (!$this->colors->contains($color)) {
+            $this->colors->add($color);
+            $color->setClient($this);
+        }
+
+        return $this;
+    }
+
+    public function removeColor(Color $color): static
+    {
+        if ($this->colors->removeElement($color)) {
+            // set the owning side to null (unless already changed)
+            if ($color->getClient() === $this) {
+                $color->setClient(null);
             }
         }
 
