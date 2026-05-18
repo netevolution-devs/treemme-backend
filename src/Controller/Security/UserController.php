@@ -146,7 +146,7 @@ class UserController extends AbstractController
             return $this->doResponse->doErrorJsonResponse('Utente non trovato', 404);
         }
 
-        $data = $this->request->getCurrentRequest()->request->all();
+        $data = $this->request->getCurrentRequest()->toArray();
 
         if (isset($data['password']) && !empty($data['password'])) {
             $hashedPassword = $passwordHasher->hashPassword(
@@ -176,6 +176,7 @@ class UserController extends AbstractController
         }
 
         try {
+            $this->doctrine->persist($user);
             $this->doctrine->flush();
         } catch (Exception $e) {
             return $this->doResponse->doErrorJsonResponse('Errore durante il salvataggio o email già esistente', $e->getFile());
