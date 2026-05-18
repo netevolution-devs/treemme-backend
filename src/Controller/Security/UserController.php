@@ -299,31 +299,28 @@ class UserController extends AbstractController
 
     #[Route('/api/change-password', name: 'change_password')]
     public function changePassword(UserPasswordHasherInterface $passwordHasher,
-                                   CreateMethodsByInput $createMethodsByInput,
-                                   ValidatorInterface $validator,
-                                   ValidatorOutputFormatter $validatorOutputFormatter,
                                    ActionLoggerService $actionLoggerService): JsonResponse
     {
         $data = $this->request->getCurrentRequest()->toArray();
 
         if(!isset($data['new_password']) && !isset($data['old_password'])) {
-            return new JsonResponse($this->doResponse->doErrorJsonResponse('Old password and new password are required'));
+            return new JsonResponse($this->doResponse->doErrorJsonResponse('Old password and new password are required'), 500);
         }
 
         $currentUser = $this->getUser();
 
         if(!$currentUser) {
-            return new JsonResponse($this->doResponse->doErrorJsonResponse('User not found'));
+            return new JsonResponse($this->doResponse->doErrorJsonResponse('User not found'), 500);
         }
 
         if(!$passwordHasher->isPasswordValid($currentUser, $data['old_password'])) {
-            return new JsonResponse($this->doResponse->doErrorJsonResponse('Old password is incorrect'));
+            return new JsonResponse($this->doResponse->doErrorJsonResponse('Old password is incorrect'), 500);
         }
 
         $newPassword = $data['new_password'];
 
         if(strlen($newPassword) < 8) {
-            return new JsonResponse($this->doResponse->doErrorJsonResponse('New password must be at least 8 characters long'));
+            return new JsonResponse($this->doResponse->doErrorJsonResponse('New password must be at least 8 characters long'), 500);
         }
 
         $currentUser->setPassword($passwordHasher->hashPassword($currentUser, $newPassword));
