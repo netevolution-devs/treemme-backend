@@ -310,17 +310,17 @@ class UserController extends AbstractController
         $currentUser = $this->getUser();
 
         if(!$currentUser) {
-            return new JsonResponse($this->doResponse->doErrorJsonResponse('User not found'), 500);
+            return $this->doResponse->doErrorJsonResponse('User not found', 500);
         }
 
         if(!$passwordHasher->isPasswordValid($currentUser, $data['old_password'])) {
-            return new JsonResponse($this->doResponse->doErrorJsonResponse('Old password is incorrect'), 500);
+            return $this->doResponse->doErrorJsonResponse('Old password is incorrect', 500);
         }
 
         $newPassword = $data['new_password'];
 
         if(strlen($newPassword) < 8) {
-            return new JsonResponse($this->doResponse->doErrorJsonResponse('New password must be at least 8 characters long'), 500);
+            return $this->doResponse->doErrorJsonResponse('New password must be at least 8 characters long', 500);
         }
 
         $currentUser->setPassword($passwordHasher->hashPassword($currentUser, $newPassword));
