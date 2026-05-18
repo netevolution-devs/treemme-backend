@@ -122,11 +122,12 @@ final class ClientOrderRowController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse($report));
     }
 
-    #[Route('/client/{clientId}/client-order-row-summary-print',
+    #[Route('/client/client-order-row-summary-print',
         name: 'get_client_order_row_summary_print',
         methods: ['GET'])]
-    public function getClientSummaryPrint(Request $request, int $clientId): \Symfony\Component\HttpFoundation\Response
+    public function getClientSummaryPrint(Request $request): \Symfony\Component\HttpFoundation\Response
     {
+        $clientId = $request->query->get('client_id');
         $startDate = $request->query->get('start_date');
         $endDate = $request->query->get('end_date');
 
