@@ -6,6 +6,7 @@ use App\Entity\Batch;
 use App\Entity\BatchComposition;
 use App\Entity\BatchCost;
 use App\Entity\DdtRow;
+use App\Entity\MeasurementUnit;
 use App\Service\DoResponseService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
