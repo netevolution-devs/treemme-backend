@@ -77,11 +77,24 @@ class BatchReportController extends AbstractController
         $soldPieces = 0;
         $soldQuantity = 0.0;
         $totalRevenue = 0.0;
+        $sales = [];
 
         foreach ($batch->getDdtRows() as $row) {
             $soldPieces += ($row->getPieces() ?? 0);
             $soldQuantity += ($row->getQuantity() ?? 0.0);
             $totalRevenue += ($row->getTotalValue() ?? 0.0);
+
+            $ddt = $row->getDdt();
+            $sales[] = [
+                'ddt_number' => $ddt?->getDdtNumber(),
+                'ddt_date' => $ddt?->getDdtDate()?->format('Y-m-d'),
+                'ddt_reason' => $ddt?->getReason()?->getName(),
+                'client' => $ddt?->getClient()?->getName() ?? $ddt?->getSubcontractor()?->getName(),
+                'pieces' => $row->getPieces(),
+                'quantity' => $row->getQuantity(),
+                'total_value' => $row->getTotalValue(),
+                'note' => $row->getRowNote(),
+            ];
         }
 
         $soldQuantityFtsq = $this->convertToFtsq($soldQuantity, $um);
@@ -108,23 +121,36 @@ class BatchReportController extends AbstractController
             $salePricePerLeather = $totalRevenue / $soldPieces;
         }
 
+        $costs = [];
+        foreach ($batch->getBatchCosts() as $cost) {
+            $costs[] = [
+                'date' => $cost->getDate()?->format('Y-m-d'),
+                'type' => $cost->getBatchCostType()?->getName(),
+                'amount' => $cost->getCost(),
+                'currency' => $cost->getCurrency()?->getAbbreviation(),
+                'note' => $cost->getCostNote(),
+            ];
+        }
+            
         return [
             'id' => $batch->getId(),
             'code' => $batch->getBatchCode(),
             'total_pieces' => $totalPieces,
             'total_quantity' => $totalQuantity,
-            'total_quantity_pq' => $totalQuantityFtsq,
+            'total_quantity_ftsq' => $totalQuantityFtsq,
             'sold_pieces' => $soldPieces,
             'sold_quantity' => $soldQuantity,
-            'sold_quantity_pq' => $soldQuantityFtsq,
+            'sold_quantity_ftsq' => $soldQuantityFtsq,
             'available_pieces' => $actualStockPieces,
             'available_quantity' => $actualStockQuantity,
-            'available_quantity_pq' => $actualStockQuantityFtsq,
+            'available_quantity_ftsq' => $actualStockQuantityFtsq,
             'sale_price_per_leather' => $salePricePerLeather,
             'total_sale_price' => $totalRevenue,
             'total_revenue' => $totalRevenue,
             'average_revenue_per_leather' => 0.0, // Calcolato in recursive dopo aggregazione
             'average_ftsq_per_leather' => 0.0, // Calcolato in recursive dopo aggregazione
+            'costs' => $costs,
+            'sales' => $sales,
         ];
     }
 
@@ -141,6 +167,9 @@ class BatchReportController extends AbstractController
         $parent['available_quantity_ftsq'] += $child['available_quantity_ftsq'];
         $parent['total_revenue'] += $child['total_revenue'];
         $parent['total_sale_price'] += $child['total_sale_price'];
+        
+        $parent['costs'] = array_merge($parent['costs'], $child['costs']);
+        $parent['sales'] = array_merge($parent['sales'], $child['sales']);
     }
 
     private function convertToFtsq(float $quantity, ?MeasurementUnit $um): float
