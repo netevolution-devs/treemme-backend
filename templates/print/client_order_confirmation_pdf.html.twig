@@ -248,7 +248,7 @@
                     {{ row.measurementUnit ? row.measurementUnit.prefix : '' }} &nbsp; {{ row.quantity }}
                 </td>
                 <td class="right">
-                    € &nbsp; {{ row.price|number_format(2, ',', '.') }}
+                    {{ row.currency ? row.currency.sign : '' }} &nbsp; {{ row.currencyPrice|number_format(2, ',', '.') }}
                 </td>
                 <td class="center">
                     {{ row.deliveryDateConfirmed ? row.deliveryDateConfirmed|date('d/m/Y') : '' }}
