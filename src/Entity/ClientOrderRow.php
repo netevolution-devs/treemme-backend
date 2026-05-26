@@ -126,7 +126,7 @@ class ClientOrderRow
     private ?ContactAddress $address = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
     private ?float $quantity_to_ship = null;
 
     public function __construct()
