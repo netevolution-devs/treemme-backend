@@ -71,7 +71,9 @@ class Article
     private Collection $clientOrderRows;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['article_list', 'article_detail', 'client_order_detail', 'client_summary_print', 'client_order_row_list', 'ddt_row_list_sold', 'external_processing_print', 'production_list'])]
+    #[Groups(['article_list', 'article_detail', 'client_order_detail', 'client_summary_print',
+        'client_order_row_list', 'ddt_row_list_sold', 'external_processing_print', 'production_list', 'batch_list', 'batch_detail',
+        'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'color_detail', 'client_summary_print', 'external_processing_print'])]
     private ?string $name = null;
 
     /**

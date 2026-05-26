@@ -81,7 +81,7 @@ class ArticleController extends AbstractController
             if (!$article->getCode()) {
                 $prefix = 'AR';
                 $lastCode = $this->articleRepository->findLatestArticleCode($prefix);
-                
+
                 $nextNumber = 1;
                 if ($lastCode && preg_match('/' . preg_quote($prefix, '/') . '(\d+)$/', $lastCode, $matches)) {
                     $nextNumber = (int)$matches[1] + 1;
@@ -200,10 +200,10 @@ class ArticleController extends AbstractController
             $article->getColor()?->getColor(),
         ];
 
-        $article->setName(implode(' ', array_filter(
+        $article->setName(strtoupper(implode(' ', array_filter(
             $nameParts,
             static fn (?string $value): bool => $value !== null && trim($value) !== ''
-        )));
+        ))));
 
         $clientCodeParts = [
             $article->getArticleType()?->getName(),
@@ -211,10 +211,10 @@ class ArticleController extends AbstractController
             $article->getColor()?->getColor(),
         ];
 
-        $article->setClientCode(implode(' ', array_filter(
+        $article->setClientCode(strtoupper(implode(' ', array_filter(
             $clientCodeParts,
             static fn (?string $value): bool => $value !== null && trim($value) !== ''
-        )));
+        ))));
 
         $codeParts = [
             $this->compressString($article->getArticleType()?->getName()),
@@ -223,10 +223,10 @@ class ArticleController extends AbstractController
             $this->compressString($article->getClient()?->getName()),
         ];
 
-        $article->setCode(implode('-', array_filter(
+        $article->setCode(strtoupper(implode('-', array_filter(
             $codeParts,
             static fn (?string $value): bool => $value !== null && trim($value) !== ''
-        )));
+        ))));
     }
 
     private function compressString(?string $string): ?string
