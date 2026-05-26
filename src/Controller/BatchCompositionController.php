@@ -226,8 +226,101 @@ final class BatchCompositionController extends AbstractController
         }
 
         try {
+            // 1. Ripristiniamo lo stato precedente prima di applicare le modifiche
+            $oldFatherBatch = $batchComposition->getFatherBatch();
+            $oldBatch = $batchComposition->getBatch();
+            $oldSelection = $batchComposition->getSelection();
+            $oldPieces = $batchComposition->getFatherBatchPiece();
+            $oldQuantity = (float)($batchComposition->getFatherBatchQuantity() ?? 0.0);
+
+            if ($oldFatherBatch && $oldBatch) {
+                // Sottraiamo dal figlio (ripristino)
+                $oldChildQuantity = $oldQuantity;
+                $oldFatherUm = $oldFatherBatch->getMeasurementUnit();
+                $oldChildUm = $oldBatch->getMeasurementUnit();
+
+                if ($oldFatherUm && $oldChildUm && $oldFatherUm->getId() !== $oldChildUm->getId()) {
+                    $coefficient = $this->doctrine->getRepository(MeasurementUnitCoefficient::class)->findOneBy([
+                        'start_um' => $oldFatherUm,
+                        'end_um' => $oldChildUm
+                    ]);
+                    if ($coefficient) {
+                        $oldChildQuantity = $oldQuantity * $coefficient->getCoefficient();
+                    }
+                }
+
+                $oldBatch->setStockQuantity($oldBatch->getStockQuantity() - $oldChildQuantity);
+                $oldBatch->setStockItems($oldBatch->getStockItems() - $oldPieces);
+                $oldBatch->setPieces($oldBatch->getPieces() - $oldPieces);
+                $oldBatch->setQuantity($oldBatch->getQuantity() - $oldQuantity);
+                $this->doctrine->persist($oldBatch);
+
+                // Ripristiniamo nel padre
+                $oldFatherBatch->setStockItems($oldFatherBatch->getStockItems() + $oldPieces);
+                $oldFatherBatch->setStockQuantity($oldFatherBatch->getStockQuantity() + $oldQuantity);
+                $this->doctrine->persist($oldFatherBatch);
+
+                if ($oldSelection) {
+                    $oldSelection->setStockPieces($oldSelection->getStockPieces() + $oldPieces);
+                    $oldSelection->setStockQuantity($oldSelection->getStockQuantity() + $oldQuantity);
+                    $this->doctrine->persist($oldSelection);
+                }
+            }
+
+            // 2. Applichiamo le modifiche
+            if (isset($data['batch_selection_id'])) {
+                $batchSelection = $this->doctrine->getRepository(BatchSelection::class)->find($data['batch_selection_id']);
+                $batchComposition->setSelection($batchSelection);
+                if ($batchSelection) {
+                    $data['father_batch_id'] = $batchSelection->getBatch()?->getId();
+                }
+                unset($data['batch_selection_id']);
+            }
+
             $batchComposition = $this->handleRelations($batchComposition, $data);
             $batchComposition = $this->createMethodsByInput->createMethods($batchComposition, $data);
+
+            $batchComposition->setFatherBatchPieceAvailable($batchComposition->getFatherBatchPiece());
+            $batchComposition->setFatherBatchQuantityAvailable($batchComposition->getFatherBatchQuantity());
+
+            // 3. Applichiamo le nuove quantità
+            $newFatherBatch = $batchComposition->getFatherBatch();
+            $newBatch = $batchComposition->getBatch();
+            $newSelection = $batchComposition->getSelection();
+            $newPieces = $batchComposition->getFatherBatchPiece();
+            $newQuantity = (float)($batchComposition->getFatherBatchQuantity() ?? 0.0);
+
+            if ($newFatherBatch && $newBatch) {
+                $newChildQuantity = $newQuantity;
+                $newFatherUm = $newFatherBatch->getMeasurementUnit();
+                $newChildUm = $newBatch->getMeasurementUnit();
+
+                if ($newFatherUm && $newChildUm && $newFatherUm->getId() !== $newChildUm->getId()) {
+                    $coefficient = $this->doctrine->getRepository(MeasurementUnitCoefficient::class)->findOneBy([
+                        'start_um' => $newFatherUm,
+                        'end_um' => $newChildUm
+                    ]);
+                    if ($coefficient) {
+                        $newChildQuantity = $newQuantity * $coefficient->getCoefficient();
+                    }
+                }
+
+                $newBatch->setStockQuantity($newBatch->getStockQuantity() + $newChildQuantity);
+                $newBatch->setStockItems($newBatch->getStockItems() + $newPieces);
+                $newBatch->setPieces($newBatch->getPieces() + $newPieces);
+                $newBatch->setQuantity($newBatch->getQuantity() + $newQuantity);
+                $this->doctrine->persist($newBatch);
+
+                $newFatherBatch->setStockItems($newFatherBatch->getStockItems() - $newPieces);
+                $newFatherBatch->setStockQuantity($newFatherBatch->getStockQuantity() - $newQuantity);
+                $this->doctrine->persist($newFatherBatch);
+
+                if ($newSelection) {
+                    $newSelection->setStockPieces($newSelection->getStockPieces() - $newPieces);
+                    $newSelection->setStockQuantity($newSelection->getStockQuantity() - $newQuantity);
+                    $this->doctrine->persist($newSelection);
+                }
+            }
 
             $errors = $validator->validate($batchComposition);
             if (count($errors) > 0) {
@@ -258,11 +351,55 @@ final class BatchCompositionController extends AbstractController
             return $this->doResponse->doErrorJsonResponse('BatchComposition not found', 404);
         }
 
-        $this->deleteExistingMovements($batchComposition);
-        $this->doctrine->remove($batchComposition);
-        $this->doctrine->flush();
+        try {
+            $fatherBatch = $batchComposition->getFatherBatch();
+            $batch = $batchComposition->getBatch();
+            $selection = $batchComposition->getSelection();
+            $pieces = $batchComposition->getFatherBatchPiece();
+            $quantity = (float)($batchComposition->getFatherBatchQuantity() ?? 0.0);
 
-        return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
+            if ($fatherBatch && $batch) {
+                // Sottraiamo dal figlio
+                $childQuantity = $quantity;
+                $fatherUm = $fatherBatch->getMeasurementUnit();
+                $childUm = $batch->getMeasurementUnit();
+
+                if ($fatherUm && $childUm && $fatherUm->getId() !== $childUm->getId()) {
+                    $coefficient = $this->doctrine->getRepository(MeasurementUnitCoefficient::class)->findOneBy([
+                        'start_um' => $fatherUm,
+                        'end_um' => $childUm
+                    ]);
+                    if ($coefficient) {
+                        $childQuantity = $quantity * $coefficient->getCoefficient();
+                    }
+                }
+
+                $batch->setStockQuantity($batch->getStockQuantity() - $childQuantity);
+                $batch->setStockItems($batch->getStockItems() - $pieces);
+                $batch->setPieces($batch->getPieces() - $pieces);
+                $batch->setQuantity($batch->getQuantity() - $quantity);
+                $this->doctrine->persist($batch);
+
+                // Ripristiniamo nel padre
+                $fatherBatch->setStockItems($fatherBatch->getStockItems() + $pieces);
+                $fatherBatch->setStockQuantity($fatherBatch->getStockQuantity() + $quantity);
+                $this->doctrine->persist($fatherBatch);
+
+                if ($selection) {
+                    $selection->setStockPieces($selection->getStockPieces() + $pieces);
+                    $selection->setStockQuantity($selection->getStockQuantity() + $quantity);
+                    $this->doctrine->persist($selection);
+                }
+            }
+
+            $this->deleteExistingMovements($batchComposition);
+            $this->doctrine->remove($batchComposition);
+            $this->doctrine->flush();
+
+            return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
+        } catch (\Exception $e) {
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
+        }
     }
 
     private function createMovements(BatchComposition $batchComposition): void
@@ -303,7 +440,7 @@ final class BatchCompositionController extends AbstractController
             $outMovement->setQuantity($quantity);
             $outMovement->setPiece($pieces);
             $outMovement->setDate(new \DateTime());
-            $outMovement->setMovementNote('Scarico per composizione lotto ' . $batch->getBatchCode());
+            $outMovement->setMovementNote('Scarico per composizione lotto ' . $batch->getBatchCode() . ' (ID Comp: ' . $batchComposition->getId() . ')');
             $this->doctrine->persist($outMovement);
         }
 
@@ -317,7 +454,7 @@ final class BatchCompositionController extends AbstractController
             $inMovement->setQuantity($childQuantity);
             $inMovement->setPiece($pieces);
             $inMovement->setDate(new \DateTime());
-            $inMovement->setMovementNote('Carico da composizione lotto ' . $fatherBatch->getBatchCode());
+            $inMovement->setMovementNote('Carico da composizione lotto ' . $fatherBatch->getBatchCode() . ' (ID Comp: ' . $batchComposition->getId() . ')');
             $this->doctrine->persist($inMovement);
         }
 
