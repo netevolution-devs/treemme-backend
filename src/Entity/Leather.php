@@ -14,15 +14,15 @@ class Leather
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['leather_list', 'leather_detail', 'batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'ddt_row_list_sold'])]
+    #[Groups(['leather_list', 'leather_detail', 'batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'ddt_row_list_sold', 'warehouse_movement_list', 'movement_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['leather_list', 'leather_detail', 'batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail'])]
+    #[Groups(['leather_list', 'leather_detail', 'batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'warehouse_movement_list', 'movement_detail'])]
     private ?string $code = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['leather_list', 'leather_detail', 'batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'batch_data_detail', 'client_summary_print', 'ddt_row_list_sold'])]
+    #[Groups(['leather_list', 'leather_detail', 'batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'batch_data_detail', 'client_summary_print', 'ddt_row_list_sold', 'warehouse_movement_list', 'movement_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(nullable: true)]

@@ -788,6 +788,89 @@ final class DdtRowController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse($results[0]));
     }
 
+    #[Route('/ddt-row/massive-return',
+        name: 'post_ddt_row_massive_return',
+        methods: ['POST'])]
+    public function postDdtRowMassiveReturn(Request $request): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true) ?? $request->request->all();
+
+        if (!isset($data['rows']) || !is_array($data['rows'])) {
+            return $this->doResponse->doErrorJsonResponse('Parametro "rows" mancante o non valido', 400);
+        }
+
+        $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
+        $reasonRepository = $this->doctrine->getRepository(WarehouseMovementReason::class);
+        $reasonTypeRepository = $this->doctrine->getRepository(WarehouseMovementReasonType::class);
+
+        $processedRows = [];
+
+        foreach ($data['rows'] as $rowData) {
+            $id = $rowData['id'] ?? null;
+            if (!$id) {
+                continue;
+            }
+
+            $ddtRow = $ddtRowRepository->find($id);
+            if (!$ddtRow) {
+                continue;
+            }
+
+            $batch = $ddtRow->getBatch();
+            if (!$batch) {
+                continue;
+            }
+
+            $quantity = $rowData['quantity'] ?? $ddtRow->getQuantityOut() ?? $ddtRow->getQuantity();
+            $pieces = $rowData['pieces'] ?? $ddtRow->getPiecesOut() ?? $ddtRow->getPieces();
+
+            $ddt = $ddtRow->getDdt();
+
+            $reason = $reasonRepository->findOneBy(['name' => 'Reso ' . $ddt->getReason()->getName()]);
+            if (!$reason) {
+                $reasonTypeIn = $reasonTypeRepository->findOneBy(['movement_type' => 'Carico']);
+                if ($reasonTypeIn) {
+                    $reason = $reasonRepository->findOneBy(['reason_type' => $reasonTypeIn]);
+                }
+            }
+            if (!$reason) {
+                return $this->doResponse->doErrorJsonResponse('Causale di magazzino "Carico" non trovata', 400);
+            }
+
+            $warehouseMovement = new WarehouseMovement();
+            $warehouseMovement->setBatch($batch);
+            $warehouseMovement->setQuantity($quantity);
+            $warehouseMovement->setPiece($pieces);
+            $warehouseMovement->setReason($reason);
+            $warehouseMovement->setDdtNumber($ddtRow->getDdt()->getDdtNumber());
+            $warehouseMovement->setDdtDate($ddtRow->getDdt()->getDdtDate());
+            $warehouseMovement->setDate(new \DateTime());
+            $warehouseMovement->setMovementNote('Rientro massivo riga DDT ' . $ddtRow->getId() . ' del DDT ' . $ddtRow->getDdt()->getDdtNumber());
+
+            if ($ddt->getSubcontractor()) {
+                $warehouseMovement->setContact($ddt->getSubcontractor());
+            } elseif ($ddt->getClient()) {
+                $warehouseMovement->setContact($ddt->getClient());
+            }
+
+            $this->doctrine->persist($warehouseMovement);
+
+            $batch->setStockQuantity($batch->getStockQuantity() + $quantity);
+            $batch->setStockItems($batch->getStockItems() + $pieces);
+
+            $this->doctrine->persist($batch);
+            $this->updateBatchSqFtAverageFound($batch);
+            $this->doctrine->persist($batch);
+
+            $processedRows[] = $ddtRow;
+        }
+
+        $this->doctrine->flush();
+
+        $results = $this->groupSerializer->serializeGroup($processedRows, 'ddt_row_detail');
+        return new JsonResponse($this->doResponse->doResponse($results));
+    }
+
     #[Route('/ddt-row/{id}/transfer',
         name: 'post_ddt_row_transfer',
         requirements: ['id' => '\d+'],

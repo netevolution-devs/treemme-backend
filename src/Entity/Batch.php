@@ -18,7 +18,8 @@ class Batch
     #[ORM\GeneratedValue]
     #[ORM\Column]
     #[Groups(['batch_list', 'batch_detail', 'batch_type_detail', 'batch_composition_list', 'measurement_unit_detail',
-        'user_detail', 'production_list', 'production_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'batch_data_detail','client_order_row_list', 'ddt_row_list_sold', 'batch_composition_detail'])]
+        'user_detail', 'production_list', 'production_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'batch_data_detail','client_order_row_list', 'ddt_row_list_sold', 'batch_composition_detail',
+        'warehouse_movement_list', 'movement_detail'])]
     private ?int $id = null;
 
     #[ORM\Column]
@@ -36,7 +37,7 @@ class Batch
     #[ORM\Column(length: 50)]
     #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'ddt_detail', 'ddt_row_list',
         'ddt_row_detail', 'batch_composition_list', 'batch_data_detail','client_order_row_list', 'client_summary_print'
-        , 'ddt_row_list_sold', 'warehouse_movement_list', 'batch_composition_detail'])]
+        , 'ddt_row_list_sold', 'warehouse_movement_list', 'batch_composition_detail', 'movement_detail'])]
     private ?string $batch_code = null;
 
     #[ORM\Column(nullable: true)]
@@ -126,8 +127,7 @@ class Batch
     private Collection $sonBatches;
 
     #[ORM\ManyToOne(inversedBy: 'batches')]
-    #[ORM\JoinColumn(nullable: true)]
-    #[Groups(['batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'batch_data_detail', 'client_summary_print', 'ddt_row_list_sold'])]
+    #[Groups(['batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'batch_data_detail', 'client_summary_print', 'ddt_row_list_sold', 'warehouse_movement_list', 'movement_detail'])]
     private ?Leather $leather = null;
 
     /**
@@ -160,7 +160,7 @@ class Batch
 
     #[ORM\ManyToOne(inversedBy: 'batches')]
     #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'ddt_detail',
-        'ddt_row_list', 'ddt_row_detail', 'client_summary_print', 'ddt_row_list_sold'])]
+        'ddt_row_list', 'ddt_row_detail', 'client_summary_print', 'ddt_row_list_sold', 'warehouse_movement_list', 'movement_detail'])]
     private ?Article $article = null;
 
     /**

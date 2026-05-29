@@ -25,7 +25,7 @@ class WarehouseMovement
 
     #[ORM\ManyToOne(inversedBy: 'warehouseMovements')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['warehouse_movement_list'])]
+    #[Groups(['warehouse_movement_list', 'movement_detail'])]
     private ?Batch $batch = null;
 
     #[ORM\ManyToOne(inversedBy: 'warehouseMovements')]
