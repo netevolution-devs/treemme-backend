@@ -181,10 +181,12 @@ final class DdtRowController extends AbstractController
                 $remainingPieces = $outPieces - $returnedPieces;
                 $remainingQuantity = $outQuantity - $returnedQuantity;
 
-                if ($lastMovementReasonName === $ddtReasonName || $remainingPieces > 0) {
+                // Se l'ultimo movimento ha la causale originale, lo mostriamo sempre (perché è in uscita)
+                // Se invece l'ultimo movimento è un reso/rientro, lo mostriamo solo se rimangono pezzi
+                if ($lastMovementReasonName === $ddtReasonName || $remainingPieces > 0.01) {
                     $results = $this->groupSerializer->serializeGroup($ddtRow, 'ddt_row_list');
                     $results['stock_pieces'] = $remainingPieces;
-                    $results['stock_quantity'] = $remainingQuantity;
+                    $results['stock_quantity'] = round($remainingQuantity, 3);
                     $ddtRowsSelected[] = $results;
                 }
             }
@@ -741,6 +743,7 @@ final class DdtRowController extends AbstractController
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
         $quantity = $data['quantity'] ?? $ddtRow->getQuantity();
         $pieces = $data['pieces'] ?? $ddtRow->getPieces();
+        $pieces = (float)$pieces; // Assicura che sia trattato come float per i calcoli
 
         $ddt = $ddtRow->getDdt();
 
@@ -823,6 +826,7 @@ final class DdtRowController extends AbstractController
 
             $quantity = $rowData['quantity'] ?? $ddtRow->getQuantityOut() ?? $ddtRow->getQuantity();
             $pieces = $rowData['pieces'] ?? $ddtRow->getPiecesOut() ?? $ddtRow->getPieces();
+            $pieces = (float)$pieces; // Assicura che sia trattato come float per i calcoli
 
             $ddt = $ddtRow->getDdt();
 

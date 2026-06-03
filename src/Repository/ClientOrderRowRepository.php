@@ -40,4 +40,38 @@ class ClientOrderRowRepository extends ServiceEntityRepository
             ->getQuery()
             ->getSingleScalarResult();
     }
+
+    /**
+     * Calcola la quantità da spedire per una riga ordine.
+     * Somma la quantità dei lotti associati (BatchOrder)
+     * e sottrae la quantità già presente in DDT di spedizione confermati.
+     */
+    public function calculateQuantityToShip(int $clientOrderRowId): float
+    {
+        $qb = $this->getEntityManager()->createQueryBuilder();
+
+        // 1. Somma quantità totale dei lotti associati
+        $totalBatchQuantity = (float) $qb->select('SUM(b.quantity)')
+            ->from(\App\Entity\BatchOrder::class, 'bo')
+            ->join('bo.batch', 'b')
+            ->where('bo.order_row = :rowId')
+            ->setParameter('rowId', $clientOrderRowId)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        // 2. Somma quantità già spedita (DDT con is_shipment_reason = true)
+        $qb2 = $this->getEntityManager()->createQueryBuilder();
+        $shippedQuantity = (float) $qb2->select('SUM(dr.quantity)')
+            ->from(\App\Entity\DdtRow::class, 'dr')
+            ->join('dr.ddt', 'd')
+            ->join('d.reason', 'r')
+            ->join(\App\Entity\BatchOrder::class, 'bo', 'WITH', 'bo.batch = dr.batch')
+            ->where('bo.order_row = :rowId')
+            ->andWhere('r.is_shipment_reason = true')
+            ->setParameter('rowId', $clientOrderRowId)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return max(0.0, $totalBatchQuantity - $shippedQuantity);
+    }
 }

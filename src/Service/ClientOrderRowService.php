@@ -14,42 +14,96 @@ class ClientOrderRowService
 
     /**
      * Calcola e aggiorna la quantità da spedire per una riga ordine cliente.
-     * La quantità da spedire è la somma delle quantità di tutti i lotti associati
-     * che NON sono stati venduti e NON sono fuori sede in Conto Lavorazione.
+     * Gestisce inoltre la chiusura della riga (processed) e dell'ordine.
      */
     public function updateQuantityToShip(ClientOrderRow $row): void
     {
-        $batchOrders = $row->getBatchOrders();
-        $totalQuantityToShip = 0.0;
+        /** @var \App\Repository\ClientOrderRowRepository $repo */
+        $repo = $this->entityManager->getRepository(ClientOrderRow::class);
+        $totalQuantityToShip = $repo->calculateQuantityToShip($row->getId());
 
-        foreach ($batchOrders as $batchOrder) {
+        $row->setQuantityToShip($totalQuantityToShip);
+
+        // Calcolo della quantità totale spedita (già fuori sede)
+        $shippedQuantity = $this->calculateTotalShippedQuantity($row);
+
+        // Se la quantità spedita copre l'ordine, la riga è processata
+        if ($shippedQuantity >= $row->getQuantity()) {
+            $row->setProcessed(true);
+        } else {
+            $row->setProcessed(false);
+        }
+
+        $this->entityManager->persist($row);
+
+        // Aggiorna lo stato dell'intero ordine
+        $this->updateOrderStatus($row->getClientOrder());
+    }
+
+    /**
+     * Calcola la quantità totale già spedita per la riga (DDT con causale di spedizione).
+     */
+    private function calculateTotalShippedQuantity(ClientOrderRow $row): float
+    {
+        $shippedQuantity = 0.0;
+        foreach ($row->getBatchOrders() as $batchOrder) {
             $batch = $batchOrder->getBatch();
-            if (!$batch) {
-                continue;
-            }
+            if (!$batch) continue;
 
-            // Un lotto è considerato "non disponibile per la spedizione" se è presente in un DDT
-            // con causale "Vendita" o "Conto Lavorazione".
-            $isShippedOrOut = false;
             foreach ($batch->getDdtRows() as $ddtRow) {
-                $ddt = $ddtRow->getDdt();
-                if (!$ddt) {
-                    continue;
-                }
-
-                $reasonName = $ddt->getReason()?->getName();
-                if ($reasonName === 'Vendita' || $reasonName === 'Conto Lavorazione') {
-                    $isShippedOrOut = true;
-                    break;
+                if ($ddtRow->getDdt()?->getReason()?->isIsShipmentReason()) {
+                    $shippedQuantity += $ddtRow->getQuantity();
                 }
             }
+        }
+        return $shippedQuantity;
+    }
 
-            if (!$isShippedOrOut) {
-                $totalQuantityToShip += $batch->getQuantity();
+    /**
+     * Chiude manualmente una riga d'ordine e ricalcola lo stato dell'ordine.
+     */
+    public function manualCloseRow(ClientOrderRow $row): void
+    {
+        $row->setProcessed(true);
+        $this->entityManager->persist($row);
+        
+        $this->updateOrderStatus($row->getClientOrder());
+        $this->entityManager->flush();
+    }
+
+    /**
+     * Chiude manualmente l'intero ordine e tutte le sue righe.
+     */
+    public function manualCloseOrder(\App\Entity\ClientOrder $order): void
+    {
+        foreach ($order->getClientOrderRows() as $row) {
+            $row->setProcessed(true);
+            $this->entityManager->persist($row);
+        }
+        
+        $order->setProcessed(true);
+        $this->entityManager->persist($order);
+        $this->entityManager->flush();
+    }
+
+    /**
+     * Chiude l'ordine se tutte le sue righe sono processate.
+     */
+    private function updateOrderStatus(?\App\Entity\ClientOrder $order): void
+    {
+        if (!$order) return;
+
+        $allProcessed = true;
+        foreach ($order->getClientOrderRows() as $orderRow) {
+            if (!$orderRow->isProcessed()) {
+                $allProcessed = false;
+                break;
             }
         }
 
-        $row->setQuantityToShip($totalQuantityToShip);
-        $this->entityManager->persist($row);
+        if ($allProcessed !== $order->isProcessed()) {
+            $order->setProcessed($allProcessed);
+            $this->entityManager->persist($order);
+        }
     }
 }
