@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Service\StockService;
 use App\Entity\Contact;
 use App\Entity\Ddt;
 use App\Entity\DdtReason;
@@ -38,6 +39,7 @@ final class DdtRowController extends AbstractController
     private $groupSerializer;
     private $validatorOutputFormatter;
     private $pdfGenerator;
+    private $stockService;
 
     public function __construct(
         CreateMethodsByInput     $createMethodsByInput,
@@ -45,7 +47,8 @@ final class DdtRowController extends AbstractController
         DoResponseService        $doResponseService,
         GroupSerializerService   $groupSerializer,
         ValidatorOutputFormatter $validatorOutputFormatter,
-        PdfGeneratorService      $pdfGenerator
+        PdfGeneratorService      $pdfGenerator,
+        StockService             $stockService
     ) {
         $this->createMethodsByInput = $createMethodsByInput;
         $this->doctrine = $entityManager;
@@ -53,6 +56,7 @@ final class DdtRowController extends AbstractController
         $this->groupSerializer = $groupSerializer;
         $this->validatorOutputFormatter = $validatorOutputFormatter;
         $this->pdfGenerator = $pdfGenerator;
+        $this->stockService = $stockService;
     }
 
     #[Route('/ddt-row/{id}',
@@ -488,8 +492,7 @@ final class DdtRowController extends AbstractController
 
         $convertedQuantity = $this->getConvertedQuantity($ddtRow->getQuantity(), $ddtRow->getMeasurementUnit(), $batch->getMeasurementUnit());
 
-        $batch->setStockQuantity($batch->getStockQuantity() - $convertedQuantity);
-        $batch->setStockItems($batch->getStockItems() - $ddtRow->getPieces());
+        $this->stockService->removeStock($batch, $convertedQuantity, (float)$ddtRow->getPieces());
 
         $this->updateBatchSqFtAverageFound($batch);
 
@@ -593,23 +596,20 @@ final class DdtRowController extends AbstractController
             $newConvertedQuantity = $this->getConvertedQuantity($ddtRow->getQuantity(), $ddtRow->getMeasurementUnit(), $newBatch->getMeasurementUnit());
             $diffQuantity = $newConvertedQuantity - $oldConvertedQuantity;
 
-            $newBatch->setStockItems($newBatch->getStockItems() - $diffPieces);
-            $newBatch->setStockQuantity($newBatch->getStockQuantity() - $diffQuantity);
+            $this->stockService->removeStock($newBatch, $diffQuantity, (float)$diffPieces);
 
             $this->updateBatchSqFtAverageFound($newBatch);
             $this->doctrine->persist($newBatch);
         } else {
             if ($oldBatch) {
-                $oldBatch->setStockItems($oldBatch->getStockItems() + $oldPieces);
                 $oldBatchConvertedQuantity = $this->getConvertedQuantity($oldQuantity, $ddtRow->getMeasurementUnit(), $oldBatch->getMeasurementUnit());
-                $oldBatch->setStockQuantity($oldBatch->getStockQuantity() + $oldBatchConvertedQuantity);
+                $this->stockService->addStock($oldBatch, $oldBatchConvertedQuantity, (float)$oldPieces);
                 $this->updateBatchSqFtAverageFound($oldBatch);
                 $this->doctrine->persist($oldBatch);
             }
             if ($newBatch) {
-                $newBatch->setStockItems($newBatch->getStockItems() - $ddtRow->getPieces());
                 $newBatchConvertedQuantity = $this->getConvertedQuantity($ddtRow->getQuantity(), $ddtRow->getMeasurementUnit(), $newBatch->getMeasurementUnit());
-                $newBatch->setStockQuantity($newBatch->getStockQuantity() - $newBatchConvertedQuantity);
+                $this->stockService->removeStock($newBatch, $newBatchConvertedQuantity, (float)$ddtRow->getPieces());
                 $this->updateBatchSqFtAverageFound($newBatch);
                 $this->doctrine->persist($newBatch);
             }
@@ -777,10 +777,7 @@ final class DdtRowController extends AbstractController
         $this->doctrine->persist($warehouseMovement);
         $this->doctrine->flush();
 
-        $batch->setStockQuantity($batch->getStockQuantity() + $quantity);
-        $batch->setStockItems($batch->getStockItems() + $pieces);
-
-        $this->doctrine->persist($batch);
+        $this->stockService->addStock($batch, (float)$quantity, (float)$pieces);
 
         $this->updateBatchSqFtAverageFound($batch);
 
@@ -859,10 +856,8 @@ final class DdtRowController extends AbstractController
 
             $this->doctrine->persist($warehouseMovement);
 
-            $batch->setStockQuantity($batch->getStockQuantity() + $quantity);
-            $batch->setStockItems($batch->getStockItems() + $pieces);
+            $this->stockService->addStock($batch, (float)$quantity, (float)$pieces);
 
-            $this->doctrine->persist($batch);
             $this->updateBatchSqFtAverageFound($batch);
             $this->doctrine->persist($batch);
 
@@ -1026,8 +1021,7 @@ final class DdtRowController extends AbstractController
             $this->doctrine->persist($movementOut);
 
             // Aggiorno stock del lotto per l'uscita
-            $batch->setStockQuantity($batch->getStockQuantity() - $quantity);
-            $batch->setStockItems($batch->getStockItems() - $pieces);
+            $this->stockService->removeStock($batch, (float)$quantity, (float)$pieces);
         }
 
         $this->updateBatchSqFtAverageFound($batch);

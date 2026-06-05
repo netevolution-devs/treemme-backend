@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Service\StockService;
 use App\Entity\BatchData;
 use App\Entity\LeatherType;
 use App\Entity\MeasurementUnitCoefficient;
@@ -44,6 +45,7 @@ final class BatchController extends AbstractController
     private $validatorOutputFormatter;
     private $pdfGenerator;
     private $qrCodeService;
+    private $stockService;
     private string $subcontractor_tag;
 
     public function __construct(
@@ -54,6 +56,7 @@ final class BatchController extends AbstractController
         ValidatorOutputFormatter $validatorOutputFormatter,
         PdfGeneratorService      $pdfGenerator,
         QrCodeService            $qrCodeService,
+        StockService             $stockService,
                                  $subcontractor_tag,
     )
     {
@@ -64,6 +67,7 @@ final class BatchController extends AbstractController
         $this->validatorOutputFormatter = $validatorOutputFormatter;
         $this->pdfGenerator = $pdfGenerator;
         $this->qrCodeService = $qrCodeService;
+        $this->stockService = $stockService;
         $this->subcontractor_tag = $subcontractor_tag;
     }
 
@@ -874,6 +878,19 @@ final class BatchController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse($results));
     }
 
+    #[Route('/batch/recalculate-all-stocks',
+        name: 'batch_recalculate_all_stocks',
+        methods: ['POST'])]
+    public function recalculateAllStocks(): JsonResponse
+    {
+        $batches = $this->doctrine->getRepository(Batch::class)->findAll();
+        $report = [];
+        foreach ($batches as $batch) {
+            $report[] = $this->stockService->recalculateBatchStock($batch);
+        }
+        return new JsonResponse($this->doResponse->doResponse($report));
+    }
+
     #[Route('/batch',
         name: 'post_batch',
         methods: ['POST'])]
@@ -981,11 +998,11 @@ final class BatchController extends AbstractController
             $batch = $this->createMethodsByInput->createMethods($batch, $data);
 
             if ($batch->getStockItems() === null || $batch->getStockItems() == 0.0) {
-                $batch->setStockItems((float)($batch->getPieces() ?? 0));
+                $this->stockService->setInitialStock($batch, $batch->getStockQuantity() ?? 0.0, (float)($batch->getPieces() ?? 0));
             }
 
             if ($batch->getStockQuantity() === null || $batch->getStockQuantity() == 0.0) {
-                $batch->setStockQuantity((float)($batch->getQuantity() ?? 0));
+                $this->stockService->setInitialStock($batch, (float)($batch->getQuantity() ?? 0), $batch->getStockItems() ?? 0.0);
             }
 
             $now = new \DateTimeImmutable();
@@ -1086,14 +1103,10 @@ final class BatchController extends AbstractController
                 return $this->doResponse->doErrorJsonResponse('Selezione batch non trovata', 404);
             }
 
-            $batchSelection->setStockPieces($batchSelection->getStockPieces() + ($pieces * $sign));
-            $batchSelection->setStockQuantity($batchSelection->getStockQuantity() + ($quantity * $sign));
-
-            $this->doctrine->persist($batchSelection);
+            $this->stockService->updateBatchAndSelectionStock($batch, $batchSelection, $quantity * $sign, $pieces * $sign);
+        } else {
+            $this->stockService->addStock($batch, $quantity * $sign, $pieces * $sign);
         }
-
-        $batch->setStockItems($batch->getStockItems() + ($pieces * $sign));
-        $batch->setStockQuantity($batch->getStockQuantity() + ($quantity * $sign));
 
         $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
 
@@ -1166,12 +1179,12 @@ final class BatchController extends AbstractController
 
             if ($batch->getPieces() !== $oldPieces) {
                 $diffPieces = $batch->getPieces() - $oldPieces;
-                $batch->setStockItems($batch->getStockItems() + $diffPieces);
+                $this->stockService->addStock($batch, 0.0, (float)$diffPieces);
             }
 
             if ($batch->getQuantity() !== $oldQuantity) {
                 $diffQuantity = $batch->getQuantity() - $oldQuantity;
-                $batch->setStockQuantity($batch->getStockQuantity() + $diffQuantity);
+                $this->stockService->addStock($batch, $diffQuantity, 0.0);
             }
 
             if ($batch->isCompleted() === null) {
