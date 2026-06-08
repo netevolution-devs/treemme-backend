@@ -37,11 +37,11 @@ class BatchSelection
     private ?float $quantity = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_selection_detail', 'batch_detail', 'batch_list'])]
+    #[Groups(['batch_selection_detail', 'batch_detail', 'batch_list', 'batch_composition_detail'])]
     private ?float $stock_pieces = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_selection_detail', 'batch_detail', 'batch_list'])]
+    #[Groups(['batch_selection_detail', 'batch_detail', 'batch_list', 'batch_composition_detail'])]
     private ?float $stock_quantity = null;
 
     #[ORM\ManyToOne(inversedBy: 'batchSelections')]
