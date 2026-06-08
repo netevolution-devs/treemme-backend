@@ -32,6 +32,11 @@ class StockService
         // Lo StockService deve semplicemente sommare il valore finale del movimento.
         $batch->setStockQuantity($batch->getStockQuantity() + $quantity);
         $batch->setStockItems($batch->getStockItems() + $pieces);
+
+        // Se il movimento ha pezzi decimali, aggiorniamo anche lo stock delle mezze pelli
+        if (floor($pieces) != $pieces) {
+            $batch->setStockHalfPieces(($batch->getStockHalfPieces() ?? 0) + (int)round(($pieces - floor($pieces)) * 2));
+        }
         
         $batch->setPieces($batch->getStockItems());
 
@@ -45,6 +50,11 @@ class StockService
     {
         $batch->setStockQuantity($batch->getStockQuantity() - $quantity);
         $batch->setStockItems($batch->getStockItems() - $pieces);
+
+        if (floor($pieces) != $pieces) {
+            $batch->setStockHalfPieces(($batch->getStockHalfPieces() ?? 0) - (int)round(($pieces - floor($pieces)) * 2));
+        }
+
         $batch->setPieces($batch->getStockItems());
         $this->entityManager->persist($batch);
     }
@@ -56,6 +66,11 @@ class StockService
     {
         $batch->setStockQuantity($batch->getStockQuantity() + $quantity);
         $batch->setStockItems($batch->getStockItems() + $pieces);
+
+        if (floor($pieces) != $pieces) {
+            $batch->setStockHalfPieces(($batch->getStockHalfPieces() ?? 0) + (int)round(($pieces - floor($pieces)) * 2));
+        }
+
         $batch->setPieces($batch->getStockItems());
         $this->entityManager->persist($batch);
     }
@@ -67,6 +82,13 @@ class StockService
     {
         $batch->setStockQuantity($quantity);
         $batch->setStockItems($pieces);
+
+        if (floor($pieces) != $pieces) {
+            $batch->setStockHalfPieces((int)round(($pieces - floor($pieces)) * 2));
+        } else {
+            $batch->setStockHalfPieces(0);
+        }
+
         $batch->setPieces($pieces);
         $this->entityManager->persist($batch);
     }
@@ -78,6 +100,10 @@ class StockService
     {
         $batch->setStockQuantity($batch->getStockQuantity() + $quantityDelta);
         $batch->setStockItems($batch->getStockItems() + $piecesDelta);
+
+        if (floor($piecesDelta) != $piecesDelta) {
+            $batch->setStockHalfPieces(($batch->getStockHalfPieces() ?? 0) + (int)round(($piecesDelta - floor($piecesDelta)) * 2));
+        }
         
         if ($updateBatchTotals) {
             $batch->setQuantity($batch->getQuantity() + $quantityDelta);
@@ -109,9 +135,17 @@ class StockService
 
         $oldQuantity = $batch->getStockQuantity();
         $oldItems = $batch->getStockItems();
+        $oldHalfPieces = $batch->getStockHalfPieces();
 
         $batch->setStockQuantity(round($totalQuantity, 3));
         $batch->setStockItems(round($totalPieces, 3));
+
+        if (floor($totalPieces) != $totalPieces) {
+            $batch->setStockHalfPieces((int)round(($totalPieces - floor($totalPieces)) * 2));
+        } else {
+            $batch->setStockHalfPieces(0);
+        }
+
         $batch->setPieces($batch->getStockItems());
         
         $this->entityManager->persist($batch);
@@ -122,7 +156,9 @@ class StockService
             'old_quantity' => $oldQuantity,
             'new_quantity' => $batch->getStockQuantity(),
             'old_items' => $oldItems,
-            'new_items' => $batch->getStockItems()
+            'new_items' => $batch->getStockItems(),
+            'old_half_pieces' => $oldHalfPieces,
+            'new_half_pieces' => $batch->getStockHalfPieces()
         ];
     }
 }

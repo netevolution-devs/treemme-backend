@@ -64,6 +64,10 @@ class Batch
     #[Groups(['batch_list', 'batch_detail'])]
     private ?float $stock_items = null;
 
+    #[ORM\Column(nullable: true)]
+    #[Groups(['batch_list', 'batch_detail'])]
+    private ?int $stock_half_pieces = null;
+
     #[ORM\Column]
     #[Groups(['batch_list', 'batch_detail'])]
     private ?float $stock_quantity = null;
@@ -335,6 +339,18 @@ class Batch
     public function setStockItems(float $stock_items): static
     {
         $this->stock_items = round($stock_items, 3);
+
+        return $this;
+    }
+
+    public function getStockHalfPieces(): ?int
+    {
+        return $this->stock_half_pieces;
+    }
+
+    public function setStockHalfPieces(?int $stock_half_pieces): static
+    {
+        $this->stock_half_pieces = $stock_half_pieces;
 
         return $this;
     }
