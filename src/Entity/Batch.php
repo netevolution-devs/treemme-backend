@@ -46,7 +46,11 @@ class Batch
 
     #[ORM\Column]
     #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'batch_data_detail','client_order_row_list', 'client_summary_print', 'ddt_row_list_sold'])]
-    private ?int $pieces = null;
+    private ?float $pieces = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'batch_data_detail','client_order_row_list', 'client_summary_print', 'ddt_row_list_sold'])]
+    private ?int $half_pieces_count = null;
 
     #[ORM\ManyToOne(inversedBy: 'batches')]
     #[Groups(['batch_list', 'batch_detail', 'batch_data_detail', 'ddt_row_list_sold'])]
@@ -268,14 +272,33 @@ class Batch
         return $this;
     }
 
-    public function getPieces(): ?int
+    public function getPieces(): ?float
     {
         return $this->pieces;
     }
 
-    public function setPieces(int $pieces): static
+    public function setPieces(float $pieces): static
     {
+        // Se il valore ha dei decimali e non abbiamo abilitato le mezze pelli, arrotondiamo.
+        // Questo garantisce che il lotto (e le relative analisi) possano gestire mezze pelli
+        // solo se il campo half_pieces_count è stato popolato (tramite comando apposito).
+        if ($this->half_pieces_count === null && (floor($pieces) != $pieces)) {
+             $pieces = round($pieces);
+        }
+
         $this->pieces = $pieces;
+
+        return $this;
+    }
+
+    public function getHalfPiecesCount(): ?int
+    {
+        return $this->half_pieces_count;
+    }
+
+    public function setHalfPiecesCount(?int $half_pieces_count): static
+    {
+        $this->half_pieces_count = $half_pieces_count;
 
         return $this;
     }

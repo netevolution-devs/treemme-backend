@@ -32,6 +32,9 @@ class StockService
         // Lo StockService deve semplicemente sommare il valore finale del movimento.
         $batch->setStockQuantity($batch->getStockQuantity() + $quantity);
         $batch->setStockItems($batch->getStockItems() + $pieces);
+        
+        $batch->setPieces($batch->getStockItems());
+
         $this->entityManager->persist($batch);
     }
 
@@ -42,6 +45,7 @@ class StockService
     {
         $batch->setStockQuantity($batch->getStockQuantity() - $quantity);
         $batch->setStockItems($batch->getStockItems() - $pieces);
+        $batch->setPieces($batch->getStockItems());
         $this->entityManager->persist($batch);
     }
 
@@ -52,6 +56,7 @@ class StockService
     {
         $batch->setStockQuantity($batch->getStockQuantity() + $quantity);
         $batch->setStockItems($batch->getStockItems() + $pieces);
+        $batch->setPieces($batch->getStockItems());
         $this->entityManager->persist($batch);
     }
 
@@ -62,6 +67,7 @@ class StockService
     {
         $batch->setStockQuantity($quantity);
         $batch->setStockItems($pieces);
+        $batch->setPieces($pieces);
         $this->entityManager->persist($batch);
     }
 
@@ -75,14 +81,14 @@ class StockService
         
         if ($updateBatchTotals) {
             $batch->setQuantity($batch->getQuantity() + $quantityDelta);
-            $batch->setPieces($batch->getPieces() + (int)$piecesDelta);
+            $batch->setPieces($batch->getPieces() + $piecesDelta);
         }
 
         $this->entityManager->persist($batch);
 
         if ($selection) {
             $selection->setStockQuantity($selection->getStockQuantity() + $quantityDelta);
-            $selection->setStockPieces($selection->getStockPieces() + (int)$piecesDelta);
+            $selection->setStockPieces($selection->getStockPieces() + $piecesDelta);
             $this->entityManager->persist($selection);
         }
     }
@@ -106,6 +112,7 @@ class StockService
 
         $batch->setStockQuantity(round($totalQuantity, 3));
         $batch->setStockItems(round($totalPieces, 3));
+        $batch->setPieces($batch->getStockItems());
         
         $this->entityManager->persist($batch);
         $this->entityManager->flush();

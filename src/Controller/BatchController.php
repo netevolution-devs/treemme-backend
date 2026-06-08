@@ -891,6 +891,27 @@ final class BatchController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse($report));
     }
 
+    #[Route('/batch/{id}/calculate-half-pieces',
+        name: 'batch_calculate_half_pieces',
+        requirements: ['id' => '\d+'],
+        methods: ['POST'])]
+    public function calculateHalfPieces(int $id): JsonResponse
+    {
+        $batch = $this->doctrine->getRepository(Batch::class)->find($id);
+        if (!$batch) {
+            return $this->doResponse->doErrorJsonResponse('Lotto non trovato', 404);
+        }
+
+        $pieces = $batch->getPieces() ?? 0;
+        $halfPiecesCount = (int)($pieces * 2);
+        $batch->setHalfPiecesCount($halfPiecesCount);
+
+        $this->doctrine->flush();
+
+        $result = $this->groupSerializer->serializeGroup($batch, 'batch_detail');
+        return new JsonResponse($this->doResponse->doResponse($result));
+    }
+
     #[Route('/batch',
         name: 'post_batch',
         methods: ['POST'])]

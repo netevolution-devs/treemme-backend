@@ -128,44 +128,60 @@ final class DdtRowController extends AbstractController
             $resoReasonName = "Reso " . $ddtReasonName;
             $rientroTrasferimentoReasonName = "Rientro da Lavorazione";
 
-            // Restituisce il lotto solamente quando l'ultimo movimento ha il movementReason->Name == al ddtReason->Name
-            // Oppure se è un "Reso {ddtReason->Name}" o un "Rientro da Lavorazione" (per trasferimento)
-            if ($lastMovementReasonName !== $ddtReasonName && 
-                $lastMovementReasonName !== $resoReasonName &&
-                $lastMovementReasonName !== $rientroTrasferimentoReasonName
-            ) {
-                continue;
+            $firstMovementOut = null;
+            
+            // Tenta di identificare il movimento di uscita iniziale
+            foreach ($movementsArray as $movement) {
+                $reason = $movement->getReason();
+                $reasonName = $reason?->getName();
+                $reasonType = $reason?->getReasonType();
+                $reasonTypeName = $reasonType?->getName();
+                $movementType = $reasonType?->getMovementType();
+
+                // Un movimento è un'uscita valida se è di tipo Scarico (-)
+                if ($movementType === '-') {
+                    // Se c'è un match del numero DDT, o se la causale è la stessa, è un ottimo candidato
+                    if ($movement->getDdtNumber() === $ddt->getDdtNumber() || $reasonName === $ddtReasonName) {
+                        $firstMovementOut = $movement;
+                        // Se abbiamo anche il match del numero DDT, abbiamo finito la ricerca dell'uscita
+                        if ($movement->getDdtNumber() === $ddt->getDdtNumber()) {
+                            break;
+                        }
+                    }
+                    
+                    // Fallback: se non abbiamo ancora trovato nulla e il ddt_number è nullo, lo teniamo come candidato
+                    if ($firstMovementOut === null && $movement->getDdtNumber() === null) {
+                        $firstMovementOut = $movement;
+                    }
+                }
             }
 
-            $firstMovementOut = null;
             $returnedPieces = 0;
             $returnedQuantity = 0;
 
             foreach ($movementsArray as $movement) {
                 $reason = $movement->getReason();
                 $reasonName = $reason?->getName();
-                $reasonTypeName = $reason?->getReasonType()?->getName();
+                $reasonType = $reason?->getReasonType();
+                $movementType = $reasonType?->getMovementType();
 
-                // Identifica il primo movimento in uscita con la causale del DDT che corrisponde al numero DDT della riga
-                if ($firstMovementOut === null && 
-                    $reasonName === $ddtReasonName && 
-                    $reasonTypeName === 'Scarico' &&
-                    $movement->getDdtNumber() === $ddt->getDdtNumber()
-                ) {
-                    $firstMovementOut = $movement;
-                    continue;
-                }
-
-                // Somma i pezzi rientrati per i movimenti di "Reso" corrispondenti o rientri per trasferimento
-                if ($firstMovementOut !== null) {
-                    if ($reasonName === $resoReasonName || $reasonName === $rientroTrasferimentoReasonName) {
-                        // Verifichiamo che il rientro sia riferito a questo DDT (tramite note o ddt_number nel movimento)
-                        // Nel caso del trasferimento, impostiamo ddt_number del movimento uguale a quello della riga originale
-                        if ($movement->getDdtNumber() === $ddt->getDdtNumber()) {
-                            $mPieces = abs($movement->getPiece() ?? 0);
-                            $returnedPieces += $mPieces;
-                            
-                            // Nel trasferimento bisogna prendere la quantity di un pezzo e moltiplicarlo per i pezzi trasferiti, questo vale anche per i resi....
+                // Un movimento è un rientro se è di tipo Carico (+) 
+                // e ha il numero di DDT corrispondente, oppure ha una delle causali "note" di rientro
+                if ($movementType === '+') {
+                    if ($movement->getDdtNumber() === $ddt->getDdtNumber() || 
+                        $reasonName === $resoReasonName || 
+                        $reasonName === $rientroTrasferimentoReasonName ||
+                        (str_starts_with($reasonName, 'Reso ') && $movement->getDdtNumber() === $ddt->getDdtNumber())
+                    ) {
+                        $mPieces = abs($movement->getPiece() ?? 0);
+                        $returnedPieces += $mPieces;
+                        
+                        // Se il movimento ha una quantità esplicita diversa da zero, usiamo quella
+                        $mQuantity = abs($movement->getQuantity() ?? 0);
+                        if ($mQuantity > 0) {
+                            $returnedQuantity += $mQuantity;
+                        } else {
+                            // Fallback sul calcolo proporzionale se la quantità nel movimento è mancante
                             $unitQuantity = 0;
                             $pOut = $ddtRow->getPiecesOut() ?? $ddtRow->getPieces() ?? 0;
                             $qOut = $ddtRow->getQuantityOut() ?? $ddtRow->getQuantity() ?? 0;
@@ -185,10 +201,11 @@ final class DdtRowController extends AbstractController
                 $remainingPieces = $outPieces - $returnedPieces;
                 $remainingQuantity = $outQuantity - $returnedQuantity;
 
-                // Se l'ultimo movimento ha la causale originale, lo mostriamo sempre (perché è in uscita)
-                // Se invece l'ultimo movimento è un reso/rientro, lo mostriamo solo se rimangono pezzi
-                if ($lastMovementReasonName === $ddtReasonName || $remainingPieces > 0.01) {
+                // Mostriamo la riga se non è ancora stata saldata (rimangono pezzi)
+                if ($remainingPieces > 0.01) {
                     $results = $this->groupSerializer->serializeGroup($ddtRow, 'ddt_row_list');
+                    $results['pieces_out'] = $outPieces;
+                    $results['quantity_out'] = $outQuantity;
                     $results['stock_pieces'] = $remainingPieces;
                     $results['stock_quantity'] = round($remainingQuantity, 3);
                     $ddtRowsSelected[] = $results;
@@ -827,11 +844,11 @@ final class DdtRowController extends AbstractController
 
             $ddt = $ddtRow->getDdt();
 
-            $reason = $reasonRepository->findOneBy(['name' => 'Reso ' . $ddt->getReason()->getName()]);
+            $reason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Reso ' . $ddt->getReason()->getName()]);
             if (!$reason) {
-                $reasonTypeIn = $reasonTypeRepository->findOneBy(['movement_type' => 'Carico']);
+                $reasonTypeIn = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => 'Carico']);
                 if ($reasonTypeIn) {
-                    $reason = $reasonRepository->findOneBy(['reason_type' => $reasonTypeIn]);
+                    $reason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['reason_type' => $reasonTypeIn]);
                 }
             }
             if (!$reason) {
@@ -846,7 +863,7 @@ final class DdtRowController extends AbstractController
             $warehouseMovement->setDdtNumber($ddtRow->getDdt()->getDdtNumber());
             $warehouseMovement->setDdtDate($ddtRow->getDdt()->getDdtDate());
             $warehouseMovement->setDate(new \DateTime());
-            $warehouseMovement->setMovementNote('Rientro massivo riga DDT ' . $ddtRow->getId() . ' del DDT ' . $ddtRow->getDdt()->getDdtNumber());
+            $warehouseMovement->setMovementNote('Rientro riga DDT ' . $ddtRow->getId() . ' del DDT ' . $ddtRow->getDdt()->getDdtNumber());
 
             if ($ddt->getSubcontractor()) {
                 $warehouseMovement->setContact($ddt->getSubcontractor());
@@ -1276,6 +1293,65 @@ final class DdtRowController extends AbstractController
         usort($groupedData, fn($a, $b) => $a['subcontractor']['name'] <=> $b['subcontractor']['name']);
 
         return new JsonResponse($this->doResponse->doResponse(array_values($groupedData)));
+    }
+
+    #[Route('/ddt-row/update-all-out-values',
+        name: 'post_ddt_row_update_all_out_values',
+        methods: ['POST'])]
+    public function updateAllOutValues(): JsonResponse
+    {
+        $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
+        $ddtRows = $ddtRowRepository->findAll();
+
+        $updatedCount = 0;
+        foreach ($ddtRows as $ddtRow) {
+            $ddt = $ddtRow->getDdt();
+            $batch = $ddtRow->getBatch();
+
+            if (!$ddt || !$batch) {
+                continue;
+            }
+
+            $movements = $batch->getWarehouseMovements();
+            $firstMovementOut = null;
+
+            foreach ($movements as $movement) {
+                $reason = $movement->getReason();
+                if ($reason && 
+                    $reason->getReasonType() && 
+                    $reason->getReasonType()->getMovementType() === 'Scarico' &&
+                    $movement->getDdtNumber() === $ddt->getDdtNumber()
+                ) {
+                    $firstMovementOut = $movement;
+                    break; 
+                }
+            }
+
+            // Fallback se non troviamo il movimento per numero DDT, prendiamo il primo scarico del lotto
+            if (!$firstMovementOut) {
+                foreach ($movements as $movement) {
+                    $reason = $movement->getReason();
+                    if ($reason && 
+                        $reason->getReasonType() && 
+                        $reason->getReasonType()->getMovementType() === 'Scarico'
+                    ) {
+                        $firstMovementOut = $movement;
+                        break;
+                    }
+                }
+            }
+
+            if ($firstMovementOut) {
+                $ddtRow->setPiecesOut(abs($firstMovementOut->getPiece() ?? 0));
+                $ddtRow->setQuantityOut(abs($firstMovementOut->getQuantity() ?? 0));
+                $this->doctrine->persist($ddtRow);
+                $updatedCount++;
+            }
+        }
+
+        $this->doctrine->flush();
+
+        return new JsonResponse($this->doResponse->doResponse(['updated_count' => $updatedCount]));
     }
 }
 
