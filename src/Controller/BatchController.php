@@ -905,9 +905,7 @@ final class BatchController extends AbstractController
         $pieces = $batch->getPieces() ?? 0;
         $halfPiecesCount = (int)($pieces * 2);
         $batch->setHalfPiecesCount($halfPiecesCount);
-
-        // Se abbiamo appena abilitato le mezze pelli, ricalcoliamo lo stock per popolare stock_half_pieces
-        $this->stockService->recalculateBatchStock($batch);
+        $batch->setStockHalfPieces($halfPiecesCount);
 
         $this->doctrine->flush();
 
