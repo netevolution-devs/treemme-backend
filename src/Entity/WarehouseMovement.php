@@ -35,7 +35,7 @@ class WarehouseMovement
 
     #[ORM\Column(nullable: true)]
     #[Groups(['batch_detail', 'warehouse_movement_list'])]
-    private ?int $piece = null;
+    private ?float $piece = null;
 
     #[ORM\Column(nullable: true)]
     #[Groups(['batch_detail', 'warehouse_movement_list'])]
@@ -129,13 +129,21 @@ class WarehouseMovement
         return $this;
     }
 
-    public function getPiece(): ?int
+    public function getPiece(): ?float
     {
         return $this->piece;
     }
 
-    public function setPiece(?int $piece): static
+    public function setPiece(?float $piece): static
     {
+        if ($piece !== null) {
+            $batch = $this->getBatch();
+            // Se il lotto non supporta le mezze pelli, forziamo il valore a intero
+            if ($batch && $batch->getHalfPiecesCount() === null) {
+                $piece = (float)round($piece);
+            }
+        }
+
         if ($piece !== null && $this->getReason() && $this->getReason()->getReasonType() && $this->getReason()->getReasonType()->getMovementType() === '-') {
             $this->piece = -abs($piece);
         } else {

@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Service\StockService;
 use App\Entity\Contact;
 use App\Entity\WarehouseMovement;
 use App\Entity\WarehouseMovementReason;
@@ -25,19 +26,22 @@ final class WerehouseMovementController extends AbstractController
     private $doResponse;
     private $groupSerializer;
     private $validatorOutputFormatter;
+    private $stockService;
 
     public function __construct(
         CreateMethodsByInput     $createMethodsByInput,
         EntityManagerInterface   $entityManager,
         DoResponseService        $doResponseService,
         GroupSerializerService   $groupSerializer,
-        ValidatorOutputFormatter $validatorOutputFormatter
+        ValidatorOutputFormatter $validatorOutputFormatter,
+        StockService             $stockService
     ) {
         $this->createMethodsByInput = $createMethodsByInput;
         $this->doctrine = $entityManager;
         $this->doResponse = $doResponseService;
         $this->groupSerializer = $groupSerializer;
         $this->validatorOutputFormatter = $validatorOutputFormatter;
+        $this->stockService = $stockService;
     }
 
     #[Route('/warehouse-movement/{id}',
@@ -146,9 +150,8 @@ final class WerehouseMovementController extends AbstractController
 
             $this->doctrine->persist($movement);
             
-            // Aggiorniamo lo stock del lotto
-            $batch->setStockItems(($batch->getStockItems() ?? 0) + $pieces);
-            $batch->setStockQuantity(($batch->getStockQuantity() ?? 0) + $quantity);
+            // Aggiorniamo lo stock del lotto tramite il servizio
+            $this->stockService->addStock($batch, (float)$quantity, (float)$pieces);
             
             $movements[] = $movement;
         }

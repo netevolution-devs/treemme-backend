@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Service\StockService;
 use App\Entity\BatchSelection;
 use App\Entity\MeasurementUnitCoefficient;
 use App\Entity\WarehouseMovement;
@@ -26,6 +27,7 @@ final class BatchCompositionController extends AbstractController
     private $doResponse;
     private $groupSerializer;
     private $validatorOutputFormatter;
+    private $stockService;
 
     public function __construct(
         CreateMethodsByInput     $createMethodsByInput,
@@ -33,6 +35,7 @@ final class BatchCompositionController extends AbstractController
         DoResponseService        $doResponseService,
         GroupSerializerService   $groupSerializer,
         ValidatorOutputFormatter $validatorOutputFormatter,
+        StockService             $stockService,
     )
     {
         $this->createMethodsByInput = $createMethodsByInput;
@@ -40,6 +43,7 @@ final class BatchCompositionController extends AbstractController
         $this->doResponse = $doResponseService;
         $this->groupSerializer = $groupSerializer;
         $this->validatorOutputFormatter = $validatorOutputFormatter;
+        $this->stockService = $stockService;
     }
 
     #[Route('/batch-composition/{id}',
@@ -170,11 +174,7 @@ final class BatchCompositionController extends AbstractController
                     }
                 }
 
-                $batch->setStockQuantity($batch->getStockQuantity() + $childQuantity);
-                $batch->setStockItems($batch->getStockItems() + $batchComposition->getFatherBatchPiece());
-                $batch->setPieces($batch->getPieces() + $batchComposition->getFatherBatchPiece());
-                $batch->setQuantity($batch->getQuantity() + (float) ($batchComposition->getFatherBatchQuantity() ?? 0.0));
-                $this->doctrine->persist($batch);
+                $this->stockService->updateBatchAndSelectionStock($batch, null, $childQuantity, (float)$batchComposition->getFatherBatchPiece(), true);
             }
 
             $errors = $validator->validate($batchComposition);
@@ -184,15 +184,7 @@ final class BatchCompositionController extends AbstractController
             }
 
             if ($fatherBatch) {
-                $fatherBatch->setStockItems($fatherBatch->getStockItems() - $batchComposition->getFatherBatchPiece());
-                $fatherBatch->setStockQuantity($fatherBatch->getStockQuantity() - (float) ($batchComposition->getFatherBatchQuantity() ?? 0.0));
-                $this->doctrine->persist($fatherBatch);
-
-                if ($batchSelection) {
-                    $batchSelection->setStockPieces($batchSelection->getStockPieces() - $batchComposition->getFatherBatchPiece());
-                    $batchSelection->setStockQuantity($batchSelection->getStockQuantity() - (float) ($batchComposition->getFatherBatchQuantity() ?? 0.0));
-                    $this->doctrine->persist($batchSelection);
-                }
+                $this->stockService->updateBatchAndSelectionStock($fatherBatch, $batchSelection, -(float)$batchComposition->getFatherBatchQuantity(), -(float)$batchComposition->getFatherBatchPiece());
             }
 
             $em = $this->doctrine;
@@ -249,22 +241,10 @@ final class BatchCompositionController extends AbstractController
                     }
                 }
 
-                $oldBatch->setStockQuantity($oldBatch->getStockQuantity() - $oldChildQuantity);
-                $oldBatch->setStockItems($oldBatch->getStockItems() - $oldPieces);
-                $oldBatch->setPieces($oldBatch->getPieces() - $oldPieces);
-                $oldBatch->setQuantity($oldBatch->getQuantity() - $oldQuantity);
-                $this->doctrine->persist($oldBatch);
+                $this->stockService->updateBatchAndSelectionStock($oldBatch, null, -$oldChildQuantity, -(float)$oldPieces, true);
 
                 // Ripristiniamo nel padre
-                $oldFatherBatch->setStockItems($oldFatherBatch->getStockItems() + $oldPieces);
-                $oldFatherBatch->setStockQuantity($oldFatherBatch->getStockQuantity() + $oldQuantity);
-                $this->doctrine->persist($oldFatherBatch);
-
-                if ($oldSelection) {
-                    $oldSelection->setStockPieces($oldSelection->getStockPieces() + $oldPieces);
-                    $oldSelection->setStockQuantity($oldSelection->getStockQuantity() + $oldQuantity);
-                    $this->doctrine->persist($oldSelection);
-                }
+                $this->stockService->updateBatchAndSelectionStock($oldFatherBatch, $oldSelection, $oldQuantity, (float)$oldPieces);
             }
 
             // 2. Applichiamo le modifiche
@@ -305,21 +285,9 @@ final class BatchCompositionController extends AbstractController
                     }
                 }
 
-                $newBatch->setStockQuantity($newBatch->getStockQuantity() + $newChildQuantity);
-                $newBatch->setStockItems($newBatch->getStockItems() + $newPieces);
-                $newBatch->setPieces($newBatch->getPieces() + $newPieces);
-                $newBatch->setQuantity($newBatch->getQuantity() + $newQuantity);
-                $this->doctrine->persist($newBatch);
+                $this->stockService->updateBatchAndSelectionStock($newBatch, null, $newChildQuantity, (float)$newPieces, true);
 
-                $newFatherBatch->setStockItems($newFatherBatch->getStockItems() - $newPieces);
-                $newFatherBatch->setStockQuantity($newFatherBatch->getStockQuantity() - $newQuantity);
-                $this->doctrine->persist($newFatherBatch);
-
-                if ($newSelection) {
-                    $newSelection->setStockPieces($newSelection->getStockPieces() - $newPieces);
-                    $newSelection->setStockQuantity($newSelection->getStockQuantity() - $newQuantity);
-                    $this->doctrine->persist($newSelection);
-                }
+                $this->stockService->updateBatchAndSelectionStock($newFatherBatch, $newSelection, -$newQuantity, -(float)$newPieces);
             }
 
             $errors = $validator->validate($batchComposition);
@@ -374,22 +342,10 @@ final class BatchCompositionController extends AbstractController
                     }
                 }
 
-                $batch->setStockQuantity($batch->getStockQuantity() - $childQuantity);
-                $batch->setStockItems($batch->getStockItems() - $pieces);
-                $batch->setPieces($batch->getPieces() - $pieces);
-                $batch->setQuantity($batch->getQuantity() - $quantity);
-                $this->doctrine->persist($batch);
+                $this->stockService->updateBatchAndSelectionStock($batch, null, -$childQuantity, -(float)$pieces, true);
 
                 // Ripristiniamo nel padre
-                $fatherBatch->setStockItems($fatherBatch->getStockItems() + $pieces);
-                $fatherBatch->setStockQuantity($fatherBatch->getStockQuantity() + $quantity);
-                $this->doctrine->persist($fatherBatch);
-
-                if ($selection) {
-                    $selection->setStockPieces($selection->getStockPieces() + $pieces);
-                    $selection->setStockQuantity($selection->getStockQuantity() + $quantity);
-                    $this->doctrine->persist($selection);
-                }
+                $this->stockService->updateBatchAndSelectionStock($fatherBatch, $selection, $quantity, (float)$pieces);
             }
 
             $this->deleteExistingMovements($batchComposition);

@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Service\StockService;
 use App\Entity\Contact;
 use App\Entity\Ddt;
 use App\Entity\DdtReason;
@@ -38,6 +39,7 @@ final class DdtRowController extends AbstractController
     private $groupSerializer;
     private $validatorOutputFormatter;
     private $pdfGenerator;
+    private $stockService;
 
     public function __construct(
         CreateMethodsByInput     $createMethodsByInput,
@@ -45,7 +47,8 @@ final class DdtRowController extends AbstractController
         DoResponseService        $doResponseService,
         GroupSerializerService   $groupSerializer,
         ValidatorOutputFormatter $validatorOutputFormatter,
-        PdfGeneratorService      $pdfGenerator
+        PdfGeneratorService      $pdfGenerator,
+        StockService             $stockService
     ) {
         $this->createMethodsByInput = $createMethodsByInput;
         $this->doctrine = $entityManager;
@@ -53,6 +56,7 @@ final class DdtRowController extends AbstractController
         $this->groupSerializer = $groupSerializer;
         $this->validatorOutputFormatter = $validatorOutputFormatter;
         $this->pdfGenerator = $pdfGenerator;
+        $this->stockService = $stockService;
     }
 
     #[Route('/ddt-row/{id}',
@@ -124,44 +128,60 @@ final class DdtRowController extends AbstractController
             $resoReasonName = "Reso " . $ddtReasonName;
             $rientroTrasferimentoReasonName = "Rientro da Lavorazione";
 
-            // Restituisce il lotto solamente quando l'ultimo movimento ha il movementReason->Name == al ddtReason->Name
-            // Oppure se è un "Reso {ddtReason->Name}" o un "Rientro da Lavorazione" (per trasferimento)
-            if ($lastMovementReasonName !== $ddtReasonName && 
-                $lastMovementReasonName !== $resoReasonName &&
-                $lastMovementReasonName !== $rientroTrasferimentoReasonName
-            ) {
-                continue;
+            $firstMovementOut = null;
+            
+            // Tenta di identificare il movimento di uscita iniziale
+            foreach ($movementsArray as $movement) {
+                $reason = $movement->getReason();
+                $reasonName = $reason?->getName();
+                $reasonType = $reason?->getReasonType();
+                $reasonTypeName = $reasonType?->getName();
+                $movementType = $reasonType?->getMovementType();
+
+                // Un movimento è un'uscita valida se è di tipo Scarico (-)
+                if ($movementType === '-') {
+                    // Se c'è un match del numero DDT, o se la causale è la stessa, è un ottimo candidato
+                    if ($movement->getDdtNumber() === $ddt->getDdtNumber() || $reasonName === $ddtReasonName) {
+                        $firstMovementOut = $movement;
+                        // Se abbiamo anche il match del numero DDT, abbiamo finito la ricerca dell'uscita
+                        if ($movement->getDdtNumber() === $ddt->getDdtNumber()) {
+                            break;
+                        }
+                    }
+                    
+                    // Fallback: se non abbiamo ancora trovato nulla e il ddt_number è nullo, lo teniamo come candidato
+                    if ($firstMovementOut === null && $movement->getDdtNumber() === null) {
+                        $firstMovementOut = $movement;
+                    }
+                }
             }
 
-            $firstMovementOut = null;
             $returnedPieces = 0;
             $returnedQuantity = 0;
 
             foreach ($movementsArray as $movement) {
                 $reason = $movement->getReason();
                 $reasonName = $reason?->getName();
-                $reasonTypeName = $reason?->getReasonType()?->getName();
+                $reasonType = $reason?->getReasonType();
+                $movementType = $reasonType?->getMovementType();
 
-                // Identifica il primo movimento in uscita con la causale del DDT che corrisponde al numero DDT della riga
-                if ($firstMovementOut === null && 
-                    $reasonName === $ddtReasonName && 
-                    $reasonTypeName === 'Scarico' &&
-                    $movement->getDdtNumber() === $ddt->getDdtNumber()
-                ) {
-                    $firstMovementOut = $movement;
-                    continue;
-                }
-
-                // Somma i pezzi rientrati per i movimenti di "Reso" corrispondenti o rientri per trasferimento
-                if ($firstMovementOut !== null) {
-                    if ($reasonName === $resoReasonName || $reasonName === $rientroTrasferimentoReasonName) {
-                        // Verifichiamo che il rientro sia riferito a questo DDT (tramite note o ddt_number nel movimento)
-                        // Nel caso del trasferimento, impostiamo ddt_number del movimento uguale a quello della riga originale
-                        if ($movement->getDdtNumber() === $ddt->getDdtNumber()) {
-                            $mPieces = abs($movement->getPiece() ?? 0);
-                            $returnedPieces += $mPieces;
-                            
-                            // Nel trasferimento bisogna prendere la quantity di un pezzo e moltiplicarlo per i pezzi trasferiti, questo vale anche per i resi....
+                // Un movimento è un rientro se è di tipo Carico (+) 
+                // e ha il numero di DDT corrispondente, oppure ha una delle causali "note" di rientro
+                if ($movementType === '+') {
+                    if ($movement->getDdtNumber() === $ddt->getDdtNumber() || 
+                        $reasonName === $resoReasonName || 
+                        $reasonName === $rientroTrasferimentoReasonName ||
+                        (str_starts_with($reasonName, 'Reso ') && $movement->getDdtNumber() === $ddt->getDdtNumber())
+                    ) {
+                        $mPieces = abs($movement->getPiece() ?? 0);
+                        $returnedPieces += $mPieces;
+                        
+                        // Se il movimento ha una quantità esplicita diversa da zero, usiamo quella
+                        $mQuantity = abs($movement->getQuantity() ?? 0);
+                        if ($mQuantity > 0) {
+                            $returnedQuantity += $mQuantity;
+                        } else {
+                            // Fallback sul calcolo proporzionale se la quantità nel movimento è mancante
                             $unitQuantity = 0;
                             $pOut = $ddtRow->getPiecesOut() ?? $ddtRow->getPieces() ?? 0;
                             $qOut = $ddtRow->getQuantityOut() ?? $ddtRow->getQuantity() ?? 0;
@@ -181,10 +201,13 @@ final class DdtRowController extends AbstractController
                 $remainingPieces = $outPieces - $returnedPieces;
                 $remainingQuantity = $outQuantity - $returnedQuantity;
 
-                if ($lastMovementReasonName === $ddtReasonName || $remainingPieces > 0) {
+                // Mostriamo la riga se non è ancora stata saldata (rimangono pezzi)
+                if ($remainingPieces > 0.01) {
                     $results = $this->groupSerializer->serializeGroup($ddtRow, 'ddt_row_list');
+                    $results['pieces_out'] = $outPieces;
+                    $results['quantity_out'] = $outQuantity;
                     $results['stock_pieces'] = $remainingPieces;
-                    $results['stock_quantity'] = $remainingQuantity;
+                    $results['stock_quantity'] = round($remainingQuantity, 3);
                     $ddtRowsSelected[] = $results;
                 }
             }
@@ -486,8 +509,7 @@ final class DdtRowController extends AbstractController
 
         $convertedQuantity = $this->getConvertedQuantity($ddtRow->getQuantity(), $ddtRow->getMeasurementUnit(), $batch->getMeasurementUnit());
 
-        $batch->setStockQuantity($batch->getStockQuantity() - $convertedQuantity);
-        $batch->setStockItems($batch->getStockItems() - $ddtRow->getPieces());
+        $this->stockService->removeStock($batch, $convertedQuantity, (float)$ddtRow->getPieces());
 
         $this->updateBatchSqFtAverageFound($batch);
 
@@ -591,23 +613,20 @@ final class DdtRowController extends AbstractController
             $newConvertedQuantity = $this->getConvertedQuantity($ddtRow->getQuantity(), $ddtRow->getMeasurementUnit(), $newBatch->getMeasurementUnit());
             $diffQuantity = $newConvertedQuantity - $oldConvertedQuantity;
 
-            $newBatch->setStockItems($newBatch->getStockItems() - $diffPieces);
-            $newBatch->setStockQuantity($newBatch->getStockQuantity() - $diffQuantity);
+            $this->stockService->removeStock($newBatch, $diffQuantity, (float)$diffPieces);
 
             $this->updateBatchSqFtAverageFound($newBatch);
             $this->doctrine->persist($newBatch);
         } else {
             if ($oldBatch) {
-                $oldBatch->setStockItems($oldBatch->getStockItems() + $oldPieces);
                 $oldBatchConvertedQuantity = $this->getConvertedQuantity($oldQuantity, $ddtRow->getMeasurementUnit(), $oldBatch->getMeasurementUnit());
-                $oldBatch->setStockQuantity($oldBatch->getStockQuantity() + $oldBatchConvertedQuantity);
+                $this->stockService->addStock($oldBatch, $oldBatchConvertedQuantity, (float)$oldPieces);
                 $this->updateBatchSqFtAverageFound($oldBatch);
                 $this->doctrine->persist($oldBatch);
             }
             if ($newBatch) {
-                $newBatch->setStockItems($newBatch->getStockItems() - $ddtRow->getPieces());
                 $newBatchConvertedQuantity = $this->getConvertedQuantity($ddtRow->getQuantity(), $ddtRow->getMeasurementUnit(), $newBatch->getMeasurementUnit());
-                $newBatch->setStockQuantity($newBatch->getStockQuantity() - $newBatchConvertedQuantity);
+                $this->stockService->removeStock($newBatch, $newBatchConvertedQuantity, (float)$ddtRow->getPieces());
                 $this->updateBatchSqFtAverageFound($newBatch);
                 $this->doctrine->persist($newBatch);
             }
@@ -741,6 +760,7 @@ final class DdtRowController extends AbstractController
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
         $quantity = $data['quantity'] ?? $ddtRow->getQuantity();
         $pieces = $data['pieces'] ?? $ddtRow->getPieces();
+        $pieces = (float)$pieces; // Assicura che sia trattato come float per i calcoli
 
         $ddt = $ddtRow->getDdt();
 
@@ -774,10 +794,7 @@ final class DdtRowController extends AbstractController
         $this->doctrine->persist($warehouseMovement);
         $this->doctrine->flush();
 
-        $batch->setStockQuantity($batch->getStockQuantity() + $quantity);
-        $batch->setStockItems($batch->getStockItems() + $pieces);
-
-        $this->doctrine->persist($batch);
+        $this->stockService->addStock($batch, (float)$quantity, (float)$pieces);
 
         $this->updateBatchSqFtAverageFound($batch);
 
@@ -823,14 +840,15 @@ final class DdtRowController extends AbstractController
 
             $quantity = $rowData['quantity'] ?? $ddtRow->getQuantityOut() ?? $ddtRow->getQuantity();
             $pieces = $rowData['pieces'] ?? $ddtRow->getPiecesOut() ?? $ddtRow->getPieces();
+            $pieces = (float)$pieces; // Assicura che sia trattato come float per i calcoli
 
             $ddt = $ddtRow->getDdt();
 
-            $reason = $reasonRepository->findOneBy(['name' => 'Reso ' . $ddt->getReason()->getName()]);
+            $reason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Reso ' . $ddt->getReason()->getName()]);
             if (!$reason) {
-                $reasonTypeIn = $reasonTypeRepository->findOneBy(['movement_type' => 'Carico']);
+                $reasonTypeIn = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => 'Carico']);
                 if ($reasonTypeIn) {
-                    $reason = $reasonRepository->findOneBy(['reason_type' => $reasonTypeIn]);
+                    $reason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['reason_type' => $reasonTypeIn]);
                 }
             }
             if (!$reason) {
@@ -845,7 +863,7 @@ final class DdtRowController extends AbstractController
             $warehouseMovement->setDdtNumber($ddtRow->getDdt()->getDdtNumber());
             $warehouseMovement->setDdtDate($ddtRow->getDdt()->getDdtDate());
             $warehouseMovement->setDate(new \DateTime());
-            $warehouseMovement->setMovementNote('Rientro massivo riga DDT ' . $ddtRow->getId() . ' del DDT ' . $ddtRow->getDdt()->getDdtNumber());
+            $warehouseMovement->setMovementNote('Rientro riga DDT ' . $ddtRow->getId() . ' del DDT ' . $ddtRow->getDdt()->getDdtNumber());
 
             if ($ddt->getSubcontractor()) {
                 $warehouseMovement->setContact($ddt->getSubcontractor());
@@ -855,10 +873,8 @@ final class DdtRowController extends AbstractController
 
             $this->doctrine->persist($warehouseMovement);
 
-            $batch->setStockQuantity($batch->getStockQuantity() + $quantity);
-            $batch->setStockItems($batch->getStockItems() + $pieces);
+            $this->stockService->addStock($batch, (float)$quantity, (float)$pieces);
 
-            $this->doctrine->persist($batch);
             $this->updateBatchSqFtAverageFound($batch);
             $this->doctrine->persist($batch);
 
@@ -1022,8 +1038,7 @@ final class DdtRowController extends AbstractController
             $this->doctrine->persist($movementOut);
 
             // Aggiorno stock del lotto per l'uscita
-            $batch->setStockQuantity($batch->getStockQuantity() - $quantity);
-            $batch->setStockItems($batch->getStockItems() - $pieces);
+            $this->stockService->removeStock($batch, (float)$quantity, (float)$pieces);
         }
 
         $this->updateBatchSqFtAverageFound($batch);
@@ -1278,6 +1293,65 @@ final class DdtRowController extends AbstractController
         usort($groupedData, fn($a, $b) => $a['subcontractor']['name'] <=> $b['subcontractor']['name']);
 
         return new JsonResponse($this->doResponse->doResponse(array_values($groupedData)));
+    }
+
+    #[Route('/ddt-row/update-all-out-values',
+        name: 'post_ddt_row_update_all_out_values',
+        methods: ['POST'])]
+    public function updateAllOutValues(): JsonResponse
+    {
+        $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
+        $ddtRows = $ddtRowRepository->findAll();
+
+        $updatedCount = 0;
+        foreach ($ddtRows as $ddtRow) {
+            $ddt = $ddtRow->getDdt();
+            $batch = $ddtRow->getBatch();
+
+            if (!$ddt || !$batch) {
+                continue;
+            }
+
+            $movements = $batch->getWarehouseMovements();
+            $firstMovementOut = null;
+
+            foreach ($movements as $movement) {
+                $reason = $movement->getReason();
+                if ($reason && 
+                    $reason->getReasonType() && 
+                    $reason->getReasonType()->getMovementType() === 'Scarico' &&
+                    $movement->getDdtNumber() === $ddt->getDdtNumber()
+                ) {
+                    $firstMovementOut = $movement;
+                    break; 
+                }
+            }
+
+            // Fallback se non troviamo il movimento per numero DDT, prendiamo il primo scarico del lotto
+            if (!$firstMovementOut) {
+                foreach ($movements as $movement) {
+                    $reason = $movement->getReason();
+                    if ($reason && 
+                        $reason->getReasonType() && 
+                        $reason->getReasonType()->getMovementType() === 'Scarico'
+                    ) {
+                        $firstMovementOut = $movement;
+                        break;
+                    }
+                }
+            }
+
+            if ($firstMovementOut) {
+                $ddtRow->setPiecesOut(abs($firstMovementOut->getPiece() ?? 0));
+                $ddtRow->setQuantityOut(abs($firstMovementOut->getQuantity() ?? 0));
+                $this->doctrine->persist($ddtRow);
+                $updatedCount++;
+            }
+        }
+
+        $this->doctrine->flush();
+
+        return new JsonResponse($this->doResponse->doResponse(['updated_count' => $updatedCount]));
     }
 }
 
