@@ -44,7 +44,7 @@ class ClientOrderRow
 
     #[ORM\Column]
     #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
-    private ?int $quantity = null;
+    private ?float $quantity = null;
 
     #[ORM\Column(nullable: true)]
     #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print', 'ddt_row_list_sold'])]
@@ -126,7 +126,7 @@ class ClientOrderRow
     private ?ContactAddress $address = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
     private ?float $quantity_to_ship = null;
 
     public function __construct()
@@ -199,12 +199,12 @@ class ClientOrderRow
         return $this;
     }
 
-    public function getQuantity(): ?int
+    public function getQuantity(): ?float
     {
         return $this->quantity;
     }
 
-    public function setQuantity(int $quantity): static
+    public function setQuantity(float $quantity): static
     {
         $this->quantity = $quantity;
 

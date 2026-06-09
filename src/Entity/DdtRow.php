@@ -146,6 +146,10 @@ class DdtRow
 
     public function setPieces(float $pieces): static
     {
+        $batch = $this->getBatch();
+        if ($batch && $batch->getHalfPiecesCount() === null && (floor($pieces) != $pieces)) {
+            $pieces = round($pieces);
+        }
         $this->pieces = $pieces;
 
         return $this;
@@ -326,6 +330,12 @@ class DdtRow
 
     public function setPiecesOut(?float $pieces_out): static
     {
+        if ($pieces_out !== null) {
+            $batch = $this->getBatch();
+            if ($batch && $batch->getHalfPiecesCount() === null && (floor($pieces_out) != $pieces_out)) {
+                $pieces_out = round($pieces_out);
+            }
+        }
         $this->pieces_out = $pieces_out;
 
         return $this;

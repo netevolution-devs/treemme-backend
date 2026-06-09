@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Service\StockService;
 use App\Entity\BatchSelection;
 use App\Entity\MeasurementUnitCoefficient;
 use App\Entity\WarehouseMovement;
@@ -26,6 +27,7 @@ final class BatchCompositionController extends AbstractController
     private $doResponse;
     private $groupSerializer;
     private $validatorOutputFormatter;
+    private $stockService;
 
     public function __construct(
         CreateMethodsByInput     $createMethodsByInput,
@@ -33,6 +35,7 @@ final class BatchCompositionController extends AbstractController
         DoResponseService        $doResponseService,
         GroupSerializerService   $groupSerializer,
         ValidatorOutputFormatter $validatorOutputFormatter,
+        StockService             $stockService,
     )
     {
         $this->createMethodsByInput = $createMethodsByInput;
@@ -40,6 +43,7 @@ final class BatchCompositionController extends AbstractController
         $this->doResponse = $doResponseService;
         $this->groupSerializer = $groupSerializer;
         $this->validatorOutputFormatter = $validatorOutputFormatter;
+        $this->stockService = $stockService;
     }
 
     #[Route('/batch-composition/{id}',
@@ -170,11 +174,7 @@ final class BatchCompositionController extends AbstractController
                     }
                 }
 
-                $batch->setStockQuantity($batch->getStockQuantity() + $childQuantity);
-                $batch->setStockItems($batch->getStockItems() + $batchComposition->getFatherBatchPiece());
-                $batch->setPieces($batch->getPieces() + $batchComposition->getFatherBatchPiece());
-                $batch->setQuantity($batch->getQuantity() + (float) ($batchComposition->getFatherBatchQuantity() ?? 0.0));
-                $this->doctrine->persist($batch);
+                $this->stockService->updateBatchAndSelectionStock($batch, null, $childQuantity, (float)$batchComposition->getFatherBatchPiece(), true);
             }
 
             $errors = $validator->validate($batchComposition);
@@ -184,15 +184,7 @@ final class BatchCompositionController extends AbstractController
             }
 
             if ($fatherBatch) {
-                $fatherBatch->setStockItems($fatherBatch->getStockItems() - $batchComposition->getFatherBatchPiece());
-                $fatherBatch->setStockQuantity($fatherBatch->getStockQuantity() - (float) ($batchComposition->getFatherBatchQuantity() ?? 0.0));
-                $this->doctrine->persist($fatherBatch);
-
-                if ($batchSelection) {
-                    $batchSelection->setStockPieces($batchSelection->getStockPieces() - $batchComposition->getFatherBatchPiece());
-                    $batchSelection->setStockQuantity($batchSelection->getStockQuantity() - (float) ($batchComposition->getFatherBatchQuantity() ?? 0.0));
-                    $this->doctrine->persist($batchSelection);
-                }
+                $this->stockService->updateBatchAndSelectionStock($fatherBatch, $batchSelection, -(float)$batchComposition->getFatherBatchQuantity(), -(float)$batchComposition->getFatherBatchPiece());
             }
 
             $em = $this->doctrine;
@@ -226,8 +218,77 @@ final class BatchCompositionController extends AbstractController
         }
 
         try {
+            // 1. Ripristiniamo lo stato precedente prima di applicare le modifiche
+            $oldFatherBatch = $batchComposition->getFatherBatch();
+            $oldBatch = $batchComposition->getBatch();
+            $oldSelection = $batchComposition->getSelection();
+            $oldPieces = $batchComposition->getFatherBatchPiece();
+            $oldQuantity = (float)($batchComposition->getFatherBatchQuantity() ?? 0.0);
+
+            if ($oldFatherBatch && $oldBatch) {
+                // Sottraiamo dal figlio (ripristino)
+                $oldChildQuantity = $oldQuantity;
+                $oldFatherUm = $oldFatherBatch->getMeasurementUnit();
+                $oldChildUm = $oldBatch->getMeasurementUnit();
+
+                if ($oldFatherUm && $oldChildUm && $oldFatherUm->getId() !== $oldChildUm->getId()) {
+                    $coefficient = $this->doctrine->getRepository(MeasurementUnitCoefficient::class)->findOneBy([
+                        'start_um' => $oldFatherUm,
+                        'end_um' => $oldChildUm
+                    ]);
+                    if ($coefficient) {
+                        $oldChildQuantity = $oldQuantity * $coefficient->getCoefficient();
+                    }
+                }
+
+                $this->stockService->updateBatchAndSelectionStock($oldBatch, null, -$oldChildQuantity, -(float)$oldPieces, true);
+
+                // Ripristiniamo nel padre
+                $this->stockService->updateBatchAndSelectionStock($oldFatherBatch, $oldSelection, $oldQuantity, (float)$oldPieces);
+            }
+
+            // 2. Applichiamo le modifiche
+            if (isset($data['batch_selection_id'])) {
+                $batchSelection = $this->doctrine->getRepository(BatchSelection::class)->find($data['batch_selection_id']);
+                $batchComposition->setSelection($batchSelection);
+                if ($batchSelection) {
+                    $data['father_batch_id'] = $batchSelection->getBatch()?->getId();
+                }
+                unset($data['batch_selection_id']);
+            }
+
             $batchComposition = $this->handleRelations($batchComposition, $data);
             $batchComposition = $this->createMethodsByInput->createMethods($batchComposition, $data);
+
+            $batchComposition->setFatherBatchPieceAvailable($batchComposition->getFatherBatchPiece());
+            $batchComposition->setFatherBatchQuantityAvailable($batchComposition->getFatherBatchQuantity());
+
+            // 3. Applichiamo le nuove quantità
+            $newFatherBatch = $batchComposition->getFatherBatch();
+            $newBatch = $batchComposition->getBatch();
+            $newSelection = $batchComposition->getSelection();
+            $newPieces = $batchComposition->getFatherBatchPiece();
+            $newQuantity = (float)($batchComposition->getFatherBatchQuantity() ?? 0.0);
+
+            if ($newFatherBatch && $newBatch) {
+                $newChildQuantity = $newQuantity;
+                $newFatherUm = $newFatherBatch->getMeasurementUnit();
+                $newChildUm = $newBatch->getMeasurementUnit();
+
+                if ($newFatherUm && $newChildUm && $newFatherUm->getId() !== $newChildUm->getId()) {
+                    $coefficient = $this->doctrine->getRepository(MeasurementUnitCoefficient::class)->findOneBy([
+                        'start_um' => $newFatherUm,
+                        'end_um' => $newChildUm
+                    ]);
+                    if ($coefficient) {
+                        $newChildQuantity = $newQuantity * $coefficient->getCoefficient();
+                    }
+                }
+
+                $this->stockService->updateBatchAndSelectionStock($newBatch, null, $newChildQuantity, (float)$newPieces, true);
+
+                $this->stockService->updateBatchAndSelectionStock($newFatherBatch, $newSelection, -$newQuantity, -(float)$newPieces);
+            }
 
             $errors = $validator->validate($batchComposition);
             if (count($errors) > 0) {
@@ -258,11 +319,43 @@ final class BatchCompositionController extends AbstractController
             return $this->doResponse->doErrorJsonResponse('BatchComposition not found', 404);
         }
 
-        $this->deleteExistingMovements($batchComposition);
-        $this->doctrine->remove($batchComposition);
-        $this->doctrine->flush();
+        try {
+            $fatherBatch = $batchComposition->getFatherBatch();
+            $batch = $batchComposition->getBatch();
+            $selection = $batchComposition->getSelection();
+            $pieces = $batchComposition->getFatherBatchPiece();
+            $quantity = (float)($batchComposition->getFatherBatchQuantity() ?? 0.0);
 
-        return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
+            if ($fatherBatch && $batch) {
+                // Sottraiamo dal figlio
+                $childQuantity = $quantity;
+                $fatherUm = $fatherBatch->getMeasurementUnit();
+                $childUm = $batch->getMeasurementUnit();
+
+                if ($fatherUm && $childUm && $fatherUm->getId() !== $childUm->getId()) {
+                    $coefficient = $this->doctrine->getRepository(MeasurementUnitCoefficient::class)->findOneBy([
+                        'start_um' => $fatherUm,
+                        'end_um' => $childUm
+                    ]);
+                    if ($coefficient) {
+                        $childQuantity = $quantity * $coefficient->getCoefficient();
+                    }
+                }
+
+                $this->stockService->updateBatchAndSelectionStock($batch, null, -$childQuantity, -(float)$pieces, true);
+
+                // Ripristiniamo nel padre
+                $this->stockService->updateBatchAndSelectionStock($fatherBatch, $selection, $quantity, (float)$pieces);
+            }
+
+            $this->deleteExistingMovements($batchComposition);
+            $this->doctrine->remove($batchComposition);
+            $this->doctrine->flush();
+
+            return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
+        } catch (\Exception $e) {
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
+        }
     }
 
     private function createMovements(BatchComposition $batchComposition): void
@@ -303,7 +396,7 @@ final class BatchCompositionController extends AbstractController
             $outMovement->setQuantity($quantity);
             $outMovement->setPiece($pieces);
             $outMovement->setDate(new \DateTime());
-            $outMovement->setMovementNote('Scarico per composizione lotto ' . $batch->getBatchCode());
+            $outMovement->setMovementNote('Scarico per composizione lotto ' . $batch->getBatchCode() . ' (ID Comp: ' . $batchComposition->getId() . ')');
             $this->doctrine->persist($outMovement);
         }
 
@@ -317,7 +410,7 @@ final class BatchCompositionController extends AbstractController
             $inMovement->setQuantity($childQuantity);
             $inMovement->setPiece($pieces);
             $inMovement->setDate(new \DateTime());
-            $inMovement->setMovementNote('Carico da composizione lotto ' . $fatherBatch->getBatchCode());
+            $inMovement->setMovementNote('Carico da composizione lotto ' . $fatherBatch->getBatchCode() . ' (ID Comp: ' . $batchComposition->getId() . ')');
             $this->doctrine->persist($inMovement);
         }
 

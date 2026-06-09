@@ -15,7 +15,7 @@ class BatchSelection
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['batch_selection_detail', 'batch_detail', 'batch_list'])]
+    #[Groups(['batch_selection_detail', 'batch_detail', 'batch_list', 'batch_composition_detail'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'batchSelections')]
@@ -25,23 +25,23 @@ class BatchSelection
 
     #[ORM\ManyToOne(inversedBy: 'batchSelections')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['batch_selection_detail', 'batch_detail', 'batch_list'])]
+    #[Groups(['batch_selection_detail', 'batch_detail', 'batch_list', 'batch_composition_detail'])]
     private ?Selection $selection = null;
 
     #[ORM\Column(nullable: true)]
     #[Groups(['batch_selection_detail', 'batch_detail', 'batch_list'])]
-    private ?int $pieces = null;
+    private ?float $pieces = null;
 
     #[ORM\Column(nullable: true)]
     #[Groups(['batch_selection_detail', 'batch_detail', 'batch_list'])]
     private ?float $quantity = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_selection_detail', 'batch_detail', 'batch_list'])]
-    private ?int $stock_pieces = null;
+    #[Groups(['batch_selection_detail', 'batch_detail', 'batch_list', 'batch_composition_detail'])]
+    private ?float $stock_pieces = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_selection_detail', 'batch_detail', 'batch_list'])]
+    #[Groups(['batch_selection_detail', 'batch_detail', 'batch_list', 'batch_composition_detail'])]
     private ?float $stock_quantity = null;
 
     #[ORM\ManyToOne(inversedBy: 'batchSelections')]
@@ -93,13 +93,17 @@ class BatchSelection
         return $this;
     }
 
-    public function getPieces(): ?int
+    public function getPieces(): ?float
     {
         return $this->pieces;
     }
 
-    public function setPieces(?int $pieces): static
+    public function setPieces(?float $pieces): static
     {
+        if ($pieces !== null) {
+            // Movimenti selezioni devono essere SEMPRE gestiti in intere
+            $pieces = (float)round($pieces);
+        }
         $this->pieces = $pieces;
 
         return $this;
@@ -117,13 +121,17 @@ class BatchSelection
         return $this;
     }
 
-    public function getStockPieces(): ?int
+    public function getStockPieces(): ?float
     {
         return $this->stock_pieces;
     }
 
-    public function setStockPieces(?int $stock_pieces): static
+    public function setStockPieces(?float $stock_pieces): static
     {
+        if ($stock_pieces !== null) {
+            // Movimenti selezioni devono essere SEMPRE gestiti in intere
+            $stock_pieces = (float)round($stock_pieces);
+        }
         $this->stock_pieces = $stock_pieces;
 
         return $this;

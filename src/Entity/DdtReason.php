@@ -21,6 +21,10 @@ class DdtReason
     #[Groups(['ddt_reason_list', 'ddt_reason_detail', 'ddt_list', 'ddt_detail', 'client_summary_print'])]
     private ?string $name = null;
 
+    #[ORM\Column(options: ['default' => false])]
+    #[Groups(['ddt_reason_list', 'ddt_reason_detail'])]
+    private bool $is_shipment_reason = false;
+
     #[ORM\ManyToOne(inversedBy: 'ddtReasons')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['ddt_reason_list', 'ddt_reason_detail'])]
@@ -50,6 +54,18 @@ class DdtReason
     public function setName(string $name): static
     {
         $this->name = $name;
+
+        return $this;
+    }
+
+    public function isIsShipmentReason(): bool
+    {
+        return $this->is_shipment_reason;
+    }
+
+    public function setIsShipmentReason(bool $is_shipment_reason): static
+    {
+        $this->is_shipment_reason = $is_shipment_reason;
 
         return $this;
     }

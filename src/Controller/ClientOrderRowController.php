@@ -13,6 +13,7 @@ use App\Service\PdfGeneratorService;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
+use App\Service\ClientOrderRowService;
 use App\Service\ValidatorOutputFormatter;
 use App\Service\ActionLoggerService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -30,7 +31,7 @@ final class ClientOrderRowController extends AbstractController
     private $groupSerializer;
     private $validatorOutputFormatter;
     private $actionLogger;
-    private $pdfGenerator;
+    private $clientOrderRowService;
 
     public function __construct(
         CreateMethodsByInput     $createMethodsByInput,
@@ -40,6 +41,7 @@ final class ClientOrderRowController extends AbstractController
         ValidatorOutputFormatter $validatorOutputFormatter,
         ActionLoggerService      $actionLogger,
         PdfGeneratorService      $pdfGenerator,
+        ClientOrderRowService    $clientOrderRowService,
     )
     {
         $this->createMethodsByInput = $createMethodsByInput;
@@ -49,6 +51,20 @@ final class ClientOrderRowController extends AbstractController
         $this->validatorOutputFormatter = $validatorOutputFormatter;
         $this->actionLogger = $actionLogger;
         $this->pdfGenerator = $pdfGenerator;
+        $this->clientOrderRowService = $clientOrderRowService;
+    }
+
+    #[Route('/client-order-row/{id}/close', name: 'close_client_order_row', requirements: ['id' => '\d+'], methods: ['PATCH'])]
+    public function closeClientOrderRow(int $id): JsonResponse
+    {
+        $row = $this->doctrine->getRepository(ClientOrderRow::class)->find($id);
+        if (!$row) {
+            return $this->doResponse->doErrorJsonResponse('Riga ordine non trovata', 404);
+        }
+
+        $this->clientOrderRowService->manualCloseRow($row);
+
+        return new JsonResponse($this->doResponse->doResponse(['message' => 'Riga ordine chiusa con successo']));
     }
 
     #[Route('/client-order-row-report',

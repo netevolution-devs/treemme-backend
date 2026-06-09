@@ -18,7 +18,8 @@ class Batch
     #[ORM\GeneratedValue]
     #[ORM\Column]
     #[Groups(['batch_list', 'batch_detail', 'batch_type_detail', 'batch_composition_list', 'measurement_unit_detail',
-        'user_detail', 'production_list', 'production_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'batch_data_detail','client_order_row_list', 'ddt_row_list_sold'])]
+        'user_detail', 'production_list', 'production_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'batch_data_detail','client_order_row_list', 'ddt_row_list_sold', 'batch_composition_detail',
+        'warehouse_movement_list', 'movement_detail'])]
     private ?int $id = null;
 
     #[ORM\Column]
@@ -35,7 +36,8 @@ class Batch
 
     #[ORM\Column(length: 50)]
     #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'ddt_detail', 'ddt_row_list',
-        'ddt_row_detail', 'batch_composition_list', 'batch_data_detail','client_order_row_list', 'client_summary_print', 'ddt_row_list_sold', 'warehouse_movement_list'])]
+        'ddt_row_detail', 'batch_composition_list', 'batch_data_detail','client_order_row_list', 'client_summary_print'
+        , 'ddt_row_list_sold', 'warehouse_movement_list', 'batch_composition_detail', 'movement_detail'])]
     private ?string $batch_code = null;
 
     #[ORM\Column(nullable: true)]
@@ -44,7 +46,11 @@ class Batch
 
     #[ORM\Column]
     #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'batch_data_detail','client_order_row_list', 'client_summary_print', 'ddt_row_list_sold'])]
-    private ?int $pieces = null;
+    private ?float $pieces = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'batch_data_detail','client_order_row_list', 'client_summary_print', 'ddt_row_list_sold'])]
+    private ?int $half_pieces_count = null;
 
     #[ORM\ManyToOne(inversedBy: 'batches')]
     #[Groups(['batch_list', 'batch_detail', 'batch_data_detail', 'ddt_row_list_sold'])]
@@ -57,6 +63,10 @@ class Batch
     #[ORM\Column]
     #[Groups(['batch_list', 'batch_detail'])]
     private ?float $stock_items = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['batch_list', 'batch_detail'])]
+    private ?int $stock_half_pieces = null;
 
     #[ORM\Column]
     #[Groups(['batch_list', 'batch_detail'])]
@@ -125,8 +135,7 @@ class Batch
     private Collection $sonBatches;
 
     #[ORM\ManyToOne(inversedBy: 'batches')]
-    #[ORM\JoinColumn(nullable: true)]
-    #[Groups(['batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'batch_data_detail', 'client_summary_print', 'ddt_row_list_sold'])]
+    #[Groups(['batch_list', 'batch_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'batch_data_detail', 'client_summary_print', 'ddt_row_list_sold', 'warehouse_movement_list', 'movement_detail'])]
     private ?Leather $leather = null;
 
     /**
@@ -159,7 +168,7 @@ class Batch
 
     #[ORM\ManyToOne(inversedBy: 'batches')]
     #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'ddt_detail',
-        'ddt_row_list', 'ddt_row_detail', 'client_summary_print', 'ddt_row_list_sold'])]
+        'ddt_row_list', 'ddt_row_detail', 'client_summary_print', 'ddt_row_list_sold', 'warehouse_movement_list', 'movement_detail'])]
     private ?Article $article = null;
 
     /**
@@ -267,14 +276,33 @@ class Batch
         return $this;
     }
 
-    public function getPieces(): ?int
+    public function getPieces(): ?float
     {
         return $this->pieces;
     }
 
-    public function setPieces(int $pieces): static
+    public function setPieces(float $pieces): static
     {
+        // Se il valore ha dei decimali e non abbiamo abilitato le mezze pelli, arrotondiamo.
+        // Questo garantisce che il lotto (e le relative analisi) possano gestire mezze pelli
+        // solo se il campo half_pieces_count è stato popolato (tramite comando apposito).
+        if ($this->half_pieces_count === null && (floor($pieces) != $pieces)) {
+             $pieces = round($pieces);
+        }
+
         $this->pieces = $pieces;
+
+        return $this;
+    }
+
+    public function getHalfPiecesCount(): ?int
+    {
+        return $this->half_pieces_count;
+    }
+
+    public function setHalfPiecesCount(?int $half_pieces_count): static
+    {
+        $this->half_pieces_count = $half_pieces_count;
 
         return $this;
     }
@@ -311,6 +339,18 @@ class Batch
     public function setStockItems(float $stock_items): static
     {
         $this->stock_items = round($stock_items, 3);
+
+        return $this;
+    }
+
+    public function getStockHalfPieces(): ?int
+    {
+        return $this->stock_half_pieces;
+    }
+
+    public function setStockHalfPieces(?int $stock_half_pieces): static
+    {
+        $this->stock_half_pieces = $stock_half_pieces;
 
         return $this;
     }

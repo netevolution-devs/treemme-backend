@@ -15,17 +15,17 @@ class LeatherThickness
     #[ORM\GeneratedValue]
     #[ORM\Column]
     #[Groups(['leather_thickness_list', 'leather_thickness_detail', 'leather_list', 'leather_detail',
-        'batch_detail', 'leather_type_detail', 'article_detail', 'batch_selection_detail', 'batch_list'])]
+        'batch_detail', 'leather_type_detail', 'article_detail', 'batch_selection_detail', 'batch_list', 'batch_composition_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
     #[Groups(['leather_thickness_list', 'leather_thickness_detail', 'leather_list', 'leather_detail',
-        'batch_detail', 'leather_type_detail', 'article_detail', 'batch_selection_detail', 'batch_list'])]
+        'batch_detail', 'leather_type_detail', 'article_detail', 'batch_selection_detail', 'batch_list', 'batch_composition_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(nullable: true)]
     #[Groups(['leather_thickness_list', 'leather_thickness_detail', 'leather_detail', 'batch_detail',
-        'leather_type_detail', 'article_detail', 'batch_selection_detail', 'batch_list'])]
+        'leather_type_detail', 'article_detail', 'batch_selection_detail', 'batch_list', 'batch_composition_detail'])]
     private ?float $thickness_mm = null;
 
     /**
