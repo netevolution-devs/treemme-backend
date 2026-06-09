@@ -229,12 +229,17 @@ final class ClientOrderRowController extends AbstractController
                 ];
             }
 
-            $orderId = $row->getClientOrder()->getId();
+            $order = $row->getClientOrder();
+            $orderId = $order->getId();
             if (!isset($groupedData[$cId]['orders'][$orderId])) {
                 $groupedData[$cId]['orders'][$orderId] = [
-                    'details' => $this->groupSerializer->serializeGroup($row->getClientOrder(), 'client_summary_print'),
+                    'details' => $this->groupSerializer->serializeGroup($order, 'client_summary_print'),
                     'rows' => []
                 ];
+                
+                // Set order as printed
+                $order->setPrinted(true);
+                $order->setPrintDate(new \DateTime());
             }
 
             // Dati DDT: OrderRow->BatchOrder->Batch->ddtRow solo per ddt di tipo Vendita
@@ -265,6 +270,8 @@ final class ClientOrderRowController extends AbstractController
             $clientData['orders'] = array_values($clientData['orders']);
             $finalData[] = $clientData;
         }
+
+        $this->doctrine->flush();
 
         $pdfContent = $this->pdfGenerator->generatePdf('print/client_summary_pdf.html.twig', [
             'data' => $finalData,
