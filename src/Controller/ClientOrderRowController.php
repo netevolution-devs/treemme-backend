@@ -146,6 +146,9 @@ final class ClientOrderRowController extends AbstractController
         $clientId = $request->query->get('client_id');
         $startDate = $request->query->get('start_date');
         $endDate = $request->query->get('end_date');
+        $shippingStatus = $request->query->get('shipping_status'); // 'to_ship', 'shipped'
+        $productionStatus = $request->query->get('production_status'); // 'to_produce', 'produced'
+        $printStatus = $request->query->get('print_status'); // 'to_print', 'printed'
 
         $qb = $this->doctrine->getRepository(ClientOrderRow::class)->createQueryBuilder('cor');
         $qb->join('cor.client_order', 'co')
@@ -167,11 +170,37 @@ final class ClientOrderRowController extends AbstractController
                 ->setParameter('clientId', $clientId);
         }
 
+        if ($shippingStatus === 'to_ship') {
+            $qb->andWhere('cor.quantity_to_ship > 0');
+        } elseif ($shippingStatus === 'shipped') {
+            $qb->andWhere('cor.quantity_to_ship <= 0 OR cor.quantity_to_ship IS NULL');
+        }
+
+        if ($printStatus === 'printed') {
+            $qb->andWhere('co.printed = true');
+        } elseif ($printStatus === 'to_print') {
+            $qb->andWhere('co.printed = false OR co.printed IS NULL');
+        }
+
         /** @var ClientOrderRow[] $rows */
         $rows = $qb->getQuery()->getResult();
 
         $groupedData = [];
         foreach ($rows as $row) {
+            $totalProduced = 0;
+            foreach ($row->getBatchOrders() as $bo) {
+                $batch = $bo->getBatch();
+                if ($batch) {
+                    $totalProduced += (float)$batch->getQuantity();
+                }
+            }
+
+            // Consideriamo "prodotto" se la quantità totale associata ai lotti è >= alla quantità ordinata
+            $isProduced = $totalProduced >= (float)$row->getQuantity();
+
+            if ($productionStatus === 'produced' && !$isProduced) continue;
+            if ($productionStatus === 'to_produce' && $isProduced) continue;
+
             $client = $row->getClientOrder()->getClient();
             if (!$client) continue;
 
@@ -200,12 +229,17 @@ final class ClientOrderRowController extends AbstractController
                 ];
             }
 
-            $orderId = $row->getClientOrder()->getId();
+            $order = $row->getClientOrder();
+            $orderId = $order->getId();
             if (!isset($groupedData[$cId]['orders'][$orderId])) {
                 $groupedData[$cId]['orders'][$orderId] = [
-                    'details' => $this->groupSerializer->serializeGroup($row->getClientOrder(), 'client_summary_print'),
+                    'details' => $this->groupSerializer->serializeGroup($order, 'client_summary_print'),
                     'rows' => []
                 ];
+                
+                // Set order as printed
+                $order->setPrinted(true);
+                $order->setPrintDate(new \DateTime());
             }
 
             // Dati DDT: OrderRow->BatchOrder->Batch->ddtRow solo per ddt di tipo Vendita
@@ -236,6 +270,8 @@ final class ClientOrderRowController extends AbstractController
             $clientData['orders'] = array_values($clientData['orders']);
             $finalData[] = $clientData;
         }
+
+        $this->doctrine->flush();
 
         $pdfContent = $this->pdfGenerator->generatePdf('print/client_summary_pdf.html.twig', [
             'data' => $finalData,
