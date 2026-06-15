@@ -61,6 +61,17 @@ class BatchReportController extends AbstractController
             $data['report']['average_ftsq_per_leather'] = $data['report']['sold_quantity_ftsq'] / $data['report']['sold_pieces'];
         }
 
+        // Calcolo costo fiore: (costo totale / pezzi totali) - (ricavo della crosta / pezzi totali)
+        if ($data['report']['total_pieces'] > 0) {
+            $totalCosts = $data['report']['total_costs'] ?? 0.0;
+            $scRevenue = $data['report']['sc_sale_revenue_euro_mq'] ?? 0.0;
+            $totalPieces = $data['report']['total_pieces'];
+
+            $flowerCostEuro = ($totalCosts / $totalPieces) - ($scRevenue / $totalPieces);
+            $data['report']['flower_cost_euro_mq'] = $flowerCostEuro;
+            $data['report']['flower_cost_lire_pq'] = $flowerCostEuro * 1936.27;
+        }
+
         // Resa totale vendita fiore SF->TF->Vendita
         // Se il lotto corrente è SF e ha figli (che dovrebbero essere TF), aggreghiamo le loro vendite
         if (str_starts_with($batch->getBatchCode() ?? '', 'SF')) {
@@ -157,7 +168,7 @@ class BatchReportController extends AbstractController
 
         // Resa della vendita del lotto SC
         $scSaleRevenueEuroMq = 0.0;
-        if (str_starts_with($batch->getBatchCode() ?? '', 'SC')) {
+        if ($batch->getBatchCode() && str_starts_with($batch->getBatchCode(), 'SC')) {
             $scSaleRevenueEuroMq = $totalRevenue;
         }
             
@@ -194,6 +205,9 @@ class BatchReportController extends AbstractController
                 'sc_sale_revenue_euro_mq' => $scSaleRevenueEuroMq,
                 'sc_sale_revenue_lire_pq' => $scSaleRevenueEuroMq * 1936.27,
                 
+                'flower_cost_euro_mq' => 0.0, // Calcolato in recursive dopo aggregazione
+                'flower_cost_lire_pq' => 0.0, // Calcolato in recursive dopo aggregazione
+
                 'compensation_waste' => $batch->getCompensationWaste() ?? 0.0,
                 
                 'flower_total_revenue' => 0.0, // Aggregato ricorsivamente
