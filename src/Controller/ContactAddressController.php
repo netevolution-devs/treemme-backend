@@ -65,6 +65,26 @@ final class ContactAddressController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse($results));
     }
 
+    #[Route('/contact/{id}/contact-address',
+        name: 'get_contact_address',
+        defaults: ['id' => null],
+        requirements: ['id' => '\d*'],
+        methods: ['GET', 'HEAD'])]
+    public function getContactAddressList(int $id): JsonResponse
+    {
+        $contactRepository = $this->doctrine->getRepository(Contact::class);
+
+        $contact = $contactRepository->find($id);
+        if (!$contact) {
+            return $this->doResponse->doErrorJsonResponse('Contact not found', 404);
+        }
+        $address = $contact->getContactAddresses();
+        $results = $this->groupSerializer->serializeGroup($address, 'contact_address_list');
+
+        return new JsonResponse($this->doResponse->doResponse($results));
+
+    }
+
     #[Route('/contact-address',
         name: 'post_contact_address',
         methods: ['POST'])]
@@ -77,6 +97,18 @@ final class ContactAddressController extends AbstractController
         $address = new ContactAddress();
 
         try {
+            if(isset($data['different_destination_id'])) {
+                $differentAddress = $this->doctrine->getRepository(ContactAddress::class)->find($data['different_destination_id']);
+                $address->setDifferentDestination($differentAddress);
+
+                $address->setAddress($differentAddress->getAddress());
+                $address->setAddress2($differentAddress->getAddress2());
+                $address->setAddress3($differentAddress->getAddress3());
+                $address->setAddress4($differentAddress->getAddress4());
+                $address->setZipCode($differentAddress->getZipCode());
+                $address->setNation($differentAddress->getNation());
+            }
+
             $address = $this->handleRelations($address, $data);
             $address = $this->createMethodsByInput->createMethods($address, $data);
 
