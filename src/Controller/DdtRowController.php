@@ -768,9 +768,9 @@ final class DdtRowController extends AbstractController
         if ($closed) {
             $wasteReason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Scarto']);
             if (!$wasteReason) {
-                $reasonTypeIn = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => 'Scarico']);
-                if ($reasonTypeIn) {
-                    $wasteReason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['reason_type' => $reasonTypeIn]);
+                $reasonTypeOut = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => '-']);
+                if ($reasonTypeOut) {
+                    $wasteReason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['reason_type' => $reasonTypeOut]);
                 }
             }
 
@@ -792,7 +792,10 @@ final class DdtRowController extends AbstractController
                 }
 
                 $this->doctrine->persist($wasteMovement);
-                $this->stockService->addStock($batch, (float)$quantity, (float)$pieces);
+                // NOTA: lo scarto diminuisce lo stock (se la causale è di tipo '-')
+                // Quindi non dobbiamo aggiungere stock manualmente qui se usiamo WarehouseMovement e la causale corretta.
+                // In realtà postDdtRowReturn originariamente aggiungeva stock per lo scarto e poi di nuovo per il reso.
+                // Se closed = true, stiamo dicendo che quello che non è tornato è scarto.
             }
 
             $batch->setCompensationWaste(($batch->getCompensationWaste() ?? 0) + $pieces);
@@ -802,7 +805,10 @@ final class DdtRowController extends AbstractController
 
         $reason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Reso ' . $ddt->getReason()->getName()]);
         if (!$reason) {
-            $reasonTypeIn = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => 'Carico']);
+            $reasonTypeIn = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => '+']);
+            if (!$reasonTypeIn) {
+                $reasonTypeIn = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => 'Carico']);
+            }
             if ($reasonTypeIn) {
                 $reason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['reason_type' => $reasonTypeIn]);
             }

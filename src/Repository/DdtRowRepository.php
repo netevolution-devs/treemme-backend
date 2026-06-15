@@ -83,7 +83,9 @@ class DdtRowRepository extends ServiceEntityRepository
             ->join('d.reason', 'r')
             ->join('dr.batch', 'b')
             ->andWhere('r.name = :reasonName')
-            ->setParameter('reasonName', 'C/O Lavorazione');
+            ->andWhere('b.completed = :completed')
+            ->setParameter('reasonName', 'C/O Lavorazione')
+            ->setParameter('completed', false);
 
         if ($subcontractorId) {
             $qb->andWhere('IDENTITY(d.subcontractor) = :subcontractorId')
@@ -117,7 +119,9 @@ class DdtRowRepository extends ServiceEntityRepository
             ->join('d.reason', 'r')
             ->join('dr.batch', 'b')
             ->andWhere('r.name != :vendita')
-            ->setParameter('vendita', 'Vendita');
+            ->andWhere('b.completed = :completed')
+            ->setParameter('vendita', 'Vendita')
+            ->setParameter('completed', false);
 
         if ($subcontractorId) {
             $qb->andWhere('IDENTITY(d.subcontractor) = :subcontractorId')
