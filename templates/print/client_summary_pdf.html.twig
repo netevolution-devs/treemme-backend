@@ -6,14 +6,13 @@
     <style>
         @page { size: A4 landscape; margin: 0.3cm; }
         body { font-family: Arial, sans-serif; font-size: 9pt; color: #333; margin: 0; }
-        .page { page-break-after: always; padding: 0; }
-        .page:last-child { page-break-after: avoid; }
+        .client-block {margin-bottom: 15px; }
         h1 { font-size: 14pt; margin-bottom: 15px; text-align: center; border-bottom: 1px solid #000; padding-bottom: 5px; text-transform: uppercase; }
         
         .client-section { margin-bottom: 20px; width: 100%; border-collapse: collapse; }
         .client-info-table { width: 100%; margin-bottom: 10px; border: 1px solid #000; }
         .client-info-table td { padding: 5px; vertical-align: top; border: 1px solid #ccc; text-align: justify; }
-        .label { font-weight: bold; font-size: 8pt; color: #555; text-transform: uppercase; display: block; margin-bottom: 2px; text-align: left; }
+        .label { font-weight: bold; font-size: 8pt; color: #555; text-transform: uppercase; margin-bottom: 2px; text-align: left; }
         
         .order-container { margin-bottom: 20px; }
         .order-header { background-color: #f2f2f2; padding: 5px; border: 1px solid #000; font-weight: bold; margin-bottom: 0; text-align: justify; }
@@ -32,7 +31,7 @@
 </head>
 <body>
     {% for clientGroup in data %}
-    <div class="page">
+    <div class="client-block">
         
         <table class="client-info-table">
             <tr>
@@ -43,8 +42,8 @@
                 <td style="width: 35%;">
                     <span class="label">Sede/Destinazione Principale:</span>
                     {% if clientGroup.firstAddress %}
-                        {{ clientGroup.firstAddress.address }}<br>
-                        {{ clientGroup.firstAddress.zip_code }} {{ clientGroup.firstAddress.address_name }}
+                        {{ clientGroup.firstAddress.address }},
+                        {{ clientGroup.firstAddress.zip_code }}, {{ clientGroup.firstAddress.address_name }}
                     {% else %}
                         -
                     {% endif %}
