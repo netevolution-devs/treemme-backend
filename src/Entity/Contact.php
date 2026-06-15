@@ -22,7 +22,7 @@ class Contact
         'article_list', 'article_detail', 'ddt_list', 'ddt_detail', 'batch_detail', 'ddt_row_list',
         'color_list', 'color_detail', 'batch_data_detail',
         'client_order_row_list', 'client_summary_print', 'client_order_row_list', 'ddt_row_list_sold', 'external_processing_print',
-        'warehouse_movement_list', 'movement_detail'])]
+        'warehouse_movement_list', 'movement_detail', 'contact_address_list'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
@@ -32,7 +32,7 @@ class Contact
         'article_list', 'article_detail', 'ddt_list', 'ddt_detail', 'batch_detail', 'ddt_row_list',
         'color_list', 'color_detail', 'batch_data_detail',
         'client_order_row_list', 'client_summary_print', 'client_order_row_list', 'ddt_row_list_sold', 'external_processing_print',
-        'warehouse_movement_list', 'movement_detail'])]
+        'warehouse_movement_list', 'movement_detail', 'contact_address_list'])]
     private ?string $name = null;
 
     #[ORM\ManyToOne(inversedBy: 'contacts')]
