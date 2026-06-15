@@ -1225,8 +1225,8 @@ final class DdtRowController extends AbstractController
 
         // Se arriva currencyPrice, ricalcola sempre price (EUR)
         if ($currencyPrice !== null) {
-            $price = $currencyChange != 0 ? round($currencyPrice / $currencyChange, 2) : 0.0;
-            $ddtRow->setPrice($price);
+            $price = $currencyChange != 0 ? round($currencyPrice / $currencyChange, 5) : 0.0;
+            $ddtRow->setPrice(round($price, 2));
             $ddtRow->setCurrencyExchange($currencyChange);
             $ddtRow->setCurrencyPrice(round($currencyPrice, 2));
         } else {
@@ -1270,20 +1270,39 @@ final class DdtRowController extends AbstractController
     {
         if ($batch->getMeasurementUnit()) {
             $measurementUnit = $batch->getMeasurementUnit();
+            $totalPieces = 0.0;
+            $totalQuantity = 0.0;
 
-            if ($measurementUnit->getPrefix() == 'MQ') {
-                $coefficientUm = $measurementUnit->getMeasurementUnitCoefficients()->first();
-                if ($batch->getStockItems() > 0 && $batch->getStockQuantity() > 0 && $coefficientUm) {
-                    $batch->setSqFtAverageFound($batch->getStockItems() / ($coefficientUm->getCoefficient() * $batch->getStockQuantity()));
-                } else {
-                    $batch->setSqFtAverageFound(0.0);
+            foreach ($batch->getDdtRows() as $row) {
+                $ddt = $row->getDdt();
+                if (!$ddt) continue;
+
+                $reason = $ddt->getReason();
+                if (!$reason) continue;
+
+                $wmReason = $reason->getWarehouseMovementReason();
+                if (!$wmReason || !$wmReason->getReasonType()) continue;
+
+                // Calcoliamo la media solo sulle righe di scarico (vendita)
+                if ($wmReason->getReasonType()->getMovementType() === 'Scarico') {
+                    $totalPieces += (float)($row->getPieces() ?? 0.0);
+                    $totalQuantity += $this->getConvertedQuantity($row->getQuantity() ?? 0.0, $row->getMeasurementUnit(), $batch->getMeasurementUnit());
                 }
-            } elseif ($batch->getMeasurementUnit()->getPrefix() == 'PQ') {
-                if ($batch->getStockItems() > 0 && $batch->getStockQuantity() > 0) {
-                    $batch->setSqFtAverageFound($batch->getStockItems() / $batch->getStockQuantity());
-                } else {
-                    $batch->setSqFtAverageFound(0.0);
+            }
+
+            if ($totalPieces > 0 && $totalQuantity > 0) {
+                if ($measurementUnit->getPrefix() == 'MQ') {
+                    $coefficientUm = $measurementUnit->getMeasurementUnitCoefficients()->first();
+                    if ($coefficientUm) {
+                        $batch->setSqFtAverageFound($totalPieces / ($coefficientUm->getCoefficient() * $totalQuantity));
+                    } else {
+                        $batch->setSqFtAverageFound(0.0);
+                    }
+                } elseif ($measurementUnit->getPrefix() == 'PQ') {
+                    $batch->setSqFtAverageFound($totalPieces / $totalQuantity);
                 }
+            } else {
+                $batch->setSqFtAverageFound(0.0);
             }
         }
     }

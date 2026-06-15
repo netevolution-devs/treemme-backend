@@ -23,7 +23,7 @@ class Batch
     private ?int $id = null;
 
     #[ORM\Column]
-    #[Groups(['batch_list', 'batch_detail',])]
+    #[Groups(['batch_list', 'batch_detail'])]
     private ?bool $completed = null;
 
     #[ORM\Column]
@@ -45,7 +45,8 @@ class Batch
     private ?\DateTime $batch_date = null;
 
     #[ORM\Column]
-    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'batch_data_detail','client_order_row_list', 'client_summary_print', 'ddt_row_list_sold'])]
+    #[Groups(['batch_list', 'batch_detail', 'production_list', 'production_detail', 'batch_data_detail',
+        'client_order_row_list', 'client_summary_print', 'ddt_row_list_sold'])]
     private ?float $pieces = null;
 
     #[ORM\Column(nullable: true)]
@@ -108,6 +109,10 @@ class Batch
     #[Groups(['batch_detail'])]
     private ?User $check_user = null;
 
+    #[ORM\Column(nullable: true)]
+    #[Groups(['batch_list', 'batch_detail'])]
+    private ?float $compensation_waste = null;
+
     #[ORM\Column]
     private ?\DateTimeImmutable $created_at = null;
 
@@ -124,7 +129,6 @@ class Batch
      * @var Collection<int, BatchComposition>
      */
     #[ORM\OneToMany(mappedBy: 'batch', targetEntity: BatchComposition::class, orphanRemoval: true)]
-    #[Groups(['batch_detail'])]
     private Collection $batchCompositions;
 
     /**
@@ -471,6 +475,18 @@ class Batch
     public function setCheckUser(?User $check_user): static
     {
         $this->check_user = $check_user;
+
+        return $this;
+    }
+
+    public function getCompensationWaste(): ?float
+    {
+        return $this->compensation_waste;
+    }
+
+    public function setCompensationWaste(?float $compensation_waste): static
+    {
+        $this->compensation_waste = $compensation_waste;
 
         return $this;
     }

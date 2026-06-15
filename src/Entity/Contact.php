@@ -212,6 +212,13 @@ class Contact
     #[ORM\OneToMany(mappedBy: 'client', targetEntity: Color::class)]
     private Collection $colors;
 
+    /**
+     * @var Collection<int, Processing>
+     */
+    #[ORM\ManyToMany(targetEntity: Processing::class, inversedBy: 'contacts')]
+    #[Groups(['contact_detail', 'contact_subcontractor_list'])]
+    private Collection $processings;
+
     public function __construct()
     {
         $this->contactAddresses = new ArrayCollection();
@@ -230,6 +237,7 @@ class Contact
         $this->ddtsFromClient = new ArrayCollection();
         $this->warehouseMovements = new ArrayCollection();
         $this->colors = new ArrayCollection();
+        $this->processings = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -934,6 +942,30 @@ class Contact
                 $color->setClient(null);
             }
         }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Processing>
+     */
+    public function getProcessings(): Collection
+    {
+        return $this->processings;
+    }
+
+    public function addProcessing(Processing $processing): static
+    {
+        if (!$this->processings->contains($processing)) {
+            $this->processings->add($processing);
+        }
+
+        return $this;
+    }
+
+    public function removeProcessing(Processing $processing): static
+    {
+        $this->processings->removeElement($processing);
 
         return $this;
     }

@@ -38,8 +38,6 @@ class StockService
             $batch->setStockHalfPieces(($batch->getStockHalfPieces() ?? 0) + (int)round(($pieces - floor($pieces)) * 2));
         }
         
-        $batch->setPieces($batch->getStockItems());
-
         $this->entityManager->persist($batch);
     }
 
@@ -55,7 +53,6 @@ class StockService
             $batch->setStockHalfPieces(($batch->getStockHalfPieces() ?? 0) - (int)round(($pieces - floor($pieces)) * 2));
         }
 
-        $batch->setPieces($batch->getStockItems());
         $this->entityManager->persist($batch);
     }
 
@@ -71,7 +68,6 @@ class StockService
             $batch->setStockHalfPieces(($batch->getStockHalfPieces() ?? 0) + (int)round(($pieces - floor($pieces)) * 2));
         }
 
-        $batch->setPieces($batch->getStockItems());
         $this->entityManager->persist($batch);
     }
 
@@ -145,8 +141,6 @@ class StockService
         } else {
             $batch->setStockHalfPieces(0);
         }
-
-        $batch->setPieces($batch->getStockItems());
         
         $this->entityManager->persist($batch);
         $this->entityManager->flush();

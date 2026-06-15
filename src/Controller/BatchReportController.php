@@ -55,12 +55,17 @@ class BatchReportController extends AbstractController
             $data['report']['average_revenue_per_leather'] = $data['report']['total_revenue'] / $data['report']['sold_pieces'];
         }
 
-        if ($data['report']['sold_pieces'] > 0 && $data['report']['sold_quantity_ftsq'] > 0) {
-             // L'utente chiede la media dei ftsq per pelle (ftsq totali / pezzi totali)
-             $data['report']['average_ftsq_per_leather'] = $data['report']['sold_quantity_ftsq'] / $data['report']['sold_pieces'];
-        } elseif ($data['report']['total_pieces'] > 0 && $data['report']['total_quantity_ftsq'] > 0) {
-             // Se non venduto, usiamo i dati totali del lotto per la media ftsq
-             $data['report']['average_ftsq_per_leather'] = $data['report']['total_quantity_ftsq'] / $data['report']['total_pieces'];
+        if ($data['report']['total_pieces'] > 0 && $data['report']['total_quantity_ftsq'] > 0) {
+            $data['report']['average_ftsq_per_leather'] = $data['report']['total_quantity_ftsq'] / $data['report']['total_pieces'];
+        } elseif ($data['report']['sold_pieces'] > 0 && $data['report']['sold_quantity_ftsq'] > 0) {
+            $data['report']['average_ftsq_per_leather'] = $data['report']['sold_quantity_ftsq'] / $data['report']['sold_pieces'];
+        }
+
+        // Resa totale vendita fiore SF->TF->Vendita
+        // Se il lotto corrente è SF e ha figli (che dovrebbero essere TF), aggreghiamo le loro vendite
+        if (str_starts_with($batch->getBatchCode() ?? '', 'SF')) {
+            $data['report']['flower_total_revenue'] = $data['report']['total_revenue'];
+            $data['report']['flower_total_revenue_lire'] = $data['report']['flower_total_revenue'] * 1936.27;
         }
 
         return $data;
@@ -71,6 +76,7 @@ class BatchReportController extends AbstractController
         $totalPieces = $batch->getPieces() ?? 0;
         $totalQuantity = $batch->getQuantity() ?? 0.0;
         $um = $batch->getMeasurementUnit();
+        $isMq = ($um?->getPrefix() === 'MQ');
         
         $totalQuantityFtsq = $this->convertToFtsq($totalQuantity, $um);
 
@@ -103,15 +109,8 @@ class BatchReportController extends AbstractController
         $actualStockPieces = 0;
         $actualStockQuantity = 0.0;
         foreach ($batch->getWarehouseMovements() as $mov) {
-            $reason = $mov->getReason();
-            $multiplier = 1;
-            if ($reason && $reason->getReasonType()) {
-                if ($reason->getReasonType()->getMovementType() === 'S') {
-                    $multiplier = -1;
-                }
-            }
-            $actualStockPieces += (($mov->getPiece() ?? 0) * $multiplier);
-            $actualStockQuantity += (($mov->getQuantity() ?? 0.0) * $multiplier);
+            $actualStockPieces += (float)($mov->getPiece() ?? 0.0);
+            $actualStockQuantity += (float)($mov->getQuantity() ?? 0.0);
         }
 
         $actualStockQuantityFtsq = $this->convertToFtsq($actualStockQuantity, $um);
@@ -121,15 +120,45 @@ class BatchReportController extends AbstractController
             $salePricePerLeather = $totalRevenue / $soldPieces;
         }
 
+        $totalCosts = 0.0;
         $costs = [];
         foreach ($batch->getBatchCosts() as $cost) {
+            $costAmount = $cost->getCost() ?? 0.0;
+            $totalCosts += $costAmount;
             $costs[] = [
                 'date' => $cost->getDate()?->format('Y-m-d'),
                 'type' => $cost->getBatchCostType()?->getName(),
-                'amount' => $cost->getCost(),
+                'amount' => $costAmount,
                 'currency' => $cost->getCurrency()?->getAbbreviation(),
                 'note' => $cost->getCostNote(),
             ];
+        }
+
+        $sqFtExpected = $batch->getSqFtAverageExpected() ?? 0.0;
+        $sqFtFound = $batch->getSqFtAverageFound() ?? 0.0;
+        $sqFtDiff = $sqFtFound - $sqFtExpected;
+
+        $costPerPieceEuroMq = 0.0;
+        $costPerPieceLirePq = 0.0;
+        if ($totalPieces > 0) {
+            $costPerPiece = $totalCosts / $totalPieces;
+            $costPerPieceEuroMq = $costPerPiece; // Valore in Euro
+            $costPerPieceLirePq = $costPerPiece * 1936.27; // Valore in Lire
+        }
+
+        // Resa al pezzo in € e lire
+        $revenuePerPieceEuroMq = 0.0;
+        $revenuePerPieceLirePq = 0.0;
+        if ($soldPieces > 0) {
+            $revenuePerPiece = $totalRevenue / $soldPieces;
+            $revenuePerPieceEuroMq = $revenuePerPiece;
+            $revenuePerPieceLirePq = $revenuePerPiece * 1936.27;
+        }
+
+        // Resa della vendita del lotto SC
+        $scSaleRevenueEuroMq = 0.0;
+        if (str_starts_with($batch->getBatchCode() ?? '', 'SC')) {
+            $scSaleRevenueEuroMq = $totalRevenue;
         }
             
         return [
@@ -148,8 +177,27 @@ class BatchReportController extends AbstractController
                 'sale_price_per_leather' => $salePricePerLeather,
                 'total_sale_price' => $totalRevenue,
                 'total_revenue' => $totalRevenue,
+                'total_costs' => $totalCosts,
                 'average_revenue_per_leather' => 0.0, // Calcolato in recursive dopo aggregazione
                 'average_ftsq_per_leather' => 0.0, // Calcolato in recursive dopo aggregazione
+                
+                'sq_ft_average_expected' => $sqFtExpected,
+                'sq_ft_average_found' => $sqFtFound,
+                'sq_ft_average_diff' => $sqFtDiff,
+                
+                'cost_per_piece_euro_mq' => $costPerPieceEuroMq,
+                'cost_per_piece_lire_pq' => $costPerPieceLirePq,
+                
+                'revenue_per_piece_euro_mq' => $revenuePerPieceEuroMq,
+                'revenue_per_piece_lire_pq' => $revenuePerPieceLirePq,
+                
+                'sc_sale_revenue_euro_mq' => $scSaleRevenueEuroMq,
+                'sc_sale_revenue_lire_pq' => $scSaleRevenueEuroMq * 1936.27,
+                
+                'compensation_waste' => $batch->getCompensationWaste() ?? 0.0,
+                
+                'flower_total_revenue' => 0.0, // Aggregato ricorsivamente
+                'flower_total_revenue_lire' => 0.0,
             ],
             'costs' => $costs,
             'sales' => $sales,
@@ -169,6 +217,21 @@ class BatchReportController extends AbstractController
         $parent['report']['available_quantity_ftsq'] += $child['report']['available_quantity_ftsq'];
         $parent['report']['total_revenue'] += $child['report']['total_revenue'];
         $parent['report']['total_sale_price'] += $child['report']['total_sale_price'];
+        $parent['report']['total_costs'] += ($child['report']['total_costs'] ?? 0.0);
+        $parent['report']['compensation_waste'] += ($child['report']['compensation_waste'] ?? 0.0);
+
+        // Aggregazione specifica per il fiore (SF->TF->Vendita)
+        // Se il padre è un SF, accumuliamo i ricavi dei figli
+        if (str_starts_with($parent['code'] ?? '', 'SF')) {
+            $parent['report']['flower_total_revenue'] += $child['report']['total_revenue'];
+            $parent['report']['flower_total_revenue_lire'] = $parent['report']['flower_total_revenue'] * 1936.27;
+        }
+
+        // Aggregazione specifica per SC (SC->Vendita)
+        if (str_starts_with($parent['code'] ?? '', 'SC')) {
+            $parent['report']['sc_sale_revenue_euro_mq'] += $child['report']['total_revenue'];
+            $parent['report']['sc_sale_revenue_lire_pq'] = $parent['report']['sc_sale_revenue_euro_mq'] * 1936.27;
+        }
         
         $parent['costs'] = array_merge($parent['costs'], $child['costs']);
         $parent['sales'] = array_merge($parent['sales'], $child['sales']);
@@ -184,13 +247,6 @@ class BatchReportController extends AbstractController
         if ($prefix === 'MQ') {
             $coefficientUm = $um->getMeasurementUnitCoefficients()->first();
             if ($coefficientUm && $coefficientUm->getCoefficient() > 0) {
-                // Se MQ, convertiamo in ftsq. 
-                // Dalla logica in BatchController: sqFtAverageFound = pieces / (coeff * quantity)
-                // Quindi coeff * quantity sembra essere la quantità in ftsq? 
-                // Di solito 1 MQ = 10.764 Piedi Quadri. Se il coefficiente è ~0.0929, allora quantity / 0.0929 = ftsq.
-                // O se coeff è 10.764, allora quantity * 10.764 = ftsq.
-                // Basandoci su BatchController: $batch->getPieces() / ($coefficientUm->getCoefficient() * $batch->getQuantity())
-                // Questo suggerisce che (coeff * quantity) è la superficie totale in PQ (ftsq).
                 return $quantity * $coefficientUm->getCoefficient();
             }
         } elseif ($prefix === 'PQ') {
