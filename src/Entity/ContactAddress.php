@@ -55,7 +55,7 @@ class ContactAddress
 
 
     #[ORM\ManyToOne(inversedBy: 'contactAddress')]
-    #[Groups(['contact_address_detail', 'contact_detail', 'client_order_detail', 'client_summary_print'])]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail', 'client_order_detail', 'client_summary_print'])]
     private ?Nation $nation = null;
 
 
@@ -81,10 +81,21 @@ class ContactAddress
     #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail','client_order_detail'])]
     private ?bool $default_address = null;
 
+    #[ORM\ManyToOne(targetEntity: self::class, inversedBy: 'contactAddresses')]
+    #[Groups(['contact_address_list', 'contact_address_detail', 'contact_detail', 'client_order_detail', 'client_order_row_list', 'client_summary_print'])]
+    private ?self $different_destination = null;
+
+    /**
+     * @var Collection<int, self>
+     */
+    #[ORM\OneToMany(mappedBy: 'different_destination', targetEntity: self::class)]
+    private Collection $contactAddresses;
+
     public function __construct()
     {
         $this->clientOrders = new ArrayCollection();
         $this->clientOrderRows = new ArrayCollection();
+        $this->contactAddresses = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -292,6 +303,48 @@ class ContactAddress
     public function setDefaultAddress(bool $default_address): static
     {
         $this->default_address = $default_address;
+
+        return $this;
+    }
+
+    public function getDifferentDestination(): ?self
+    {
+        return $this->different_destination;
+    }
+
+    public function setDifferentDestination(?self $different_destination): static
+    {
+        $this->different_destination = $different_destination;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, self>
+     */
+    public function getContactAddresses(): Collection
+    {
+        return $this->contactAddresses;
+    }
+
+    public function addContactAddress(self $contactAddress): static
+    {
+        if (!$this->contactAddresses->contains($contactAddress)) {
+            $this->contactAddresses->add($contactAddress);
+            $contactAddress->setDifferentDestination($this);
+        }
+
+        return $this;
+    }
+
+    public function removeContactAddress(self $contactAddress): static
+    {
+        if ($this->contactAddresses->removeElement($contactAddress)) {
+            // set the owning side to null (unless already changed)
+            if ($contactAddress->getDifferentDestination() === $this) {
+                $contactAddress->setDifferentDestination(null);
+            }
+        }
 
         return $this;
     }

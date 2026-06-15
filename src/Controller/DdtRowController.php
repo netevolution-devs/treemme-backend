@@ -760,13 +760,55 @@ final class DdtRowController extends AbstractController
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
         $quantity = $data['quantity'] ?? $ddtRow->getQuantity();
         $pieces = $data['pieces'] ?? $ddtRow->getPieces();
-        $pieces = (float)$pieces; // Assicura che sia trattato come float per i calcoli
+        $closed = $data['closed'] ?? false;
+        $pieces = (float)$pieces;
 
         $ddt = $ddtRow->getDdt();
 
+        if ($closed) {
+            $wasteReason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Scarto']);
+            if (!$wasteReason) {
+                $reasonTypeOut = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => '-']);
+                if ($reasonTypeOut) {
+                    $wasteReason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['reason_type' => $reasonTypeOut]);
+                }
+            }
+
+            if ($wasteReason) {
+                $wasteMovement = new WarehouseMovement();
+                $wasteMovement->setBatch($batch);
+                $wasteMovement->setQuantity($quantity);
+                $wasteMovement->setPiece($pieces);
+                $wasteMovement->setReason($wasteReason);
+                $wasteMovement->setDdtNumber($ddtRow->getDdt()->getDdtNumber());
+                $wasteMovement->setDdtDate($ddtRow->getDdt()->getDdtDate());
+                $wasteMovement->setDate(new \DateTime());
+                $wasteMovement->setMovementNote('Scarto riga DDT ' . $ddtRow->getId() . ' del DDT ' . $ddtRow->getDdt()->getDdtNumber());
+
+                if ($ddt->getSubcontractor()) {
+                    $wasteMovement->setContact($ddt->getSubcontractor());
+                } elseif ($ddt->getClient()) {
+                    $wasteMovement->setContact($ddt->getClient());
+                }
+
+                $this->doctrine->persist($wasteMovement);
+                // NOTA: lo scarto diminuisce lo stock (se la causale è di tipo '-')
+                // Quindi non dobbiamo aggiungere stock manualmente qui se usiamo WarehouseMovement e la causale corretta.
+                // In realtà postDdtRowReturn originariamente aggiungeva stock per lo scarto e poi di nuovo per il reso.
+                // Se closed = true, stiamo dicendo che quello che non è tornato è scarto.
+            }
+
+            $batch->setCompensationWaste(($batch->getCompensationWaste() ?? 0) + $pieces);
+            $batch->setCompleted(true);
+            $this->doctrine->persist($batch);
+        }
+
         $reason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Reso ' . $ddt->getReason()->getName()]);
         if (!$reason) {
-            $reasonTypeIn = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => 'Carico']);
+            $reasonTypeIn = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => '+']);
+            if (!$reasonTypeIn) {
+                $reasonTypeIn = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => 'Carico']);
+            }
             if ($reasonTypeIn) {
                 $reason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['reason_type' => $reasonTypeIn]);
             }
@@ -912,6 +954,7 @@ final class DdtRowController extends AbstractController
 
         $pieces = (int)($data['pieces'] ?? $ddtRow->getPieces());
         $quantity = (float)($data['quantity'] ?? null);
+        $closed = $data['closed'] ?? false;
 
         if ($quantity === null && isset($data['pieces'])) {
             // Se sono stati passati i pezzi ma non la quantità, ricalcolo la quantità proporzionalmente
@@ -927,6 +970,41 @@ final class DdtRowController extends AbstractController
         }
 
         $ddt = $ddtRow->getDdt();
+
+        if ($closed) {
+            $wasteReason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Scarto']);
+            if (!$wasteReason) {
+                $reasonTypeIn = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => 'Scarico']);
+                if ($reasonTypeIn) {
+                    $wasteReason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['reason_type' => $reasonTypeIn]);
+                }
+            }
+
+            if ($wasteReason) {
+                $wasteMovement = new WarehouseMovement();
+                $wasteMovement->setBatch($batch);
+                $wasteMovement->setQuantity((float)$quantity);
+                $wasteMovement->setPiece((float)$pieces);
+                $wasteMovement->setReason($wasteReason);
+                $wasteMovement->setDdtNumber($ddtRow->getDdt()->getDdtNumber());
+                $wasteMovement->setDdtDate($ddtRow->getDdt()->getDdtDate());
+                $wasteMovement->setDate(new \DateTime());
+                $wasteMovement->setMovementNote('Scarto riga DDT ' . $ddtRow->getId() . ' del DDT ' . $ddtRow->getDdt()->getDdtNumber());
+
+                if ($ddt->getSubcontractor()) {
+                    $wasteMovement->setContact($ddt->getSubcontractor());
+                } elseif ($ddt->getClient()) {
+                    $wasteMovement->setContact($ddt->getClient());
+                }
+
+                $this->doctrine->persist($wasteMovement);
+                $this->stockService->addStock($batch, (float)$quantity, (float)$pieces);
+            }
+
+            $batch->setCompensationWaste(($batch->getCompensationWaste() ?? 0) + $pieces);
+            $batch->setCompleted(true);
+            $this->doctrine->persist($batch);
+        }
 
         // 1. GESTIONE RIENTRO (MOVIMENTO INGRESSO)
         $reasonReturn = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Reso ' . $ddt->getReason()->getName()]);
@@ -1153,8 +1231,8 @@ final class DdtRowController extends AbstractController
 
         // Se arriva currencyPrice, ricalcola sempre price (EUR)
         if ($currencyPrice !== null) {
-            $price = $currencyChange != 0 ? round($currencyPrice / $currencyChange, 2) : 0.0;
-            $ddtRow->setPrice($price);
+            $price = $currencyChange != 0 ? round($currencyPrice / $currencyChange, 5) : 0.0;
+            $ddtRow->setPrice(round($price, 2));
             $ddtRow->setCurrencyExchange($currencyChange);
             $ddtRow->setCurrencyPrice(round($currencyPrice, 2));
         } else {
@@ -1198,20 +1276,39 @@ final class DdtRowController extends AbstractController
     {
         if ($batch->getMeasurementUnit()) {
             $measurementUnit = $batch->getMeasurementUnit();
+            $totalPieces = 0.0;
+            $totalQuantity = 0.0;
 
-            if ($measurementUnit->getPrefix() == 'MQ') {
-                $coefficientUm = $measurementUnit->getMeasurementUnitCoefficients()->first();
-                if ($batch->getStockItems() > 0 && $batch->getStockQuantity() > 0 && $coefficientUm) {
-                    $batch->setSqFtAverageFound($batch->getStockItems() / ($coefficientUm->getCoefficient() * $batch->getStockQuantity()));
-                } else {
-                    $batch->setSqFtAverageFound(0.0);
+            foreach ($batch->getDdtRows() as $row) {
+                $ddt = $row->getDdt();
+                if (!$ddt) continue;
+
+                $reason = $ddt->getReason();
+                if (!$reason) continue;
+
+                $wmReason = $reason->getWarehouseMovementReason();
+                if (!$wmReason || !$wmReason->getReasonType()) continue;
+
+                // Calcoliamo la media solo sulle righe di scarico (vendita)
+                if ($wmReason->getReasonType()->getMovementType() === 'Scarico') {
+                    $totalPieces += (float)($row->getPieces() ?? 0.0);
+                    $totalQuantity += $this->getConvertedQuantity($row->getQuantity() ?? 0.0, $row->getMeasurementUnit(), $batch->getMeasurementUnit());
                 }
-            } elseif ($batch->getMeasurementUnit()->getPrefix() == 'PQ') {
-                if ($batch->getStockItems() > 0 && $batch->getStockQuantity() > 0) {
-                    $batch->setSqFtAverageFound($batch->getStockItems() / $batch->getStockQuantity());
-                } else {
-                    $batch->setSqFtAverageFound(0.0);
+            }
+
+            if ($totalPieces > 0 && $totalQuantity > 0) {
+                if ($measurementUnit->getPrefix() == 'MQ') {
+                    $coefficientUm = $measurementUnit->getMeasurementUnitCoefficients()->first();
+                    if ($coefficientUm) {
+                        $batch->setSqFtAverageFound($totalPieces / ($coefficientUm->getCoefficient() * $totalQuantity));
+                    } else {
+                        $batch->setSqFtAverageFound(0.0);
+                    }
+                } elseif ($measurementUnit->getPrefix() == 'PQ') {
+                    $batch->setSqFtAverageFound($totalPieces / $totalQuantity);
                 }
+            } else {
+                $batch->setSqFtAverageFound(0.0);
             }
         }
     }

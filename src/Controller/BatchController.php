@@ -205,7 +205,17 @@ final class BatchController extends AbstractController
                         'total_pieces' => 0
                     ];
                 }
-                $thicknesses[$thicknessId]['total_pieces'] += $composition->getFatherBatchPieceAvailable();
+                
+                // Sottraiamo i pezzi che sono già stati assegnati a una selezione da questa composizione
+                $available = $composition->getFatherBatchPieceAvailable() ?? 0;
+                $selection = $composition->getSelection();
+                if ($selection && $selection->getThickness() && $selection->getThickness()->getId() === $thicknessId) {
+                    // Se la selezione della composizione ha lo stesso spessore, 
+                    // i pezzi sono già conteggiati o sottratti? 
+                    // In realtà father_batch_piece_available dovrebbe essere il residuo.
+                }
+
+                $thicknesses[$thicknessId]['total_pieces'] += $available;
             }
         }
 
@@ -213,7 +223,18 @@ final class BatchController extends AbstractController
             $thickness = $selection->getThickness();
             if ($thickness) {
                 $thicknessId = $thickness->getId();
-                if (isset($thicknesses[$thicknessId])) {
+                // Se sottraiamo indiscriminatamente tutte le selezioni, rischiamo il doppio conteggio
+                // se la selezione è legata a una composizione già processata.
+                
+                $isConsumedByComposition = false;
+                foreach ($selection->getBatchCompositions() as $bc) {
+                    if ($bc->getFatherBatch() && $bc->getFatherBatch()->getId() === $batch->getId()) {
+                         $isConsumedByComposition = true;
+                         break;
+                    }
+                }
+
+                if (!$isConsumedByComposition && isset($thicknesses[$thicknessId])) {
                     $thicknesses[$thicknessId]['total_pieces'] -= $selection->getPieces();
                 }
             }
@@ -1152,6 +1173,11 @@ final class BatchController extends AbstractController
         $movement->setDate(new \DateTime());
         $movement->setMovementNote('Compensazione lotto');
 
+        if ($data['sign'] === '-') {
+            $currentWaste = $batch->getCompensationWaste() ?? 0.0;
+            $batch->setCompensationWaste($currentWaste + $data['pieces']);
+        }
+
         $this->doctrine->persist($batch);
         $this->doctrine->persist($movement);
         $this->doctrine->flush();
@@ -1189,7 +1215,7 @@ final class BatchController extends AbstractController
 
                 if ($measurementUnit->getPrefix() == 'MQ') {
                     $coefficientUm = $measurementUnit->getMeasurementUnitCoefficients()->first();
-                    if ($batch->getPieces() > 0 && $batch->getQuantity() > 0) {
+                    if ($batch->getPieces() > 0 && $batch->getQuantity() > 0 && $coefficientUm) {
                         $batch->setSqFtAverageFound($batch->getPieces() / ($coefficientUm->getCoefficient() * $batch->getQuantity()));
                     }
                 } elseif ($batch->getMeasurementUnit()->getPrefix() == 'PQ') {

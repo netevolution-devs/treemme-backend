@@ -22,7 +22,7 @@ class Contact
         'article_list', 'article_detail', 'ddt_list', 'ddt_detail', 'batch_detail', 'ddt_row_list',
         'color_list', 'color_detail', 'batch_data_detail',
         'client_order_row_list', 'client_summary_print', 'client_order_row_list', 'ddt_row_list_sold', 'external_processing_print',
-        'warehouse_movement_list', 'movement_detail'])]
+        'warehouse_movement_list', 'movement_detail', 'contact_address_list'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
@@ -32,7 +32,7 @@ class Contact
         'article_list', 'article_detail', 'ddt_list', 'ddt_detail', 'batch_detail', 'ddt_row_list',
         'color_list', 'color_detail', 'batch_data_detail',
         'client_order_row_list', 'client_summary_print', 'client_order_row_list', 'ddt_row_list_sold', 'external_processing_print',
-        'warehouse_movement_list', 'movement_detail'])]
+        'warehouse_movement_list', 'movement_detail', 'contact_address_list'])]
     private ?string $name = null;
 
     #[ORM\ManyToOne(inversedBy: 'contacts')]
@@ -48,7 +48,7 @@ class Contact
      */
     #[ORM\OneToMany(mappedBy: 'contact', targetEntity: ContactAddress::class, orphanRemoval: true)]
     #[ORM\OrderBy(['default_address' => 'DESC'])]
-    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list','contact_subcontractor_list', 'client_summary_print'])]
+    #[Groups(['contact_list','contact_client','contact_supplier','contact_agent_list','contact_subcontractor_list', 'client_summary_print'])]
     private Collection $contactAddresses;
 
     #[ORM\Column]
@@ -212,6 +212,13 @@ class Contact
     #[ORM\OneToMany(mappedBy: 'client', targetEntity: Color::class)]
     private Collection $colors;
 
+    /**
+     * @var Collection<int, Processing>
+     */
+    #[ORM\ManyToMany(targetEntity: Processing::class, inversedBy: 'contacts')]
+    #[Groups(['contact_detail', 'contact_subcontractor_list'])]
+    private Collection $processings;
+
     public function __construct()
     {
         $this->contactAddresses = new ArrayCollection();
@@ -230,6 +237,7 @@ class Contact
         $this->ddtsFromClient = new ArrayCollection();
         $this->warehouseMovements = new ArrayCollection();
         $this->colors = new ArrayCollection();
+        $this->processings = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -934,6 +942,30 @@ class Contact
                 $color->setClient(null);
             }
         }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Processing>
+     */
+    public function getProcessings(): Collection
+    {
+        return $this->processings;
+    }
+
+    public function addProcessing(Processing $processing): static
+    {
+        if (!$this->processings->contains($processing)) {
+            $this->processings->add($processing);
+        }
+
+        return $this;
+    }
+
+    public function removeProcessing(Processing $processing): static
+    {
+        $this->processings->removeElement($processing);
 
         return $this;
     }
