@@ -107,6 +107,8 @@ final class ContactAddressController extends AbstractController
                 $address->setAddress4($differentAddress->getAddress4());
                 $address->setZipCode($differentAddress->getZipCode());
                 $address->setNation($differentAddress->getNation());
+
+                unset($data['different_destination_id']);
             }
 
             $address = $this->handleRelations($address, $data);
@@ -160,6 +162,19 @@ final class ContactAddressController extends AbstractController
                 }
 
                 $address->setDefaultAddress(true);
+            }
+            if(isset($data['different_destination_id'])) {
+                $differentAddress = $this->doctrine->getRepository(ContactAddress::class)->find($data['different_destination_id']);
+                $address->setDifferentDestination($differentAddress);
+
+                $address->setAddress($differentAddress->getAddress());
+                $address->setAddress2($differentAddress->getAddress2());
+                $address->setAddress3($differentAddress->getAddress3());
+                $address->setAddress4($differentAddress->getAddress4());
+                $address->setZipCode($differentAddress->getZipCode());
+                $address->setNation($differentAddress->getNation());
+
+                unset($data['different_destination_id']);
             }
 
             $address = $this->handleRelations($address, $data);
