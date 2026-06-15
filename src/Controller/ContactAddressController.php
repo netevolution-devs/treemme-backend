@@ -66,7 +66,7 @@ final class ContactAddressController extends AbstractController
     }
 
     #[Route('/contact/{id}/contact-address',
-        name: 'get_contact_address',
+        name: 'get_contact_address_list',
         defaults: ['id' => null],
         requirements: ['id' => '\d*'],
         methods: ['GET', 'HEAD'])]
