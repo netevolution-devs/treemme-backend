@@ -14,11 +14,11 @@ class Processing
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['processing_list', 'processing_detail', 'material_bill_detail', 'recipe_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'external_processing_print'])]
+    #[Groups(['processing_list', 'processing_detail', 'material_bill_detail', 'recipe_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'external_processing_print', 'contact_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['processing_list', 'processing_detail', 'material_bill_detail', 'recipe_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'external_processing_print'])]
+    #[Groups(['processing_list', 'processing_detail', 'material_bill_detail', 'recipe_detail', 'ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'external_processing_print', 'contact_detail'])]
     private ?string $name = null;
 
     #[ORM\Column]
@@ -55,11 +55,19 @@ class Processing
     #[ORM\OneToMany(mappedBy: 'processing', targetEntity: DdtRowProcessing::class)]
     private Collection $ProcessingDdtRows;
 
+    /**
+     * @var Collection<int, Contact>
+     */
+    #[ORM\ManyToMany(targetEntity: Contact::class, mappedBy: 'processings')]
+    #[Groups(['processing_detail'])]
+    private Collection $contacts;
+
     public function __construct()
     {
         $this->recipes = new ArrayCollection();
         $this->materialBillSteps = new ArrayCollection();
         $this->ProcessingDdtRows = new ArrayCollection();
+        $this->contacts = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -212,6 +220,33 @@ class Processing
             if ($processingDdtRow->getProcessing() === $this) {
                 $processingDdtRow->setProcessing(null);
             }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Contact>
+     */
+    public function getContacts(): Collection
+    {
+        return $this->contacts;
+    }
+
+    public function addContact(Contact $contact): static
+    {
+        if (!$this->contacts->contains($contact)) {
+            $this->contacts->add($contact);
+            $contact->addProcessing($this);
+        }
+
+        return $this;
+    }
+
+    public function removeContact(Contact $contact): static
+    {
+        if ($this->contacts->removeElement($contact)) {
+            $contact->removeProcessing($this);
         }
 
         return $this;

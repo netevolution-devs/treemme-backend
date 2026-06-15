@@ -9,6 +9,7 @@ use App\Entity\ContactType;
 use App\Entity\ContactTitle;
 use App\Entity\Payment;
 use App\Entity\ShipmentCondition;
+use App\Entity\Processing;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -331,6 +332,61 @@ final class ContactController extends AbstractController
         }
 
         $this->doctrine->remove($contactSubcontractor);
+        $this->doctrine->flush();
+
+        return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
+    }
+
+    #[Route('/contact/{id}/processing/{processingId}',
+        name: 'add_contact_processing',
+        requirements: ['id' => '\d+', 'processingId' => '\d+'],
+        methods: ['POST'])]
+    public function addProcessingToContact(int $id, int $processingId): JsonResponse
+    {
+        $contact = $this->doctrine->getRepository(Contact::class)->find($id);
+        $processing = $this->doctrine->getRepository(Processing::class)->find($processingId);
+
+        if (!$contact) {
+            return $this->doResponse->doErrorJsonResponse('Contact not found', 404);
+        }
+
+        if (!$processing) {
+            return $this->doResponse->doErrorJsonResponse('Processing not found', 404);
+        }
+
+        if ($contact->getProcessings()->contains($processing)) {
+            return $this->doResponse->doErrorJsonResponse('Processing already associated', 400);
+        }
+
+        $contact->addProcessing($processing);
+        $this->doctrine->flush();
+
+        $result = $this->groupSerializer->serializeGroup([$contact], 'contact_detail');
+        return new JsonResponse($this->doResponse->doResponse($result[0]));
+    }
+
+    #[Route('/contact/{id}/processing/{processingId}',
+        name: 'remove_contact_processing',
+        requirements: ['id' => '\d+', 'processingId' => '\d+'],
+        methods: ['DELETE'])]
+    public function removeProcessingFromContact(int $id, int $processingId): JsonResponse
+    {
+        $contact = $this->doctrine->getRepository(Contact::class)->find($id);
+        $processing = $this->doctrine->getRepository(Processing::class)->find($processingId);
+
+        if (!$contact) {
+            return $this->doResponse->doErrorJsonResponse('Contact not found', 404);
+        }
+
+        if (!$processing) {
+            return $this->doResponse->doErrorJsonResponse('Processing not found', 404);
+        }
+
+        if (!$contact->getProcessings()->contains($processing)) {
+            return $this->doResponse->doErrorJsonResponse('Association not found', 404);
+        }
+
+        $contact->removeProcessing($processing);
         $this->doctrine->flush();
 
         return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
