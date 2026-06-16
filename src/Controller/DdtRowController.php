@@ -509,12 +509,6 @@ final class DdtRowController extends AbstractController
 
         $convertedQuantity = $this->getConvertedQuantity($ddtRow->getQuantity(), $ddtRow->getMeasurementUnit(), $batch->getMeasurementUnit());
 
-        $this->stockService->removeStock($batch, $convertedQuantity, (float)$ddtRow->getPieces());
-
-        $this->updateBatchSqFtAverageFound($batch);
-
-        $this->doctrine->persist($batch);
-
         $ddt = $ddtRow->getDdt();
 
         $wearhouseMovement = new WarehouseMovement();
@@ -606,45 +600,28 @@ final class DdtRowController extends AbstractController
 
         $newBatch = $ddtRow->getBatch();
 
-        if ($oldBatch && $newBatch && $oldBatch->getId() === $newBatch->getId()) {
-            $diffPieces = $ddtRow->getPieces() - $oldPieces;
-            
-            $oldConvertedQuantity = $this->getConvertedQuantity($oldQuantity, $ddtRow->getMeasurementUnit(), $newBatch->getMeasurementUnit());
-            $newConvertedQuantity = $this->getConvertedQuantity($ddtRow->getQuantity(), $ddtRow->getMeasurementUnit(), $newBatch->getMeasurementUnit());
-            $diffQuantity = $newConvertedQuantity - $oldConvertedQuantity;
-
-            $this->stockService->removeStock($newBatch, $diffQuantity, (float)$diffPieces);
-
-            $this->updateBatchSqFtAverageFound($newBatch);
-            $this->doctrine->persist($newBatch);
-        } else {
-            if ($oldBatch) {
-                $oldBatchConvertedQuantity = $this->getConvertedQuantity($oldQuantity, $ddtRow->getMeasurementUnit(), $oldBatch->getMeasurementUnit());
-                $this->stockService->addStock($oldBatch, $oldBatchConvertedQuantity, (float)$oldPieces);
-                $this->updateBatchSqFtAverageFound($oldBatch);
-                $this->doctrine->persist($oldBatch);
-            }
-            if ($newBatch) {
-                $newBatchConvertedQuantity = $this->getConvertedQuantity($ddtRow->getQuantity(), $ddtRow->getMeasurementUnit(), $newBatch->getMeasurementUnit());
-                $this->stockService->removeStock($newBatch, $newBatchConvertedQuantity, (float)$ddtRow->getPieces());
-                $this->updateBatchSqFtAverageFound($newBatch);
-                $this->doctrine->persist($newBatch);
-            }
-        }
-
-        // Aggiornamento movimento di magazzino associato
+        // I ricalcoli di stock e media taglia sono gestiti dal WarehouseMovementListener
+        // Dobbiamo però assicurarci che il movimento di magazzino esistente venga aggiornato
         $warehouseMovement = $this->doctrine->getRepository(WarehouseMovement::class)->findOneBy(["movement_note" => $ddtRow->getRowNote()]);
-
         if($warehouseMovement == null){
             $warehouseMovement = $this->doctrine->getRepository(WarehouseMovement::class)->findOneBy(["movement_note" => 'Riga DDT ' . $ddtRow->getId()]);
         }
 
-        $warehouseMovement->setBatch($newBatch);
-        $convertedQuantity = $this->getConvertedQuantity($ddtRow->getQuantity(), $ddtRow->getMeasurementUnit(), $newBatch?->getMeasurementUnit());
-        $warehouseMovement->setQuantity($convertedQuantity);
-        $warehouseMovement->setPiece($ddtRow->getPieces());
+        if ($warehouseMovement) {
+            $convertedQuantity = $this->getConvertedQuantity($ddtRow->getQuantity(), $ddtRow->getMeasurementUnit(), $newBatch->getMeasurementUnit());
+            $warehouseMovement->setBatch($newBatch);
+            $warehouseMovement->setQuantity($convertedQuantity);
+            $warehouseMovement->setPiece($ddtRow->getPieces());
+            // Assicuriamoci che la nota rimanga coerente se è stata aggiornata la riga
+            $warehouseMovement->setMovementNote($ddtRow->getRowNote() ?: 'Riga DDT ' . $ddtRow->getId());
+            $this->doctrine->persist($warehouseMovement);
+        }
 
-        $this->doctrine->persist($warehouseMovement);
+        if ($oldBatch && $newBatch && $oldBatch->getId() === $newBatch->getId()) {
+            // Logica rimossa: lo stock viene aggiornato tramite WarehouseMovementListener quando viene salvato $warehouseMovement sopra.
+        } else {
+            // Logica rimossa: lo stock viene aggiornato tramite WarehouseMovementListener quando viene salvato $warehouseMovement sopra.
+        }
 
         // Gestione QuantityToShip per DDT di vendita
         $ddt = $ddtRow->getDdt();
@@ -704,12 +681,6 @@ final class DdtRowController extends AbstractController
         }
 
         $batch = $ddtRow->getBatch();
-        if ($batch) {
-            $batch->setStockItems($batch->getStockItems() + $ddtRow->getPieces());
-            $batch->setStockQuantity($batch->getStockQuantity() + $ddtRow->getQuantity());
-            $this->updateBatchSqFtAverageFound($batch);
-            $this->doctrine->persist($batch);
-        }
 
         // Rimuoviamo anche il movimento di magazzino associato
         $warehouseMovement = $this->doctrine->getRepository(WarehouseMovement::class)->findOneBy([
@@ -1272,46 +1243,6 @@ final class DdtRowController extends AbstractController
         return $quantity;
     }
 
-    private function updateBatchSqFtAverageFound(Batch $batch): void
-    {
-        if ($batch->getMeasurementUnit()) {
-            $measurementUnit = $batch->getMeasurementUnit();
-            $totalPieces = 0.0;
-            $totalQuantity = 0.0;
-
-            foreach ($batch->getDdtRows() as $row) {
-                $ddt = $row->getDdt();
-                if (!$ddt) continue;
-
-                $reason = $ddt->getReason();
-                if (!$reason) continue;
-
-                $wmReason = $reason->getWarehouseMovementReason();
-                if (!$wmReason || !$wmReason->getReasonType()) continue;
-
-                // Calcoliamo la media solo sulle righe di scarico (vendita)
-                if ($wmReason->getReasonType()->getMovementType() === 'Scarico') {
-                    $totalPieces += (float)($row->getPieces() ?? 0.0);
-                    $totalQuantity += $this->getConvertedQuantity($row->getQuantity() ?? 0.0, $row->getMeasurementUnit(), $batch->getMeasurementUnit());
-                }
-            }
-
-            if ($totalPieces > 0 && $totalQuantity > 0) {
-                if ($measurementUnit->getPrefix() == 'MQ') {
-                    $coefficientUm = $measurementUnit->getMeasurementUnitCoefficients()->first();
-                    if ($coefficientUm) {
-                        $batch->setSqFtAverageFound($totalPieces / ($coefficientUm->getCoefficient() * $totalQuantity));
-                    } else {
-                        $batch->setSqFtAverageFound(0.0);
-                    }
-                } elseif ($measurementUnit->getPrefix() == 'PQ') {
-                    $batch->setSqFtAverageFound($totalPieces / $totalQuantity);
-                }
-            } else {
-                $batch->setSqFtAverageFound(0.0);
-            }
-        }
-    }
     #[Route('/ddt-row/external-processing-movements',
         name: 'get_external_processing_movements',
         methods: ['GET'])]

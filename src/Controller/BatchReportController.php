@@ -225,6 +225,8 @@ class BatchReportController extends AbstractController
         $parent['report']['sold_quantity'] += $child['report']['sold_quantity'];
         $parent['report']['sold_quantity_ftsq'] += $child['report']['sold_quantity_ftsq'];
         $parent['report']['available_pieces'] += $child['report']['available_pieces'];
+        $parent['report']['available_quantity'] += $child['report']['available_quantity'];
+        $parent['report']['available_quantity_ftsq'] += $child['report']['available_quantity_ftsq'];
         $parent['report']['total_revenue'] += $child['report']['total_revenue'];
         $parent['report']['total_sale_price'] += $child['report']['total_sale_price'];
         $parent['report']['total_costs'] += ($child['report']['total_costs'] ?? 0.0);
@@ -255,10 +257,18 @@ class BatchReportController extends AbstractController
 
         $prefix = $um->getPrefix();
         if ($prefix === 'MQ') {
+            foreach ($um->getMeasurementUnitCoefficients() as $coeff) {
+                if ($coeff->getEndUm() && $coeff->getEndUm()->getPrefix() === 'PQ') {
+                    return $quantity * $coeff->getCoefficient();
+                }
+            }
+            // Fallback: cerca il primo coefficiente utile se non ne trova uno specifico per PQ
             $coefficientUm = $um->getMeasurementUnitCoefficients()->first();
             if ($coefficientUm && $coefficientUm->getCoefficient() > 0) {
                 return $quantity * $coefficientUm->getCoefficient();
             }
+            // Default conversion factor if no coefficient is found: 1 MQ = 10.764 PQ
+            return $quantity * 10.764;
         } elseif ($prefix === 'PQ') {
             return $quantity;
         }
