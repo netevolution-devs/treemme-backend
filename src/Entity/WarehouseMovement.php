@@ -129,6 +129,11 @@ class WarehouseMovement
         return $this;
     }
 
+    public function isOutgoing(): bool
+    {
+        return $this->getReason()?->getReasonType()?->getMovementType() === '-';
+    }
+
     public function getPiece(): ?float
     {
         return $this->piece;

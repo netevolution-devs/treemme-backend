@@ -65,8 +65,6 @@ class BatchSelectionController extends AbstractController
                     $batchSelection->setBatch($fatherBatch);
                 }
 
-                $batchSelection->setQuantity($data['pieces'] * $fatherBatch->getSqFtAverageFound());
-                $batchSelection->setStockQuantity($data['pieces'] * $fatherBatch->getSqFtAverageFound());
 
                 unset($data['batch_id']);
             }

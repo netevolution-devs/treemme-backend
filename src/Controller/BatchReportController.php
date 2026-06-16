@@ -55,17 +55,19 @@ class BatchReportController extends AbstractController
             $data['report']['average_revenue_per_leather'] = $data['report']['total_revenue'] / $data['report']['sold_pieces'];
         }
 
-        if ($data['report']['total_pieces'] > 0 && $data['report']['total_quantity_ftsq'] > 0) {
-            $data['report']['average_ftsq_per_leather'] = $data['report']['total_quantity_ftsq'] / $data['report']['total_pieces'];
+        $quantityFt = $this->convertToFtsq($batch->getQuantity(), $batch->getMeasurementUnit());
+
+        if ($batch->getPieces() > 0 && $quantityFt > 0) {
+            $data['report']['average_ftsq_per_leather'] = $quantityFt / $batch->getPieces();
         } elseif ($data['report']['sold_pieces'] > 0 && $data['report']['sold_quantity_ftsq'] > 0) {
             $data['report']['average_ftsq_per_leather'] = $data['report']['sold_quantity_ftsq'] / $data['report']['sold_pieces'];
         }
 
         // Calcolo costo fiore: (costo totale / pezzi totali) - (ricavo della crosta / pezzi totali)
-        if ($data['report']['total_pieces'] > 0) {
+        if ($batch->getPieces() > 0) {
             $totalCosts = $data['report']['total_costs'] ?? 0.0;
             $scRevenue = $data['report']['sc_sale_revenue_euro_mq'] ?? 0.0;
-            $totalPieces = $data['report']['total_pieces'];
+            $totalPieces = $batch->getPieces();
 
             $flowerCostEuro = ($totalCosts / $totalPieces) - ($scRevenue / $totalPieces);
             $data['report']['flower_cost_euro_mq'] = $flowerCostEuro;
@@ -97,11 +99,15 @@ class BatchReportController extends AbstractController
         $sales = [];
 
         foreach ($batch->getDdtRows() as $row) {
+            $ddt = $row->getDdt();
+            if ($ddt?->getReason()?->getName() !== 'Vendita') {
+                continue;
+            }
+
             $soldPieces += ($row->getPieces() ?? 0);
             $soldQuantity += ($row->getQuantity() ?? 0.0);
             $totalRevenue += ($row->getTotalValue() ?? 0.0);
 
-            $ddt = $row->getDdt();
             $sales[] = [
                 'ddt_number' => $ddt?->getDdtNumber(),
                 'ddt_date' => $ddt?->getDdtDate()?->format('Y-m-d'),
@@ -120,8 +126,16 @@ class BatchReportController extends AbstractController
         $actualStockPieces = 0;
         $actualStockQuantity = 0.0;
         foreach ($batch->getWarehouseMovements() as $mov) {
-            $actualStockPieces += (float)($mov->getPiece() ?? 0.0);
-            $actualStockQuantity += (float)($mov->getQuantity() ?? 0.0);
+            $pieces = (float)($mov->getPiece() ?? 0.0);
+            $quantity = (float)($mov->getQuantity() ?? 0.0);
+
+            if ($mov->isOutgoing()) {
+                $actualStockPieces -= abs($pieces);
+                $actualStockQuantity -= abs($quantity);
+            } else {
+                $actualStockPieces += abs($pieces);
+                $actualStockQuantity += abs($quantity);
+            }
         }
 
         $actualStockQuantityFtsq = $this->convertToFtsq($actualStockQuantity, $um);
@@ -176,9 +190,6 @@ class BatchReportController extends AbstractController
             'id' => $batch->getId(),
             'code' => $batch->getBatchCode(),
             'report' => [
-                'total_pieces' => $totalPieces,
-                'total_quantity' => $totalQuantity,
-                'total_quantity_ftsq' => $totalQuantityFtsq,
                 'sold_pieces' => $soldPieces,
                 'sold_quantity' => $soldQuantity,
                 'sold_quantity_ftsq' => $soldQuantityFtsq,
@@ -220,9 +231,6 @@ class BatchReportController extends AbstractController
 
     private function aggregateChildData(array &$parent, array $child): void
     {
-        $parent['report']['total_pieces'] += $child['report']['total_pieces'];
-        $parent['report']['total_quantity'] += $child['report']['total_quantity'];
-        $parent['report']['total_quantity_ftsq'] += $child['report']['total_quantity_ftsq'];
         $parent['report']['sold_pieces'] += $child['report']['sold_pieces'];
         $parent['report']['sold_quantity'] += $child['report']['sold_quantity'];
         $parent['report']['sold_quantity_ftsq'] += $child['report']['sold_quantity_ftsq'];
@@ -259,10 +267,18 @@ class BatchReportController extends AbstractController
 
         $prefix = $um->getPrefix();
         if ($prefix === 'MQ') {
+            foreach ($um->getMeasurementUnitCoefficients() as $coeff) {
+                if ($coeff->getEndUm() && $coeff->getEndUm()->getPrefix() === 'PQ') {
+                    return $quantity * $coeff->getCoefficient();
+                }
+            }
+            // Fallback: cerca il primo coefficiente utile se non ne trova uno specifico per PQ
             $coefficientUm = $um->getMeasurementUnitCoefficients()->first();
             if ($coefficientUm && $coefficientUm->getCoefficient() > 0) {
                 return $quantity * $coefficientUm->getCoefficient();
             }
+            // Default conversion factor if no coefficient is found: 1 MQ = 10.764 PQ
+            return $quantity * 10.764;
         } elseif ($prefix === 'PQ') {
             return $quantity;
         }
