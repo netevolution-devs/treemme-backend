@@ -605,7 +605,7 @@ final class BatchController extends AbstractController
             $newBatch->setCompleted(false);
             $newBatch->setChecked(false);
             $newBatch->setSqFtAverageExpected($fatherBatch->getSqFtAverageExpected() ?? 0.0);
-            $newBatch->setSqFtAverageFound($fatherBatch->getSqFtAverageFound() ?? 0.0);
+            $newBatch->setSqFtAverageFound(0.0);
             $newBatch->setSelectionNote($fatherBatch->getSelectionNote());
             $newBatch->setBatchNote($fatherBatch->getBatchNote());
             $newBatch->setMeasurementUnit($fatherBatch->getMeasurementUnit());
@@ -742,7 +742,7 @@ final class BatchController extends AbstractController
             $sfBatch->setCompleted(false);
             $sfBatch->setChecked(false);
             $sfBatch->setSqFtAverageExpected($reworkedBatch->getSqFtAverageExpected() ?? 0.0);
-            $sfBatch->setSqFtAverageFound($reworkedBatch->getSqFtAverageFound() ?? 0.0);
+            $sfBatch->setSqFtAverageFound(0.0);
             $sfBatch->setSelectionNote($reworkedBatch->getSelectionNote());
             $sfBatch->setBatchNote($reworkedBatch->getBatchNote());
             $sfBatch->setMeasurementUnit($reworkedBatch->getMeasurementUnit());
@@ -777,7 +777,7 @@ final class BatchController extends AbstractController
             $scBatch->setCompleted(false);
             $scBatch->setChecked(false);
             $scBatch->setSqFtAverageExpected($reworkedBatch->getSqFtAverageExpected() ?? 0.0);
-            $scBatch->setSqFtAverageFound($reworkedBatch->getSqFtAverageFound() ?? 0.0);
+            $scBatch->setSqFtAverageFound(0.0);
             $scBatch->setSelectionNote($reworkedBatch->getSelectionNote());
             $scBatch->setBatchNote($reworkedBatch->getBatchNote());
             $scBatch->setMeasurementUnit($reworkedBatch->getMeasurementUnit());
@@ -1215,7 +1215,7 @@ final class BatchController extends AbstractController
                 // Lo stock viene ricalcolato dal WarehouseMovementListener se ci sono movimenti.
                 // Se non ci sono movimenti, usiamo comunque lo StockService per allineare i campi.
                 $this->stockService->recalculateBatchStock($batch);
-                $this->stockService->updateBatchAverageFromMovements($batch);
+                // La media taglia viene ricalcolata solo dal WarehouseMovementListener basandosi sulle vendite
             }
 
             if ($batch->isCompleted() === null) {
