@@ -129,6 +129,10 @@ class ClientOrder
     public function __construct()
     {
         $this->clientOrderRows = new ArrayCollection();
+        $this->processed = false;
+        $this->cancelled = false;
+        $this->checked = false;
+        $this->printed = false;
     }
 
     public function getId(): ?int

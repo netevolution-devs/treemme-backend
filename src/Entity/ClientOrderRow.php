@@ -132,6 +132,8 @@ class ClientOrderRow
     public function __construct()
     {
         $this->batchOrders = new ArrayCollection();
+        $this->processed = false;
+        $this->cancelled = false;
     }
 
     public function getId(): ?int

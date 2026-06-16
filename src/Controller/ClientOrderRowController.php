@@ -236,10 +236,6 @@ final class ClientOrderRowController extends AbstractController
                     'details' => $this->groupSerializer->serializeGroup($order, 'client_summary_print'),
                     'rows' => []
                 ];
-                
-                // Set order as printed
-                $order->setPrinted(true);
-                $order->setPrintDate(new \DateTime());
             }
 
             // Dati DDT: OrderRow->BatchOrder->Batch->ddtRow solo per ddt di tipo Vendita

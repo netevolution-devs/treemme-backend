@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Programma Produzione</title>
+    <style>
+        @page {
+            margin: 120px 30px 50px 30px;
+        }
+
+        header {
+            position: absolute;
+            top: -100px;
+            left: 0;
+            right: 0;
+            height: 100px;
+            text-align: center;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10px;
+            margin: 0;
+            padding: 0;
+        }
+
+        .title {
+            font-size: 18px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 5px;
+        }
+
+        .info-header {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .info-header td {
+            vertical-align: top;
+        }
+
+        table.items {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table.items th {
+            background-color: #f2f2f2;
+            border: 1px solid #000;
+            padding: 5px;
+            text-align: left;
+            text-transform: uppercase;
+            font-size: 9px;
+        }
+
+        table.items td {
+            border: 1px solid #000;
+            padding: 5px;
+            vertical-align: top;
+        }
+
+        .center { text-align: center; }
+        .right { text-align: right; }
+        .bold { font-weight: bold; }
+
+        .article-name { font-weight: bold; font-size: 11px; }
+        .client-name { font-style: italic; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="title">Programma di Produzione</div>
+        <table class="info-header">
+            <tr>
+                <td style="width: 50%; text-align: left;">
+                    Data Stampa: {{ date|date('d/m/Y H:i') }}
+                </td>
+                <td style="width: 50%; text-align: right;">
+                    Pagina <span class="pagenum"></span>
+                </td>
+            </tr>
+        </table>
+    </header>
+
+    <div class="content">
+        {% for typeName, rows in groupedRows %}
+            <div style="margin-top: 20px; margin-bottom: 10px;">
+                <span style="font-size: 14px; font-weight: bold; background-color: #e0e0e0; padding: 5px 10px; border: 1px solid #000; text-transform: uppercase;">
+                    Tipo Articolo: {{ typeName }}
+                </span>
+            </div>
+            <table class="items" style="margin-bottom: 30px;">
+                <thead>
+                    <tr>
+                        <th style="width: 8%;">Data Ord.</th>
+                        <th style="width: 10%;">N. Ordine</th>
+                        <th style="width: 15%;">Cliente</th>
+                        <th style="width: 15%;">Articolo</th>
+                        <th style="width: 8%;">Colore</th>
+                        <th style="width: 8%;">Scelta</th>
+                        <th style="width: 8%;">Quantità</th>
+                        <th style="width: 5%;">U.M.</th>
+                        <th>Note Produzione</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                        <tr>
+                            <td class="center">{{ row.clientOrder.orderDate ? row.clientOrder.orderDate|date('d/m/Y') : '' }}</td>
+                            <td class="center">{{ row.clientOrder.orderNumber }}</td>
+                            <td class="client-name">{{ row.clientOrder.client ? row.clientOrder.client.name : '' }}</td>
+                            <td class="article-name">{{ row.article ? row.article.name : '' }}</td>
+                            <td>{{ row.article and row.article.color ? row.article.color.color : '' }}</td>
+                            <td class="center">{{ row.selection ? row.selection.name : '' }}</td>
+                            <td class="right bold">{{ row.quantity|number_format(2, ',', '.') }}</td>
+                            <td class="center">{{ row.measurementUnit ? row.measurementUnit.prefix : '' }}</td>
+                            <td>
+                                {% if row.productionRowNote %}
+                                    <div>{{ row.productionRowNote }}</div>
+                                {% endif %}
+                                {% if row.clientOrder.orderNoteProduction %}
+                                    <div style="font-style: italic; color: #555;">(Ord: {{ row.clientOrder.orderNoteProduction }})</div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="center" style="padding: 20px; border: 1px solid #000;">
+                Nessuna riga d'ordine da produrre trovata.
+            </div>
+        {% endfor %}
+    </div>
+
+    <script type="text/php">
+        if (isset($pdf)) {
+            $x = 550;
+            $y = 20;
+            $text = "{PAGE_NUM} di {PAGE_COUNT}";
+            $font = $fontMetrics->get_font("Arial, Helvetica, sans-serif", "normal");
+            $size = 10;
+            $color = array(0,0,0);
+            $word_space = 0.0;
+            $char_space = 0.0;
+            $angle = 0.0;
+            $pdf->page_text($x, $y, $text, $font, $size, $color, $word_space, $char_space, $angle);
+        }
+    </script>
+</body>
+</html>
