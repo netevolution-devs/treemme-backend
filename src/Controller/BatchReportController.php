@@ -97,11 +97,15 @@ class BatchReportController extends AbstractController
         $sales = [];
 
         foreach ($batch->getDdtRows() as $row) {
+            $ddt = $row->getDdt();
+            if ($ddt?->getReason()?->getName() !== 'Vendita') {
+                continue;
+            }
+
             $soldPieces += ($row->getPieces() ?? 0);
             $soldQuantity += ($row->getQuantity() ?? 0.0);
             $totalRevenue += ($row->getTotalValue() ?? 0.0);
 
-            $ddt = $row->getDdt();
             $sales[] = [
                 'ddt_number' => $ddt?->getDdtNumber(),
                 'ddt_date' => $ddt?->getDdtDate()?->format('Y-m-d'),
@@ -176,9 +180,6 @@ class BatchReportController extends AbstractController
             'id' => $batch->getId(),
             'code' => $batch->getBatchCode(),
             'report' => [
-                'total_pieces' => $totalPieces,
-                'total_quantity' => $totalQuantity,
-                'total_quantity_ftsq' => $totalQuantityFtsq,
                 'sold_pieces' => $soldPieces,
                 'sold_quantity' => $soldQuantity,
                 'sold_quantity_ftsq' => $soldQuantityFtsq,
@@ -220,15 +221,10 @@ class BatchReportController extends AbstractController
 
     private function aggregateChildData(array &$parent, array $child): void
     {
-        $parent['report']['total_pieces'] += $child['report']['total_pieces'];
-        $parent['report']['total_quantity'] += $child['report']['total_quantity'];
-        $parent['report']['total_quantity_ftsq'] += $child['report']['total_quantity_ftsq'];
         $parent['report']['sold_pieces'] += $child['report']['sold_pieces'];
         $parent['report']['sold_quantity'] += $child['report']['sold_quantity'];
         $parent['report']['sold_quantity_ftsq'] += $child['report']['sold_quantity_ftsq'];
         $parent['report']['available_pieces'] += $child['report']['available_pieces'];
-        $parent['report']['available_quantity'] += $child['report']['available_quantity'];
-        $parent['report']['available_quantity_ftsq'] += $child['report']['available_quantity_ftsq'];
         $parent['report']['total_revenue'] += $child['report']['total_revenue'];
         $parent['report']['total_sale_price'] += $child['report']['total_sale_price'];
         $parent['report']['total_costs'] += ($child['report']['total_costs'] ?? 0.0);
