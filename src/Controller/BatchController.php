@@ -908,6 +908,7 @@ final class BatchController extends AbstractController
         $report = [];
         foreach ($batches as $batch) {
             $report[] = $this->stockService->recalculateBatchStock($batch);
+            $this->stockService->updateBatchAverageFromMovements($batch);
         }
         return new JsonResponse($this->doResponse->doResponse($report));
     }
@@ -1040,14 +1041,9 @@ final class BatchController extends AbstractController
 
             $batch = $this->createMethodsByInput->createMethods($batch, $data);
 
-            if ($batch->getStockItems() === null || $batch->getStockItems() == 0.0) {
-                $this->stockService->setInitialStock($batch, $batch->getStockQuantity() ?? 0.0, (float)($batch->getPieces() ?? 0));
-            }
-
-            if ($batch->getStockQuantity() === null || $batch->getStockQuantity() == 0.0) {
-                $this->stockService->setInitialStock($batch, (float)($batch->getQuantity() ?? 0), $batch->getStockItems() ?? 0.0);
-            }
-
+            // Lo stock iniziale non viene più impostato qui ma tramite il WarehouseMovementListener
+            // che reagirà al movimento di "Carico" creato sotto.
+            
             $now = new \DateTimeImmutable();
             $batch->setCreatedAt($now);
             $batch->setUpdatedAt($now);
@@ -1137,6 +1133,7 @@ final class BatchController extends AbstractController
         $sqFtAverageExpected = $batch->getSqFtAverageExpected() ?? 1;
         $quantity = $pieces * $sqFtAverageExpected;
 
+        $batchSelection = null;
         if (isset($data['batch_selection_id'])) {
             $batchSelection = $this->doctrine
                 ->getRepository(BatchSelection::class)
@@ -1145,10 +1142,6 @@ final class BatchController extends AbstractController
             if (!$batchSelection) {
                 return $this->doResponse->doErrorJsonResponse('Selezione batch non trovata', 404);
             }
-
-            $this->stockService->updateBatchAndSelectionStock($batch, $batchSelection, $quantity * $sign, $pieces * $sign);
-        } else {
-            $this->stockService->addStock($batch, $quantity * $sign, $pieces * $sign);
         }
 
         $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
@@ -1172,6 +1165,13 @@ final class BatchController extends AbstractController
         $movement->setPiece($pieces * $sign);
         $movement->setDate(new \DateTime());
         $movement->setMovementNote('Compensazione lotto');
+
+        if ($batchSelection) {
+            // Lo stock della selezione viene aggiornato manualmente perché non c'è ancora un listener su BatchSelection
+            $this->stockService->updateBatchAndSelectionStock($batch, $batchSelection, $quantity * $sign, $pieces * $sign);
+        }
+
+        // Il Batch stock viene aggiornato dal listener sul WarehouseMovement salvato sotto.
 
         if ($data['sign'] === '-') {
             $currentWaste = $batch->getCompensationWaste() ?? 0.0;
@@ -1210,29 +1210,12 @@ final class BatchController extends AbstractController
             $batch = $this->handleRelations($batch, $data);
             $batch = $this->createMethodsByInput->createMethods($batch, $data);
 
-            if ($batch->getMeasurementUnit()) {
-                $measurementUnit = $batch->getMeasurementUnit();
 
-                if ($measurementUnit->getPrefix() == 'MQ') {
-                    $coefficientUm = $measurementUnit->getMeasurementUnitCoefficients()->first();
-                    if ($batch->getPieces() > 0 && $batch->getQuantity() > 0 && $coefficientUm) {
-                        $batch->setSqFtAverageFound($batch->getPieces() / ($coefficientUm->getCoefficient() * $batch->getQuantity()));
-                    }
-                } elseif ($batch->getMeasurementUnit()->getPrefix() == 'PQ') {
-                    if ($batch->getPieces() > 0 && $batch->getQuantity() > 0) {
-                        $batch->setSqFtAverageFound($batch->getPieces() / $batch->getQuantity());
-                    }
-                }
-            }
-
-            if ($batch->getPieces() !== $oldPieces) {
-                $diffPieces = $batch->getPieces() - $oldPieces;
-                $this->stockService->addStock($batch, 0.0, (float)$diffPieces);
-            }
-
-            if ($batch->getQuantity() !== $oldQuantity) {
-                $diffQuantity = $batch->getQuantity() - $oldQuantity;
-                $this->stockService->addStock($batch, $diffQuantity, 0.0);
+            if ($batch->getPieces() !== $oldPieces || $batch->getQuantity() !== $oldQuantity) {
+                // Lo stock viene ricalcolato dal WarehouseMovementListener se ci sono movimenti.
+                // Se non ci sono movimenti, usiamo comunque lo StockService per allineare i campi.
+                $this->stockService->recalculateBatchStock($batch);
+                $this->stockService->updateBatchAverageFromMovements($batch);
             }
 
             if ($batch->isCompleted() === null) {

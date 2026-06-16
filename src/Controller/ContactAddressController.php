@@ -97,6 +97,8 @@ final class ContactAddressController extends AbstractController
         $address = new ContactAddress();
 
         try {
+            $address = $this->handleRelations($address, $data);
+
             if(isset($data['different_destination_id'])) {
                 $differentAddress = $this->doctrine->getRepository(ContactAddress::class)->find($data['different_destination_id']);
                 $address->setDifferentDestination($differentAddress);
@@ -109,10 +111,9 @@ final class ContactAddressController extends AbstractController
                 $address->setNation($differentAddress->getNation());
 
                 unset($data['different_destination_id']);
+            } else {
+                $address = $this->createMethodsByInput->createMethods($address, $data);
             }
-
-            $address = $this->handleRelations($address, $data);
-            $address = $this->createMethodsByInput->createMethods($address, $data);
 
             $now = new \DateTimeImmutable();
             $address->setCreatedAt($now);
@@ -163,6 +164,8 @@ final class ContactAddressController extends AbstractController
 
                 $address->setDefaultAddress(true);
             }
+            $address = $this->handleRelations($address, $data);
+
             if(isset($data['different_destination_id'])) {
                 $differentAddress = $this->doctrine->getRepository(ContactAddress::class)->find($data['different_destination_id']);
                 $address->setDifferentDestination($differentAddress);
@@ -175,10 +178,10 @@ final class ContactAddressController extends AbstractController
                 $address->setNation($differentAddress->getNation());
 
                 unset($data['different_destination_id']);
+            } else {
+                $address = $this->createMethodsByInput->createMethods($address, $data);
             }
 
-            $address = $this->handleRelations($address, $data);
-            $address = $this->createMethodsByInput->createMethods($address, $data);
             $address->setUpdatedAt(new \DateTimeImmutable());
 
             $errors = $validator->validate($address);
