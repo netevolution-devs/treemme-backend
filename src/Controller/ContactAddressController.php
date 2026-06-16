@@ -130,6 +130,15 @@ final class ContactAddressController extends AbstractController
         try {
             $address = $this->handleRelations($address, $data);
 
+            if(isset($data['default_address'])){
+                if($data['default_address'] == true || $data['default_address'] == 'true'){
+                    $address->setDefaultAddress(true);
+                } else {
+                    $address->setDefaultAddress(false);
+                }
+                unset($data['default_address']);
+            }
+
             if(isset($data['different_destination_id'])) {
                 $differentAddress = $this->doctrine->getRepository(ContactAddress::class)->find($data['different_destination_id']);
                 $address->setDifferentDestination($differentAddress);
