@@ -57,7 +57,33 @@ final class ContactAddressController extends AbstractController
         } else {
             $address = $contactAddressRepository->findBy([], ['address_name' => 'ASC']);
         }
-        $results = $this->groupSerializer->serializeGroup($address, $id ? 'contact_address_detail' : 'contact_address_list');
+        foreach ($address as $addressItem) {
+            if ($addressItem->getDifferentDestination() != null){
+                $differentDestination = $addressItem->getDifferentDestination();
+                $nationSerialized = $this->groupSerializer->serializeGroup($differentDestination->getNation(), 'contact_address_list');
+                $clientOrderSerialized = $this->groupSerializer->serializeGroup($addressItem->getClientOrders(), 'contact_address_list');
+                $results[] = [
+                    'id' => $addressItem->getId(),
+                    'different_destination_id' => $differentDestination->getId(),
+                    'different_destination' => true,
+                    'address_name' => $differentDestination->getAddressName(),
+                    'address' => $differentDestination->getAddress(),
+                    'address_2' => $differentDestination->getAddress2(),
+                    'address_3' => $differentDestination->getAddress3(),
+                    'address_4' => $differentDestination->getAddress4(),
+                    'client_orders' => $clientOrderSerialized,
+                    'nation' => $nationSerialized,
+                    'zip_code' => $differentDestination->getZipCode(),
+                    'default_address' => $addressItem->isDefaultAddress()
+                ];
+            } else{
+                $serializedAddress = $this->groupSerializer->serializeGroup($addressItem, 'contact_address_list');
+                $serializedAddress['different_destination'] = false;
+
+                $results[] = $serializedAddress;
+            }
+
+        }
 
         if ($id) {
             return new JsonResponse($this->doResponse->doResponse($results[0]));
