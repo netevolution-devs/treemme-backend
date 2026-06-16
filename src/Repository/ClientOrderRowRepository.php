@@ -74,4 +74,17 @@ class ClientOrderRowRepository extends ServiceEntityRepository
 
         return max(0.0, $totalBatchQuantity - $shippedQuantity);
     }
+    public function findNotProduced(): array
+    {
+        return $this->createQueryBuilder('cor')
+            ->join('cor.client_order', 'co')
+            ->where('cor.processed = false')
+            ->andWhere('cor.cancelled = false')
+            ->andWhere('co.cancelled = false')
+            ->andWhere('co.printed = false OR co.printed IS NULL')
+            ->orderBy('co.order_date', 'ASC')
+            ->addOrderBy('co.order_number', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

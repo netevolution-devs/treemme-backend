@@ -30,8 +30,6 @@ class ClientOrderRowService
         // Se la quantità spedita copre l'ordine, la riga è processata
         if ($shippedQuantity >= $row->getQuantity()) {
             $row->setProcessed(true);
-        } else {
-            $row->setProcessed(false);
         }
 
         $this->entityManager->persist($row);
