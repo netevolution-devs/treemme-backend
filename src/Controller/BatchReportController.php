@@ -126,8 +126,16 @@ class BatchReportController extends AbstractController
         $actualStockPieces = 0;
         $actualStockQuantity = 0.0;
         foreach ($batch->getWarehouseMovements() as $mov) {
-            $actualStockPieces += (float)($mov->getPiece() ?? 0.0);
-            $actualStockQuantity += (float)($mov->getQuantity() ?? 0.0);
+            $pieces = (float)($mov->getPiece() ?? 0.0);
+            $quantity = (float)($mov->getQuantity() ?? 0.0);
+
+            if ($mov->isOutgoing()) {
+                $actualStockPieces -= abs($pieces);
+                $actualStockQuantity -= abs($quantity);
+            } else {
+                $actualStockPieces += abs($pieces);
+                $actualStockQuantity += abs($quantity);
+            }
         }
 
         $actualStockQuantityFtsq = $this->convertToFtsq($actualStockQuantity, $um);
