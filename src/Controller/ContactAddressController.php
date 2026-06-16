@@ -62,10 +62,12 @@ final class ContactAddressController extends AbstractController
                 $differentDestination = $addressItem->getDifferentDestination();
                 $nationSerialized = $this->groupSerializer->serializeGroup($differentDestination->getNation(), 'contact_address_list');
                 $clientOrderSerialized = $this->groupSerializer->serializeGroup($addressItem->getClientOrders(), 'contact_address_list');
+                $contactSerialized = $this->groupSerializer->serializeGroup($differentDestination->getContact(), 'contact_address_list');
                 $results[] = [
                     'id' => $addressItem->getId(),
                     'different_destination_id' => $differentDestination->getId(),
                     'different_destination' => true,
+                    'contact' => $contactSerialized,
                     'address_name' => $differentDestination->getAddressName(),
                     'address' => $differentDestination->getAddress(),
                     'address_2' => $differentDestination->getAddress2(),
