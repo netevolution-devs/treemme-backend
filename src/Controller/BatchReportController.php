@@ -55,17 +55,19 @@ class BatchReportController extends AbstractController
             $data['report']['average_revenue_per_leather'] = $data['report']['total_revenue'] / $data['report']['sold_pieces'];
         }
 
-        if ($data['report']['total_pieces'] > 0 && $data['report']['total_quantity_ftsq'] > 0) {
-            $data['report']['average_ftsq_per_leather'] = $data['report']['total_quantity_ftsq'] / $data['report']['total_pieces'];
+        $quantityFt = $this->convertToFtsq($batch->getQuantity(), $batch->getMeasurementUnit());
+
+        if ($batch->getPieces() > 0 && $quantityFt > 0) {
+            $data['report']['average_ftsq_per_leather'] = $quantityFt / $batch->getPieces();
         } elseif ($data['report']['sold_pieces'] > 0 && $data['report']['sold_quantity_ftsq'] > 0) {
             $data['report']['average_ftsq_per_leather'] = $data['report']['sold_quantity_ftsq'] / $data['report']['sold_pieces'];
         }
 
         // Calcolo costo fiore: (costo totale / pezzi totali) - (ricavo della crosta / pezzi totali)
-        if ($data['report']['total_pieces'] > 0) {
+        if ($batch->getPieces() > 0) {
             $totalCosts = $data['report']['total_costs'] ?? 0.0;
             $scRevenue = $data['report']['sc_sale_revenue_euro_mq'] ?? 0.0;
-            $totalPieces = $data['report']['total_pieces'];
+            $totalPieces = $batch->getPieces();
 
             $flowerCostEuro = ($totalCosts / $totalPieces) - ($scRevenue / $totalPieces);
             $data['report']['flower_cost_euro_mq'] = $flowerCostEuro;
