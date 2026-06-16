@@ -131,7 +131,7 @@ final class ContactAddressController extends AbstractController
             $address = $this->handleRelations($address, $data);
 
             if(isset($data['default_address'])){
-                if($data['default_address'] == true || $data['default_address'] == 'true'){
+                if( $data['default_address'] == 'true'){
                     $address->setDefaultAddress(true);
                 } else {
                     $address->setDefaultAddress(false);
