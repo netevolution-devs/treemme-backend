@@ -57,6 +57,31 @@ final class ContactAddressController extends AbstractController
         } else {
             $address = $contactAddressRepository->findBy([], ['address_name' => 'ASC']);
         }
+
+        $results = $this->groupSerializer->serializeGroup($address, $id ? 'contact_address_detail' : 'contact_address_list');
+
+        if ($id) {
+            return new JsonResponse($this->doResponse->doResponse($results[0]));
+        }
+        return new JsonResponse($this->doResponse->doResponse($results));
+    }
+
+    #[Route('/contact/{id}/contact-address',
+        name: 'get_contact_address_list',
+        defaults: ['id' => null],
+        requirements: ['id' => '\d*'],
+        methods: ['GET', 'HEAD'])]
+    public function getContactAddressList(int $id): JsonResponse
+    {
+        $contactRepository = $this->doctrine->getRepository(Contact::class);
+
+        $contact = $contactRepository->find($id);
+        if (!$contact) {
+            return $this->doResponse->doErrorJsonResponse('Contact not found', 404);
+        }
+
+        $address = $contact->getContactAddresses();
+
         foreach ($address as $addressItem) {
             if ($addressItem->getDifferentDestination() != null){
                 $differentDestination = $addressItem->getDifferentDestination();
@@ -86,28 +111,6 @@ final class ContactAddressController extends AbstractController
             }
 
         }
-
-        if ($id) {
-            return new JsonResponse($this->doResponse->doResponse($results[0]));
-        }
-        return new JsonResponse($this->doResponse->doResponse($results));
-    }
-
-    #[Route('/contact/{id}/contact-address',
-        name: 'get_contact_address_list',
-        defaults: ['id' => null],
-        requirements: ['id' => '\d*'],
-        methods: ['GET', 'HEAD'])]
-    public function getContactAddressList(int $id): JsonResponse
-    {
-        $contactRepository = $this->doctrine->getRepository(Contact::class);
-
-        $contact = $contactRepository->find($id);
-        if (!$contact) {
-            return $this->doResponse->doErrorJsonResponse('Contact not found', 404);
-        }
-        $address = $contact->getContactAddresses();
-        $results = $this->groupSerializer->serializeGroup($address, 'contact_address_list');
 
         return new JsonResponse($this->doResponse->doResponse($results));
 
