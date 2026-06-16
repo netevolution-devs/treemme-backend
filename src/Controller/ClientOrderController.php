@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\ClientOrder;
+use App\Entity\ClientOrderRow;
 use App\Entity\Contact;
 use App\Entity\ContactAddress;
 use App\Entity\Payment;
@@ -142,6 +143,49 @@ final class ClientOrderController extends AbstractController
         return new Response($pdfContent, 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="conferma_ordine_' . $order->getOrderNumber() . '.pdf"'
+        ]);
+    }
+
+    #[Route('/client-order/production-report/pdf',
+        name: 'get_client_order_production_report_pdf',
+        methods: ['GET'])]
+    public function generateProductionReportPdf(): Response
+    {
+        $rows = $this->doctrine->getRepository(ClientOrderRow::class)->findNotProduced();
+
+        $groupedRows = [];
+        foreach ($rows as $row) {
+            $typeName = 'Nessun Tipo';
+            if ($row->getArticle() && $row->getArticle()->getArticleType()) {
+                $typeName = $row->getArticle()->getArticleType()->getName();
+            }
+            $groupedRows[$typeName][] = $row;
+        }
+
+        $pdfContent = $this->pdfGenerator->generatePdf('print/production_report_pdf.html.twig', [
+            'groupedRows' => $groupedRows,
+            'date' => new \DateTime(),
+            'app_root' => $this->getParameter('kernel.project_dir')
+        ], 'programma_produzione.pdf');
+
+        // Segna gli ordini coinvolti come stampati
+        $em = $this->doctrine;
+        $ordersToUpdate = [];
+        foreach ($rows as $row) {
+            $order = $row->getClientOrder();
+            if ($order && !$order->isPrinted()) {
+                $ordersToUpdate[$order->getId()] = $order;
+            }
+        }
+        foreach ($ordersToUpdate as $order) {
+            $order->setPrinted(true);
+            $order->setPrintDate(new \DateTime());
+        }
+        $em->flush();
+
+        return new Response($pdfContent, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="programma_produzione.pdf"'
         ]);
     }
 
