@@ -60,8 +60,8 @@ class StockService
                 continue;
             }
 
-            // Consideriamo solo gli scarichi per la media taglia venduta
-            if ($reason->getReasonType()->getMovementType() === '-') {
+            // Consideriamo solo gli scarichi con causale "Vendita" per la media taglia venduta
+            if ($reason->getReasonType()->getMovementType() === '-' && $reason->getName() === 'Vendita') {
                 $totalPieces += abs((float)($movement->getPiece() ?? 0.0));
                 $totalQuantity += abs($movement->getQuantity() ?? 0.0);
             }
