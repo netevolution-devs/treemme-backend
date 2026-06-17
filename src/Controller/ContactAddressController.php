@@ -80,6 +80,7 @@ final class ContactAddressController extends AbstractController
             return $this->doResponse->doErrorJsonResponse('Contact not found', 404);
         }
 
+        $results = [];
         $address = $contact->getContactAddresses();
 
         foreach ($address as $addressItem) {
