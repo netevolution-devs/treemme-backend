@@ -298,8 +298,8 @@
         <div class="signature-line" style="width: 50%; margin-top: 0; "></div>
         <p><span class="bold">PAGAMENTO:</span> {{ order.payment ? order.payment.name : '' }}</p>
         <p><span class="bold">RESA MERCE:</span> {{ order.shipmentCondition ? order.shipmentCondition.name : '' }}</p>
-        {% if order.agent %}
-            <p><span class="bold">VETTORE:</span> {{ order.agent.name }}</p>
+        {% if order.shippingCarrier %}
+            <p><span class="bold">VETTORE:</span> {{ order.shippingCarrier }}</p>
         {% endif %}
         {% if order.address.addressName|trim == 'DEST. DIVERSA'|trim %}
             <p><span class="bold"> DEST. DIVERSA:</span>{{ order.address.address }},
