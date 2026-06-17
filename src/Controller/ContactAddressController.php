@@ -144,6 +144,7 @@ final class ContactAddressController extends AbstractController
                 $differentAddress = $this->doctrine->getRepository(ContactAddress::class)->find($data['different_destination_id']);
                 $address->setDifferentDestination($differentAddress);
 
+                $address->setAddressName('DEST. DIVERSA');
                 $address->setAddress($differentAddress->getAddress());
                 $address->setAddress2($differentAddress->getAddress2());
                 $address->setAddress3($differentAddress->getAddress3());
@@ -211,6 +212,7 @@ final class ContactAddressController extends AbstractController
                 $differentAddress = $this->doctrine->getRepository(ContactAddress::class)->find($data['different_destination_id']);
                 $address->setDifferentDestination($differentAddress);
 
+                $address->setAddressName('DEST. DIVERSA');
                 $address->setAddress($differentAddress->getAddress());
                 $address->setAddress2($differentAddress->getAddress2());
                 $address->setAddress3($differentAddress->getAddress3());

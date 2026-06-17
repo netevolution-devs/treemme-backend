@@ -40,11 +40,17 @@
                     <strong style="font-size: 11pt;">{{ clientGroup.client.name }}</strong>
                 </td>
                 <td style="width: 35%;">
-                    <span class="label">Sede/Destinazione Principale:</span>
-                    {% if clientGroup.firstAddress %}
-                        {{ clientGroup.firstAddress.address }},
-                        {{ clientGroup.firstAddress.zip_code }}, {{ clientGroup.firstAddress.address_name }}
-                    {% else %}
+                    <span class="label">Sede:</span>
+                    {% if clientGroup.sedeAddress %}
+                        <div>{{ clientGroup.sedeAddress.address }}, {{ clientGroup.sedeAddress.zip_code }}</div>
+                    {% endif %}
+                    {% if clientGroup.destDiversaAddress %}
+                        <div style="margin-top: 5px;">
+                            <span class="label">Dest. Diversa:</span>
+                            {{ clientGroup.destDiversaAddress.address }}, {{ clientGroup.destDiversaAddress.zip_code }}
+                        </div>
+                    {% endif %}
+                    {% if not clientGroup.sedeAddress and not clientGroup.destDiversaAddress %}
                         -
                     {% endif %}
                 </td>
@@ -52,6 +58,9 @@
                     <span class="label">Agente Associato:</span>
                     {% if clientGroup.firstAgent %}
                         {{ clientGroup.firstAgent.name }}
+                        {% if clientGroup.agentPercentage %}
+                            ({{ clientGroup.agentPercentage }}%)
+                        {% endif %}
                     {% else %}
                         -
                     {% endif %}
@@ -68,7 +77,9 @@
                 </td>
                 <td style="width: 25%;">
                     <span class="label">Note Cliente:</span>
-                    {{ clientGroup.client.client_note|default('-') }}
+                    {{ clientGroup.client.client_note|default('-') }} <br>
+                    <span class="label">Note Sped.:</span>
+                    {{ clientGroup.client.client_shipment_note|default('-') }} <br>
                 </td>
             </tr>
         </table>
