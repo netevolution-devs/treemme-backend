@@ -42,12 +42,12 @@
                 <td style="width: 35%;">
                     <span class="label">Sede:</span>
                     {% if clientGroup.sedeAddress %}
-                        <div>{{ clientGroup.sedeAddress.address }}, {{ clientGroup.sedeAddress.zip_code }}</div>
+                        <div>{{ clientGroup.sedeAddress.address }}, {{ clientGroup.sedeAddress.zip_code }}, {{ clientGroup.sedeAddress.nation.name }}</div>
                     {% endif %}
                     {% if clientGroup.destDiversaAddress %}
                         <div style="margin-top: 5px;">
-                            <span class="label">Dest. Diversa:</span>
-                            {{ clientGroup.destDiversaAddress.address }}, {{ clientGroup.destDiversaAddress.zip_code }}
+                            <span class="label">Dest. Merce:</span>
+                            {{ clientGroup.destDiversaAddress.address }}, {{ clientGroup.destDiversaAddress.zip_code }}, {{ clientGroup.destDiversaAddress.nation.name }}
                         </div>
                     {% endif %}
                     {% if not clientGroup.sedeAddress and not clientGroup.destDiversaAddress %}
@@ -87,7 +87,9 @@
         {% for order in clientGroup.orders %}
             <div class="order-header" >
                 <span class="{{ order.details.checked ? 'ok-status' : 'not-ok-status' }}">{{ order.details.checked ? 'OK' : 'KO' }}</span> | {{ order.details.order_number }} DEL {{ order.details.order_date|date('d/m/Y') }}
-                | RIF CLT: {{ order.details.client_order_number ?: '-' }} DEL {{ order.details.client_order_date ? order.details.client_order_date|date('d/m/Y') : '-' }} | NOTE AMM: {{ order.details.order_note_administration ? order.details.order_note_administration : '-'}}
+                | RIF CLT: {{ order.details.client_order_number ?: '-' }} DEL {{ order.details.client_order_date ? order.details.client_order_date|date('d/m/Y') : '-' }}
+                | RIF AGT: {{ order.details.agent_order_number ?: '-' }} DEL {{ order.details.agent_order_date ? order.details.agent_order_date|date('d/m/Y') : '-' }}
+                | NOTE AMM: {{ order.details.order_note_administration ? order.details.order_note_administration : '-'}}
             </div>
             <table class="rows-table">
                 <tbody>
