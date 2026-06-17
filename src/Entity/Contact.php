@@ -219,6 +219,10 @@ class Contact
     #[Groups(['contact_detail', 'contact_subcontractor_list'])]
     private Collection $processings;
 
+    #[ORM\ManyToOne(inversedBy: 'contacts')]
+    #[Groups(['contact_detail', 'client_summary_print'])]
+    private ?ShippingCarrier $shipping_carrier = null;
+
     public function __construct()
     {
         $this->contactAddresses = new ArrayCollection();
@@ -966,6 +970,18 @@ class Contact
     public function removeProcessing(Processing $processing): static
     {
         $this->processings->removeElement($processing);
+
+        return $this;
+    }
+
+    public function getShippingCarrier(): ?ShippingCarrier
+    {
+        return $this->shipping_carrier;
+    }
+
+    public function setShippingCarrier(?ShippingCarrier $shipping_carrier): static
+    {
+        $this->shipping_carrier = $shipping_carrier;
 
         return $this;
     }
