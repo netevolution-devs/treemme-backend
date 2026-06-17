@@ -31,6 +31,7 @@ final class ClientOrderRowController extends AbstractController
     private $groupSerializer;
     private $validatorOutputFormatter;
     private $actionLogger;
+    private $pdfGenerator;
     private $clientOrderRowService;
 
     public function __construct(
@@ -206,25 +207,35 @@ final class ClientOrderRowController extends AbstractController
 
             $cId = $client->getId();
             if (!isset($groupedData[$cId])) {
-                // Prendi la prima destinazione (ID più basso)
-                $firstAddress = null;
-                $addresses = $client->getContactAddresses()->toArray();
-                if (!empty($addresses)) {
-                    usort($addresses, fn($a, $b) => $a->getId() <=> $b->getId());
-                    $firstAddress = $addresses[0];
+                // Prendi gli indirizzi SEDE e DEST. DIVERSA
+                $sedeAddress = null;
+                $destDiversaAddress = null;
+                foreach ($client->getContactAddresses() as $addr) {
+                    if (strtoupper($addr->getAddressName()) === 'SEDE') {
+                        $sedeAddress = $addr;
+                    } elseif (strtoupper($addr->getAddressName()) === 'DEST. DIVERSA') {
+                        $destDiversaAddress = $addr;
+                    }
                 }
 
-                // Prendi il primo agente associato
+                // Prendi il primo agente associato e la sua percentuale
                 $firstAgent = null;
+                $agentPercentage = null;
                 $agents = $client->getContactAgents();
                 if (!$agents->isEmpty()) {
-                    $firstAgent = $agents->first()->getAgent();
+                    $firstAgentEntity = $agents->first()->getAgent();
+                    if ($firstAgentEntity) {
+                        $firstAgent = $this->groupSerializer->serializeGroup($firstAgentEntity, 'client_summary_print');
+                        $agentPercentage = $firstAgentEntity->getAgentPercentage();
+                    }
                 }
 
                 $groupedData[$cId] = [
                     'client' => $this->groupSerializer->serializeGroup($client, 'client_summary_print'),
-                    'firstAddress' => $firstAddress ? $this->groupSerializer->serializeGroup($firstAddress, 'client_summary_print') : null,
-                    'firstAgent' => $firstAgent ? $this->groupSerializer->serializeGroup($firstAgent, 'client_summary_print') : null,
+                    'sedeAddress' => $sedeAddress ? $this->groupSerializer->serializeGroup($sedeAddress, 'client_summary_print') : null,
+                    'destDiversaAddress' => $destDiversaAddress ? $this->groupSerializer->serializeGroup($destDiversaAddress, 'client_summary_print') : null,
+                    'firstAgent' => $firstAgent,
+                    'agentPercentage' => $agentPercentage,
                     'orders' => []
                 ];
             }
