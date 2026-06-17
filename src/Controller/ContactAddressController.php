@@ -82,6 +82,8 @@ final class ContactAddressController extends AbstractController
 
         $address = $contact->getContactAddresses();
 
+        $results = [];
+
         foreach ($address as $addressItem) {
             if ($addressItem->getDifferentDestination() != null){
                 $differentDestination = $addressItem->getDifferentDestination();
