@@ -48,7 +48,7 @@ class Contact
      */
     #[ORM\OneToMany(mappedBy: 'contact', targetEntity: ContactAddress::class, orphanRemoval: true)]
     #[ORM\OrderBy(['default_address' => 'DESC'])]
-    #[Groups(['contact_list','contact_client','contact_supplier','contact_agent_list','contact_subcontractor_list', 'client_summary_print'])]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list','contact_subcontractor_list', 'client_summary_print'])]
     private Collection $contactAddresses;
 
     #[ORM\Column]

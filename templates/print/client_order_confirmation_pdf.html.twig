@@ -208,8 +208,8 @@
         </div>
 
         <div class="subject">
-            OGGETTO: CONFERMA VOSTRO ORDINE &nbsp; {{ order.clientOrderNumber }}
-            DEL {{ order.clientOrderDate ? order.clientOrderDate|date('d/m/Y') : '' }} &nbsp; NOSTRO
+            OGGETTO: CONFERMA VOSTRO ORDINE &nbsp; {{ order.agentOrderNumber ? order.agentOrderNumber : order.clientOrderNumber }}
+            DEL {{ order.agentOrderDate ? order.agentOrderDate|date('d/m/Y') : (order.clientOrderDate ? order.clientOrderDate|date('d/m/Y'): '') }} &nbsp; NOSTRO
             RIF {{ order.orderNumber }}
         </div>
 
