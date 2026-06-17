@@ -106,7 +106,7 @@ class ClientOrderRow
      * @var Collection<int, BatchOrder>
      */
     #[ORM\OneToMany(mappedBy: 'order_row', targetEntity: BatchOrder::class)]
-    #[Groups(['client_order_row_list'])]
+    #[Groups(['client_order_row_list', 'client_summary_print'])]
     private Collection $batchOrders;
 
     #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
