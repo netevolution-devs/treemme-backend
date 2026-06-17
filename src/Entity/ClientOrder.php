@@ -56,11 +56,11 @@ class ClientOrder
     private ?\DateTime $client_order_date = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_order_row_list'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?string $agent_order_number = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_order_row_list'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?\DateTime $agent_order_date = null;
 
     #[ORM\ManyToOne(inversedBy: 'clientOrders')]
