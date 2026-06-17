@@ -10,6 +10,7 @@ use App\Entity\ContactTitle;
 use App\Entity\Payment;
 use App\Entity\ShipmentCondition;
 use App\Entity\Processing;
+use App\Entity\ShippingCarrier;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -466,6 +467,14 @@ final class ContactController extends AbstractController
                 }
             }
             unset($data['subcontractor_id']);
+        }
+
+        if(isset($data['shipping_carrier_id'])) {
+            $shippingCarrier = $this->doctrine->getRepository(ShippingCarrier::class)->find($data['shipping_carrier_id']);
+            if ($shippingCarrier) {
+                $contact->setShippingCarrier($shippingCarrier);
+            }
+            unset($data['shipping_carrier_id']);
         }
 
         return $contact;
