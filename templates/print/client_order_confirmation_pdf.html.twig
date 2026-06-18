@@ -299,7 +299,7 @@
         <p><span class="bold">PAGAMENTO:</span> {{ order.payment ? order.payment.name : '' }}</p>
         <p><span class="bold">RESA MERCE:</span> {{ order.shipmentCondition ? order.shipmentCondition.name : '' }}</p>
         {% if order.shippingCarrier %}
-            <p><span class="bold">VETTORE:</span> {{ order.shippingCarrier }}</p>
+            <p><span class="bold">VETTORE:</span> {{ order.shippingCarrier.name }}</p>
         {% endif %}
         {% if order.address.addressName|trim == 'DEST. DIVERSA'|trim %}
             <p><span class="bold"> DEST. DIVERSA:</span>{{ order.address.address }},
