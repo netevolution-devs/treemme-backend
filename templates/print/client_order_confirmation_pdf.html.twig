@@ -301,7 +301,7 @@
         {% if order.shippingCarrier %}
             <p><span class="bold">VETTORE:</span> {{ order.shippingCarrier.name }}</p>
         {% endif %}
-        {% if order.address.addressName|trim == 'DEST. DIVERSA'|trim %}
+        {% if order.address and (order.address.addressName|trim == 'DEST. DIVERSA'|trim) %}
             <p><span class="bold"> DEST. DIVERSA:</span>{{ order.address.address }},
 
                 {% if order.address.address2 %}
