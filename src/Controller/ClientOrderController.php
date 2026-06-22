@@ -149,9 +149,29 @@ final class ClientOrderController extends AbstractController
     #[Route('/client-order/production-report/pdf',
         name: 'get_client_order_production_report_pdf',
         methods: ['GET'])]
-    public function generateProductionReportPdf(): Response
+    public function generateProductionReportPdf(Request $request): Response
     {
-        $rows = $this->doctrine->getRepository(ClientOrderRow::class)->findNotProduced();
+        $startDateStr = $request->query->get('start_date');
+        $endDateStr = $request->query->get('end_date');
+        $printedStatus = $request->query->get('print_status');
+
+        $startDate = null;
+        if ($startDateStr) {
+            try {
+                $startDate = new \DateTime($startDateStr);
+            } catch (\Exception $e) {
+            }
+        }
+
+        $endDate = null;
+        if ($endDateStr) {
+            try {
+                $endDate = new \DateTime($endDateStr);
+            } catch (\Exception $e) {
+            }
+        }
+
+        $rows = $this->doctrine->getRepository(ClientOrderRow::class)->findByProductionCriteria($startDate, $endDate, $printedStatus);
 
         $groupedRows = [];
         foreach ($rows as $row) {
@@ -168,7 +188,7 @@ final class ClientOrderController extends AbstractController
             'app_root' => $this->getParameter('kernel.project_dir')
         ], 'programma_produzione.pdf');
 
-        // Segna gli ordini coinvolti come stampati
+        // Segna gli ordini coinvolti come stampati (solo se non lo erano già)
         $em = $this->doctrine;
         $ordersToUpdate = [];
         foreach ($rows as $row) {
