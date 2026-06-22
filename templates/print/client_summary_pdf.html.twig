@@ -96,7 +96,7 @@
                     {% for row in order.rows %}
                         <tr>
                             <td style="width: 30%;">
-                                {{ row.weight }} {{ row.article.name }} <br>
+                                {{ row.article.client_code }}{{ row.article.client_code_note ? ' | ' ~ row.article.client_code_note : '' }}<br>
                                 Note amm {{ row.administration_row_note }}
                             </td>
 
