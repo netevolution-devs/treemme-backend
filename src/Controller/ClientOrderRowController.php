@@ -127,8 +127,9 @@ final class ClientOrderRowController extends AbstractController
                 }
             }
 
-            // Consideriamo "prodotto" se la quantità totale associata ai lotti è >= alla quantità ordinata
-            $isProduced = $totalProduced >= (float)$row->getQuantity();
+            // Consideriamo "prodotto" se non c'è più differenza tra quantità ordinata e prodotta (lotti)
+            $difference = (float)$row->getQuantity() - $totalProduced;
+            $isProduced = $difference <= 0;
 
             if ($productionStatus === 'produced' && !$isProduced) continue;
             if ($productionStatus === 'to_produce' && $isProduced) continue;
@@ -196,8 +197,9 @@ final class ClientOrderRowController extends AbstractController
                 }
             }
 
-            // Consideriamo "prodotto" se la quantità totale associata ai lotti è >= alla quantità ordinata
-            $isProduced = $totalProduced >= (float)$row->getQuantity();
+            // Consideriamo "prodotto" se non c'è più differenza tra quantità ordinata e prodotta (lotti)
+            $difference = (float)$row->getQuantity() - $totalProduced;
+            $isProduced = $difference <= 0;
 
             if ($productionStatus === 'produced' && !$isProduced) continue;
             if ($productionStatus === 'to_produce' && $isProduced) continue;
