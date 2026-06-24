@@ -1044,7 +1044,7 @@ final class BatchController extends AbstractController
             // Lo stock iniziale non viene più impostato qui ma tramite il WarehouseMovementListener
             // che reagirà al movimento di "Carico" creato sotto.
 
-            $batch->setStockItem($pieces);
+            $batch->setStockItems($pieces);
             $batch->setStockQuantity($quantity);
             $now = new \DateTimeImmutable();
             $batch->setCreatedAt($now);
