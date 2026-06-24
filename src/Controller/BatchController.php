@@ -1170,7 +1170,10 @@ final class BatchController extends AbstractController
 
         if ($batchSelection) {
             // Lo stock della selezione viene aggiornato manualmente perché non c'è ancora un listener su BatchSelection
-            $this->stockService->updateBatchAndSelectionStock($batch, $batchSelection, $quantity * $sign, $pieces * $sign);
+            // Aggiorniamo solo la selezione per evitare raddoppio sul Batch (gestito dal listener sul movimento)
+            $batchSelection->setStockQuantity(($batchSelection->getStockQuantity() ?? 0.0) + ($quantity * $sign));
+            $batchSelection->setStockPieces(($batchSelection->getStockPieces() ?? 0.0) + ($pieces * $sign));
+            $this->doctrine->persist($batchSelection);
         }
 
         // Il Batch stock viene aggiornato dal listener sul WarehouseMovement salvato sotto.

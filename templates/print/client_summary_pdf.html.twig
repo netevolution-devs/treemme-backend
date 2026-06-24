@@ -107,7 +107,7 @@
                                             {{ row.measurement_unit.prefix }} {{ row.quantity }}
                                         </td>
                                         <td style="width: 14%; font-size: 10px;">
-                                            € {{ row.total_price|number_format(2, ',', '.') }}
+                                            € {{ row.currency_price|number_format(2, ',', '.') }}
                                         </td>
                                         <td style="width: 14%; font-size: 10px;">
                                             {{ row.delivery_date_confirmed ? row.delivery_date_confirmed|date('d/m/Y') : '-' }}

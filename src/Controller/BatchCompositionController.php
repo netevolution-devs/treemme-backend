@@ -159,33 +159,13 @@ final class BatchCompositionController extends AbstractController
             $batch = $batchComposition->getBatch();
             $childQuantity = (float) ($batchComposition->getFatherBatchQuantity() ?? 0.0);
 
-            if ($fatherBatch && $batch) {
-                $fatherUm = $fatherBatch->getMeasurementUnit();
-                $childUm = $batch->getMeasurementUnit();
-
-                if ($fatherUm && $childUm && $fatherUm->getId() !== $childUm->getId()) {
-                    $coefficient = $this->doctrine->getRepository(MeasurementUnitCoefficient::class)->findOneBy([
-                        'start_um' => $fatherUm,
-                        'end_um' => $childUm
-                    ]);
-
-                    if ($coefficient) {
-                        $childQuantity = (float) ($batchComposition->getFatherBatchQuantity() ?? 0.0) * $coefficient->getCoefficient();
-                    }
+                // L'aggiornamento dello stock del Batch viene gestito automaticamente dai movimenti creati in createMovements()
+                // Manteniamo solo l'aggiornamento della Selezione se presente
+                if ($batchSelection) {
+                    $batchSelection->setStockQuantity(($batchSelection->getStockQuantity() ?? 0.0) - (float)$batchComposition->getFatherBatchQuantity());
+                    $batchSelection->setStockPieces(($batchSelection->getStockPieces() ?? 0.0) - (float)$batchComposition->getFatherBatchPiece());
+                    $this->doctrine->persist($batchSelection);
                 }
-
-                $this->stockService->updateBatchAndSelectionStock($batch, null, $childQuantity, (float)$batchComposition->getFatherBatchPiece(), true);
-            }
-
-            $errors = $validator->validate($batchComposition);
-            if (count($errors) > 0) {
-                $errors = $this->validatorOutputFormatter->formatOutput($errors);
-                return $this->doResponse->doErrorJsonResponse($errors);
-            }
-
-            if ($fatherBatch) {
-                $this->stockService->updateBatchAndSelectionStock($fatherBatch, $batchSelection, -(float)$batchComposition->getFatherBatchQuantity(), -(float)$batchComposition->getFatherBatchPiece());
-            }
 
             $em = $this->doctrine;
             $em->persist($batchComposition);
@@ -226,25 +206,13 @@ final class BatchCompositionController extends AbstractController
             $oldQuantity = (float)($batchComposition->getFatherBatchQuantity() ?? 0.0);
 
             if ($oldFatherBatch && $oldBatch) {
-                // Sottraiamo dal figlio (ripristino)
-                $oldChildQuantity = $oldQuantity;
-                $oldFatherUm = $oldFatherBatch->getMeasurementUnit();
-                $oldChildUm = $oldBatch->getMeasurementUnit();
-
-                if ($oldFatherUm && $oldChildUm && $oldFatherUm->getId() !== $oldChildUm->getId()) {
-                    $coefficient = $this->doctrine->getRepository(MeasurementUnitCoefficient::class)->findOneBy([
-                        'start_um' => $oldFatherUm,
-                        'end_um' => $oldChildUm
-                    ]);
-                    if ($coefficient) {
-                        $oldChildQuantity = $oldQuantity * $coefficient->getCoefficient();
-                    }
+                // Lo stock del Batch viene ricalcolato dal listener alla cancellazione/modifica dei movimenti.
+                // Qui dobbiamo solo ripristinare la Selezione.
+                if ($oldSelection) {
+                    $oldSelection->setStockQuantity(($oldSelection->getStockQuantity() ?? 0.0) + $oldQuantity);
+                    $oldSelection->setStockPieces(($oldSelection->getStockPieces() ?? 0.0) + (float)$oldPieces);
+                    $this->doctrine->persist($oldSelection);
                 }
-
-                $this->stockService->updateBatchAndSelectionStock($oldBatch, null, -$oldChildQuantity, -(float)$oldPieces, true);
-
-                // Ripristiniamo nel padre
-                $this->stockService->updateBatchAndSelectionStock($oldFatherBatch, $oldSelection, $oldQuantity, (float)$oldPieces);
             }
 
             // 2. Applichiamo le modifiche
@@ -271,23 +239,13 @@ final class BatchCompositionController extends AbstractController
             $newQuantity = (float)($batchComposition->getFatherBatchQuantity() ?? 0.0);
 
             if ($newFatherBatch && $newBatch) {
-                $newChildQuantity = $newQuantity;
-                $newFatherUm = $newFatherBatch->getMeasurementUnit();
-                $newChildUm = $newBatch->getMeasurementUnit();
-
-                if ($newFatherUm && $newChildUm && $newFatherUm->getId() !== $newChildUm->getId()) {
-                    $coefficient = $this->doctrine->getRepository(MeasurementUnitCoefficient::class)->findOneBy([
-                        'start_um' => $newFatherUm,
-                        'end_um' => $newChildUm
-                    ]);
-                    if ($coefficient) {
-                        $newChildQuantity = $newQuantity * $coefficient->getCoefficient();
-                    }
+                // Lo stock del Batch viene gestito dai movimenti.
+                // Aggiorniamo solo la Selezione.
+                if ($newSelection) {
+                    $newSelection->setStockQuantity(($newSelection->getStockQuantity() ?? 0.0) - $newQuantity);
+                    $newSelection->setStockPieces(($newSelection->getStockPieces() ?? 0.0) - (float)$newPieces);
+                    $this->doctrine->persist($newSelection);
                 }
-
-                $this->stockService->updateBatchAndSelectionStock($newBatch, null, $newChildQuantity, (float)$newPieces, true);
-
-                $this->stockService->updateBatchAndSelectionStock($newFatherBatch, $newSelection, -$newQuantity, -(float)$newPieces);
             }
 
             $errors = $validator->validate($batchComposition);
@@ -327,25 +285,13 @@ final class BatchCompositionController extends AbstractController
             $quantity = (float)($batchComposition->getFatherBatchQuantity() ?? 0.0);
 
             if ($fatherBatch && $batch) {
-                // Sottraiamo dal figlio
-                $childQuantity = $quantity;
-                $fatherUm = $fatherBatch->getMeasurementUnit();
-                $childUm = $batch->getMeasurementUnit();
-
-                if ($fatherUm && $childUm && $fatherUm->getId() !== $childUm->getId()) {
-                    $coefficient = $this->doctrine->getRepository(MeasurementUnitCoefficient::class)->findOneBy([
-                        'start_um' => $fatherUm,
-                        'end_um' => $childUm
-                    ]);
-                    if ($coefficient) {
-                        $childQuantity = $quantity * $coefficient->getCoefficient();
-                    }
+                // Lo stock del Batch viene ricalcolato dal listener quando eliminiamo i movimenti.
+                // Dobbiamo solo ripristinare la Selezione.
+                if ($selection) {
+                    $selection->setStockQuantity(($selection->getStockQuantity() ?? 0.0) + $quantity);
+                    $selection->setStockPieces(($selection->getStockPieces() ?? 0.0) + (float)$pieces);
+                    $this->doctrine->persist($selection);
                 }
-
-                $this->stockService->updateBatchAndSelectionStock($batch, null, -$childQuantity, -(float)$pieces, true);
-
-                // Ripristiniamo nel padre
-                $this->stockService->updateBatchAndSelectionStock($fatherBatch, $selection, $quantity, (float)$pieces);
             }
 
             $this->deleteExistingMovements($batchComposition);
