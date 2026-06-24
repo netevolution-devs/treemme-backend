@@ -148,6 +148,11 @@ final class WerehouseMovementController extends AbstractController
             }
             $movement->setMovementNote($data['note'] ?? 'Rientro da contolavoro massivo');
 
+            if (isset($data['closed']) && $data['closed'] === true) {
+                $batch->setCompleted(true);
+                $this->doctrine->persist($batch);
+            }
+
             $this->doctrine->persist($movement);
             
             $movements[] = $movement;
