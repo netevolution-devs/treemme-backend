@@ -804,13 +804,6 @@ final class DdtRowController extends AbstractController
         $this->doctrine->persist($warehouseMovement);
         $this->doctrine->flush();
 
-        $this->stockService->addStock($batch, (float)$quantity, (float)$pieces);
-
-        $this->updateBatchSqFtAverageFound($batch);
-
-        $this->doctrine->persist($batch);
-        $this->doctrine->flush();
-
         $results = $this->groupSerializer->serializeGroup([$ddtRow], 'ddt_row_detail');
         return new JsonResponse($this->doResponse->doResponse($results[0]));
     }
@@ -882,11 +875,6 @@ final class DdtRowController extends AbstractController
             }
 
             $this->doctrine->persist($warehouseMovement);
-
-            $this->stockService->addStock($batch, (float)$quantity, (float)$pieces);
-
-            $this->updateBatchSqFtAverageFound($batch);
-            $this->doctrine->persist($batch);
 
             $processedRows[] = $ddtRow;
         }
@@ -1082,13 +1070,7 @@ final class DdtRowController extends AbstractController
             $movementOut->setMovementNote('Trasferimento da riga DDT ' . $ddtRow->getId());
             $movementOut->setContact($subcontractor);
             $this->doctrine->persist($movementOut);
-
-            // Aggiorno stock del lotto per l'uscita
-            $this->stockService->removeStock($batch, (float)$quantity, (float)$pieces);
         }
-
-        $this->updateBatchSqFtAverageFound($batch);
-        $this->doctrine->persist($batch);
 
         $this->doctrine->flush();
 
