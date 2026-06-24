@@ -110,7 +110,7 @@ final class DdtRowController extends AbstractController
             }
 
             $batch = $ddtRow->getBatch();
-            if (!$batch) {
+            if (!$batch || $batch->isCompleted()) {
                 continue;
             }
 
@@ -734,39 +734,6 @@ final class DdtRowController extends AbstractController
         $ddt = $ddtRow->getDdt();
 
         if ($closed) {
-            $wasteReason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Scarto']);
-            if (!$wasteReason) {
-                $reasonTypeOut = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => '-']);
-                if ($reasonTypeOut) {
-                    $wasteReason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['reason_type' => $reasonTypeOut]);
-                }
-            }
-
-            if ($wasteReason) {
-                $wasteMovement = new WarehouseMovement();
-                $wasteMovement->setBatch($batch);
-                $wasteMovement->setQuantity($quantity);
-                $wasteMovement->setPiece($pieces);
-                $wasteMovement->setReason($wasteReason);
-                $wasteMovement->setDdtNumber($ddtRow->getDdt()->getDdtNumber());
-                $wasteMovement->setDdtDate($ddtRow->getDdt()->getDdtDate());
-                $wasteMovement->setDate(new \DateTime());
-                $wasteMovement->setMovementNote('Scarto riga DDT ' . $ddtRow->getId() . ' del DDT ' . $ddtRow->getDdt()->getDdtNumber());
-
-                if ($ddt->getSubcontractor()) {
-                    $wasteMovement->setContact($ddt->getSubcontractor());
-                } elseif ($ddt->getClient()) {
-                    $wasteMovement->setContact($ddt->getClient());
-                }
-
-                $this->doctrine->persist($wasteMovement);
-                // NOTA: lo scarto diminuisce lo stock (se la causale è di tipo '-')
-                // Quindi non dobbiamo aggiungere stock manualmente qui se usiamo WarehouseMovement e la causale corretta.
-                // In realtà postDdtRowReturn originariamente aggiungeva stock per lo scarto e poi di nuovo per il reso.
-                // Se closed = true, stiamo dicendo che quello che non è tornato è scarto.
-            }
-
-            $batch->setCompensationWaste(($batch->getCompensationWaste() ?? 0) + $pieces);
             $batch->setCompleted(true);
             $this->doctrine->persist($batch);
         }
