@@ -395,7 +395,7 @@ final class DdtRowController extends AbstractController
         $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
         $lots = $ddtRowRepository->findExternalProcessingLots($subcontractorId, $startDate, $endDate, $batchCode);
 
-        $groupedData = [];
+        $flatData = [];
         $wmRepo = $this->doctrine->getRepository(WarehouseMovement::class);
         $wmReasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
 
@@ -411,15 +411,8 @@ final class DdtRowController extends AbstractController
             $subcontractor = $row->getDdt()->getSubcontractor();
             if (!$subcontractor) continue;
 
-            $sId = $subcontractor->getId();
-            if (!isset($groupedData[$sId])) {
-                $groupedData[$sId] = [
-                    'subcontractor' => $this->groupSerializer->serializeGroup($subcontractor, 'client_summary_print'),
-                    'rows' => []
-                ];
-            }
-
             $serializedRow = $this->groupSerializer->serializeGroup($row, ['client_summary_print', 'external_processing_print']);
+            $serializedRow['subcontractor_name'] = $subcontractor->getName();
 
             // Cerchiamo i movimenti di rientro per questo lotto e terzista
             $returns = $wmRepo->createQueryBuilder('wm')
@@ -447,14 +440,18 @@ final class DdtRowController extends AbstractController
             $serializedRow['returned_pieces'] = $totalReturnedPieces;
             $serializedRow['last_return_date'] = $lastReturnDate ? $lastReturnDate->format('Y-m-d') : null;
 
-            $groupedData[$sId]['rows'][] = $serializedRow;
+            $flatData[] = $serializedRow;
         }
 
-        // Ordina i terzisti per nome
-        usort($groupedData, fn($a, $b) => $a['subcontractor']['name'] <=> $b['subcontractor']['name']);
+        // Ordina per ddt_date
+        usort($flatData, function($a, $b) {
+            $dateA = $a['ddt']['ddt_date'] ?? null;
+            $dateB = $b['ddt']['ddt_date'] ?? null;
+            return $dateA <=> $dateB;
+        });
 
         $pdfContent = $this->pdfGenerator->generatePdf('print/external_processing_returns_pdf.html.twig', [
-            'data' => $groupedData,
+            'data' => $flatData,
             'start_date' => $startDate,
             'end_date' => $endDate,
             'orientation' => 'landscape'

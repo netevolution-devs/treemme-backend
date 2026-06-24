@@ -24,16 +24,13 @@
         
         <h1 style="text-align: left;">RIEPILOGO LOTTI IN CONTO LAVORAZIONE</h1>
 
-        {% for subGroup in data %}
         <table class="rows-table" style="margin-top: 20px;">
             <thead>
-                <tr>
-                    <th colspan="9" style="font-size: 10pt; border-bottom: 2px solid #000; padding-top: 10px;">{{ subGroup.subcontractor.name }}</th>
-                </tr>
                 <tr>
                     <th style="width: 70px;">DATA DDT</th>
                     <th class="text-center" style="width: 50px;">DDT</th>
                     <th style="width: 70px;">LOTTO</th>
+                    <th style="width: 120px; text-align: left;">TERZISTA</th>
                     <th style="width: 120px; text-align: left;">CLIENTE</th>
                     <th style="width: 280px; text-align: left;">ARTICOLO</th>
                     <th class="text-center" style="width: 40px;  border-right: 1px solid #000;">PEZZI</th>
@@ -43,15 +40,12 @@
                 </tr>
             </thead>
             <tbody>
-                {% set totalPieces = 0 %}
-                {% set totalReturnedSub = 0 %}
-                {% set batchCodes = [] %}
-                
-                {% for row in subGroup.rows %}
+                {% for row in data %}
                     <tr>
                         <td class="text-center">{{ row.ddt.ddt_date|date('d/m/Y') }}</td>
                         <td style="text-align: center">{{ row.ddt.ddt_number }}</td>
                         <td>{{ row.batch.batch_code }}</td>
+                        <td>{{ row.subcontractor_name }}</td>
                         <td>
                             {% set clientNames = [] %}
                             {% for bo in row.batch.batch_orders %}
@@ -77,15 +71,9 @@
                             {{ processings|join(', ') }}
                         </td>
                     </tr>
-                    {% set totalPieces = totalPieces + row.pieces %}
-                    {% set totalReturnedSub = totalReturnedSub + row.returned_pieces %}
-                    {% if row.batch.batch_code not in batchCodes %}
-                        {% set batchCodes = batchCodes|merge([row.batch.batch_code]) %}
-                    {% endif %}
                 {% endfor %}
             </tbody>
         </table>
-        {% endfor %}
 
     </div>
     

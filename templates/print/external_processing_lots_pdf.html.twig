@@ -25,11 +25,7 @@
 <body>
     <div class="page-content">
         
-        <h1 style="text-align: left;">LAVORAZIONE ESTERNA {% if start_date or end_date %}
-            Dal: {{ start_date ? start_date|date('d/m/Y') : '-' }} Al: {{ end_date ? end_date|date('d/m/Y') : '-' }}
-        {% else %}
-            Tutto il periodo
-        {% endif %}</h1>
+        <h1 style="text-align: left;">LOTTI IN CONTO LAVORAZIONE</h1>
 
         {% for subGroup in data %}
         <table class="rows-table" style="margin-top: 20px;">
