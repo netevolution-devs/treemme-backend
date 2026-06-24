@@ -150,9 +150,6 @@ final class WerehouseMovementController extends AbstractController
 
             $this->doctrine->persist($movement);
             
-            // Aggiorniamo lo stock del lotto tramite il servizio
-            $this->stockService->addStock($batch, (float)$quantity, (float)$pieces);
-            
             $movements[] = $movement;
         }
 
