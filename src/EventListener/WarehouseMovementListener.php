@@ -30,7 +30,9 @@ class WarehouseMovementListener
 
     public function postPersist(WarehouseMovement $movement, PostPersistEventArgs $event): void
     {
-        $this->stockService->updateStockFromMovement($movement);
+        if ($movement->getMovementNote() !== 'Carico iniziale creazione lotto') {
+            $this->stockService->updateStockFromMovement($movement);
+        }
         $this->stockService->updateBatchAverageFromMovements($movement->getBatch());
     }
 
