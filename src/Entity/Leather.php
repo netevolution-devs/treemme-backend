@@ -84,7 +84,6 @@ class Leather
     private ?Contact $contact = null;
 
     #[ORM\ManyToOne(inversedBy: 'leather')]
-    #[ORM\JoinColumn(nullable: false)]
     #[Groups(['leather_list', 'leather_detail'])]
     private ?LeatherThickness $thickness = null;
 
