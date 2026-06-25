@@ -157,12 +157,15 @@ final class BatchCompositionController extends AbstractController
             $batchComposition->setFatherBatchQuantityAvailable($batchComposition->getFatherBatchQuantity());
 
             $batch = $batchComposition->getBatch();
+
+            $batch->setPieces($batch->getPieces() + $batchComposition->getFatherBatchPiece());
             $childQuantity = (float) ($batchComposition->getFatherBatchQuantity() ?? 0.0);
 
                 // L'aggiornamento dello stock del Batch viene gestito automaticamente dai movimenti creati in createMovements()
                 // Manteniamo solo l'aggiornamento della Selezione se presente
                 if ($batchSelection) {
                     $batchSelection->setStockQuantity(($batchSelection->getStockQuantity() ?? 0.0) - (float)$batchComposition->getFatherBatchQuantity());
+
                     $batchSelection->setStockPieces(($batchSelection->getStockPieces() ?? 0.0) - (float)$batchComposition->getFatherBatchPiece());
                     $this->doctrine->persist($batchSelection);
                 }
