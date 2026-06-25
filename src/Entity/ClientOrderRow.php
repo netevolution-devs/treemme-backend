@@ -51,11 +51,11 @@ class ClientOrderRow
     private ?float $price = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print', 'ddt_row_list_sold'])]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'ddt_row_list_sold'])]
     private ?float $total_price = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
     private ?float $currency_price = null;
 
     #[ORM\Column(nullable: true)]
@@ -114,7 +114,7 @@ class ClientOrderRow
     private ?Article $article = null;
 
     #[ORM\ManyToOne(inversedBy: 'clientOrderRows')]
-    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
     private ?Currency $currency = null;
 
     #[ORM\ManyToOne(inversedBy: 'cleintOrderRows')]
