@@ -734,6 +734,46 @@ final class DdtRowController extends AbstractController
         $ddt = $ddtRow->getDdt();
 
         if ($closed) {
+            // Calcolo pezzi mancanti per lo scarto
+            $outPieces = $ddtRow->getPiecesOut() ?? $ddtRow->getPieces() ?? 0;
+            $outQuantity = $ddtRow->getQuantityOut() ?? $ddtRow->getQuantity() ?? 0;
+            
+            $wastePieces = $outPieces - $pieces;
+            $wasteQuantity = $outQuantity - $quantity;
+
+            if ($wastePieces > 0.01) {
+                $wasteReason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Scarto']);
+                if (!$wasteReason) {
+                    $reasonTypeOut = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => 'Scarico']);
+                    if (!$reasonTypeOut) {
+                        $reasonTypeOut = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => '-']);
+                    }
+                    if ($reasonTypeOut) {
+                        $wasteReason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['reason_type' => $reasonTypeOut]);
+                    }
+                }
+
+                if ($wasteReason) {
+                    $wasteMovement = new WarehouseMovement();
+                    $wasteMovement->setBatch($batch);
+                    $wasteMovement->setQuantity((float)$wasteQuantity);
+                    $wasteMovement->setPiece((float)$wastePieces);
+                    $wasteMovement->setReason($wasteReason);
+                    $wasteMovement->setDdtNumber($ddt->getDdtNumber());
+                    $wasteMovement->setDdtDate($ddt->getDdtDate());
+                    $wasteMovement->setDate(new \DateTime());
+                    $wasteMovement->setMovementNote('Scarto per chiusura anticipata riga DDT ' . $ddtRow->getId());
+
+                    if ($ddt->getSubcontractor()) {
+                        $wasteMovement->setContact($ddt->getSubcontractor());
+                    } elseif ($ddt->getClient()) {
+                        $wasteMovement->setContact($ddt->getClient());
+                    }
+
+                    $this->doctrine->persist($wasteMovement);
+                }
+            }
+
             $batch->setCompleted(true);
             $this->doctrine->persist($batch);
         }
@@ -813,6 +853,51 @@ final class DdtRowController extends AbstractController
             $pieces = (float)$pieces; // Assicura che sia trattato come float per i calcoli
 
             $ddt = $ddtRow->getDdt();
+            $closed = $rowData['closed'] ?? false;
+
+            if ($closed) {
+                $outPieces = $ddtRow->getPiecesOut() ?? $ddtRow->getPieces() ?? 0;
+                $outQuantity = $ddtRow->getQuantityOut() ?? $ddtRow->getQuantity() ?? 0;
+
+                $wastePieces = $outPieces - $pieces;
+                $wasteQuantity = $outQuantity - $quantity;
+
+                if ($wastePieces > 0.01) {
+                    $wasteReason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Scarto']);
+                    if (!$wasteReason) {
+                        $reasonTypeOut = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => 'Scarico']);
+                        if (!$reasonTypeOut) {
+                            $reasonTypeOut = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => '-']);
+                        }
+                        if ($reasonTypeOut) {
+                            $wasteReason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['reason_type' => $reasonTypeOut]);
+                        }
+                    }
+
+                    if ($wasteReason) {
+                        $wasteMovement = new WarehouseMovement();
+                        $wasteMovement->setBatch($batch);
+                        $wasteMovement->setQuantity((float)$wasteQuantity);
+                        $wasteMovement->setPiece((float)$wastePieces);
+                        $wasteMovement->setReason($wasteReason);
+                        $wasteMovement->setDdtNumber($ddt->getDdtNumber());
+                        $wasteMovement->setDdtDate($ddt->getDdtDate());
+                        $wasteMovement->setDate(new \DateTime());
+                        $wasteMovement->setMovementNote('Scarto per chiusura anticipata riga DDT ' . $ddtRow->getId() . ' (massivo)');
+
+                        if ($ddt->getSubcontractor()) {
+                            $wasteMovement->setContact($ddt->getSubcontractor());
+                        } elseif ($ddt->getClient()) {
+                            $wasteMovement->setContact($ddt->getClient());
+                        }
+
+                        $this->doctrine->persist($wasteMovement);
+                    }
+                }
+
+                $batch->setCompleted(true);
+                $this->doctrine->persist($batch);
+            }
 
             $reason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Reso ' . $ddt->getReason()->getName()]);
             if (!$reason) {
@@ -895,36 +980,47 @@ final class DdtRowController extends AbstractController
         $ddt = $ddtRow->getDdt();
 
         if ($closed) {
-            $wasteReason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Scarto']);
-            if (!$wasteReason) {
-                $reasonTypeIn = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => 'Scarico']);
-                if ($reasonTypeIn) {
-                    $wasteReason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['reason_type' => $reasonTypeIn]);
+            // Calcolo pezzi mancanti per lo scarto
+            $outPieces = $ddtRow->getPiecesOut() ?? $ddtRow->getPieces() ?? 0;
+            $outQuantity = $ddtRow->getQuantityOut() ?? $ddtRow->getQuantity() ?? 0;
+
+            $wastePieces = $outPieces - $pieces;
+            $wasteQuantity = $outQuantity - $quantity;
+
+            if ($wastePieces > 0.01) {
+                $wasteReason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['name' => 'Scarto']);
+                if (!$wasteReason) {
+                    $reasonTypeOut = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => 'Scarico']);
+                    if (!$reasonTypeOut) {
+                        $reasonTypeOut = $this->doctrine->getRepository(WarehouseMovementReasonType::class)->findOneBy(['movement_type' => '-']);
+                    }
+                    if ($reasonTypeOut) {
+                        $wasteReason = $this->doctrine->getRepository(WarehouseMovementReason::class)->findOneBy(['reason_type' => $reasonTypeOut]);
+                    }
+                }
+
+                if ($wasteReason) {
+                    $wasteMovement = new WarehouseMovement();
+                    $wasteMovement->setBatch($batch);
+                    $wasteMovement->setQuantity((float)$wasteQuantity);
+                    $wasteMovement->setPiece((float)$wastePieces);
+                    $wasteMovement->setReason($wasteReason);
+                    $wasteMovement->setDdtNumber($ddtRow->getDdt()->getDdtNumber());
+                    $wasteMovement->setDdtDate($ddtRow->getDdt()->getDdtDate());
+                    $wasteMovement->setDate(new \DateTime());
+                    $wasteMovement->setMovementNote('Scarto per chiusura anticipata riga DDT ' . $ddtRow->getId() . ' durante trasferimento');
+
+                    if ($ddt->getSubcontractor()) {
+                        $wasteMovement->setContact($ddt->getSubcontractor());
+                    } elseif ($ddt->getClient()) {
+                        $wasteMovement->setContact($ddt->getClient());
+                    }
+
+                    $this->doctrine->persist($wasteMovement);
                 }
             }
 
-            if ($wasteReason) {
-                $wasteMovement = new WarehouseMovement();
-                $wasteMovement->setBatch($batch);
-                $wasteMovement->setQuantity((float)$quantity);
-                $wasteMovement->setPiece((float)$pieces);
-                $wasteMovement->setReason($wasteReason);
-                $wasteMovement->setDdtNumber($ddtRow->getDdt()->getDdtNumber());
-                $wasteMovement->setDdtDate($ddtRow->getDdt()->getDdtDate());
-                $wasteMovement->setDate(new \DateTime());
-                $wasteMovement->setMovementNote('Scarto riga DDT ' . $ddtRow->getId() . ' del DDT ' . $ddtRow->getDdt()->getDdtNumber());
-
-                if ($ddt->getSubcontractor()) {
-                    $wasteMovement->setContact($ddt->getSubcontractor());
-                } elseif ($ddt->getClient()) {
-                    $wasteMovement->setContact($ddt->getClient());
-                }
-
-                $this->doctrine->persist($wasteMovement);
-                $this->stockService->addStock($batch, (float)$quantity, (float)$pieces);
-            }
-
-            $batch->setCompensationWaste(($batch->getCompensationWaste() ?? 0) + $pieces);
+            $batch->setCompensationWaste(($batch->getCompensationWaste() ?? 0) + $wastePieces);
             $batch->setCompleted(true);
             $this->doctrine->persist($batch);
         }
@@ -1059,6 +1155,8 @@ final class DdtRowController extends AbstractController
             $batch = $this->doctrine->getRepository(Batch::class)->find($data['batch_id']);
             if ($batch) {
                 $ddtRow->setBatch($batch);
+                $batch->setCompleted(false);
+                $this->doctrine->persist($batch);
             }
             unset($data['batch_id']);
         }
