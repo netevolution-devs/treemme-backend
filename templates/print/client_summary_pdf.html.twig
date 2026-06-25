@@ -67,19 +67,18 @@
                 </td>
             </tr>
             <tr>
-                <td style="width: 40%;">
-                    <span class="label">Pagamento:</span>
-                    {{ clientGroup.client.payment.name|default('-') }}
-                </td>
-                <td style="width: 35%;">
-                    <span class="label">Resa (Spedizione):</span>
-                    {{ clientGroup.client.shipment_condition.name|default('-') }}
-                </td>
-                <td style="width: 25%;">
+                <td colspan="2" style="width:60%;">
                     <span class="label">Note Cliente:</span>
                     {{ clientGroup.client.client_note|default('-') }} <br>
                     <span class="label">Note Sped.:</span>
                     {{ clientGroup.client.client_shipment_note|default('-') }} <br>
+                </td>
+                <td style="width: 40%;">
+                    <span class="label">Pagamento:</span>
+                    {{ clientGroup.client.payment.name|default('-') }}
+                    <br>
+                    <span class="label">Resa (Spedizione):</span>
+                    {{ clientGroup.client.shipment_condition.name|default('-') }}
                 </td>
             </tr>
         </table>
@@ -107,7 +106,7 @@
                                             {{ row.measurement_unit.prefix }} {{ row.quantity }}
                                         </td>
                                         <td style="width: 14%; font-size: 10px;">
-                                            € {{ row.currency_price|number_format(2, ',', '.') }}
+                                            {{ row.currency ? row.currency.sign : '€'}} {{ row.currency_price ? row.currency_price|number_format(2, ',', '.') : row.price|number_format(2, ',', '.')}}
                                         </td>
                                         <td style="width: 14%; font-size: 10px;">
                                             {{ row.delivery_date_confirmed ? row.delivery_date_confirmed|date('d/m/Y') : '-' }}
