@@ -173,6 +173,7 @@ class CustomAuthenticator extends AbstractAuthenticator
 
             return new JsonResponse([
                 'error' => 'Password expiring',
+                'user_code' => $messageData['user_code'] ?? null,
                 'message' => 'Your password is expiring. Please change it.',
             ], 200);
         }
