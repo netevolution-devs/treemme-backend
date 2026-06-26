@@ -311,7 +311,7 @@ class UserController extends AbstractController
             return new JsonResponse($this->doResponse->doErrorJsonResponse('Old password and new password are required'), 400);
         }
 
-        $currentUser = $this->doctrine->getRepository(User::class)->findOneBy(['userCode' => $data['user_code']]);
+        $currentUser = $this->doctrine->getRepository(User::class)->findOneBy(['user_code' => $data['user_code']]);
 
         if(!$currentUser) {
             return $this->doResponse->doErrorJsonResponse('User not found', 400);
