@@ -108,8 +108,7 @@ class CustomAuthenticator extends AbstractAuthenticator
         }
 
         if ($user instanceof User) {
-            if($user->getLastChangePassword() < new \DateTimeImmutable('-3 month'))
-            {
+            if ($user->getLastChangePassword() < new \DateTimeImmutable('-3 months')) {
                 throw new CustomUserMessageAuthenticationException(
                     'Password expiring',
                     ['user_code' => $user->getUserCode(), 'requires_password_change' => true],
@@ -167,6 +166,14 @@ class CustomAuthenticator extends AbstractAuthenticator
                 'error' => 'totp_required',
                 'user_code' => $messageData['user_code'] ?? null,
                 'requires_totp' => $messageData['requires_totp'] ?? true
+            ], 200);
+        }
+        if ($exception instanceof CustomUserMessageAuthenticationException &&
+            $exception->getMessage() === 'Password expiring') {
+
+            return new JsonResponse([
+                'error' => 'Password expiring',
+                'message' => 'Your password is expiring. Please change it.',
             ], 200);
         }
 
