@@ -298,7 +298,7 @@ class UserController extends AbstractController
         return $response;
     }
 
-    #[Route('/api/public/change-password', name: 'change_password', methods: ['PUT'])]
+    #[Route('/api/public/change-password', name: 'public_change_password', methods: ['PUT'])]
     public function changePasswordFromPublic(UserPasswordHasherInterface $passwordHasher,
                                    ActionLoggerService $actionLoggerService): JsonResponse
     {
