@@ -83,23 +83,9 @@ class CustomAuthenticator extends AbstractAuthenticator
         $email = $data['email'];
         $password = $data['password'];
 
-//        $limiterKey = $request->getClientIp();
-//        $limiter = $this->loginLimiter->create($limiterKey);
-//        $limit = $limiter->consume();
-
         if ($email === '' || $password === '') {
             throw new AuthenticationException('Empty credentials');
         }
-
-//        if (!$limit->isAccepted()) {
-//            $waitSeconds = $limit->getRetryAfter()->getTimestamp() - time();
-//            throw new CustomUserMessageAuthenticationException(
-//                $this->translator->trans('auth.error.too_many_attempts',
-//                    ['%seconds%' => $waitSeconds], 'messages')
-//            );
-//        }
-
-//        $remainingAttempts = $limit->getRemainingTokens();
 
         try {
             $user = $this->userProvider->loadUserByIdentifier($email);
@@ -117,15 +103,19 @@ class CustomAuthenticator extends AbstractAuthenticator
             $this->actionLoggerService->logAction('login failed', [
                 'email' => $email,
                 'reason' => 'invalid password'
-//                'attempt' => $remainingAttempts,
             ]);
             throw new CustomUserMessageAuthenticationException('Credenziali Errate');
-//            throw new CustomUserMessageAuthenticationException($this->translator->trans('auth.error.invalid_credentials',
-//                    ["%attempts_left%" => $remainingAttempts], 'messages')
-//            );
         }
 
         if ($user instanceof User) {
+            if($user->getLastChangePassword() < new \DateTimeImmutable('-3 month'))
+            {
+                throw new CustomUserMessageAuthenticationException(
+                    'Password expiring',
+                    ['user_code' => $user->getUserCode(), 'requires_password_change' => true],
+                    200
+                );
+            }
 
             if ($user->isTotpEnabled()) {
                 throw new CustomUserMessageAuthenticationException(

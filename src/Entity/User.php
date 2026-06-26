@@ -70,6 +70,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(mappedBy: 'check_user', targetEntity: ClientOrder::class)]
     private Collection $clientOrders;
 
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $last_change_password = null;
+
     public function __construct()
     {
         $this->batches = new ArrayCollection();
@@ -287,6 +290,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
                 $clientOrder->setCheckUser(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getLastChangePassword(): ?\DateTimeImmutable
+    {
+        return $this->last_change_password;
+    }
+
+    public function setLastChangePassword(?\DateTimeImmutable $last_change_password): static
+    {
+        $this->last_change_password = $last_change_password;
 
         return $this;
     }
