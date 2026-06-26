@@ -171,6 +171,8 @@ class CustomAuthenticator extends AbstractAuthenticator
         if ($exception instanceof CustomUserMessageAuthenticationException &&
             $exception->getMessage() === 'Password expiring') {
 
+            $messageData = $exception->getMessageData();
+
             return new JsonResponse([
                 'error' => 'Password expiring',
                 'user_code' => $messageData['user_code'] ?? null,
