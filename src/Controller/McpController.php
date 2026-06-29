@@ -6,6 +6,7 @@ use App\Mcp\McpServer;
 use App\Repository\UserRepository;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Encoder\JWTEncoderInterface;
+use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -24,6 +25,7 @@ class McpController extends AbstractController
         private readonly bool $mcpEnabled,
         private readonly ?string $mcpToken,
         private readonly JWTEncoderInterface $jwtEncoder,
+        private readonly JWTTokenManagerInterface $jwtManager,
         private readonly ?string $mcpLoginEmail = null,
         private readonly ?string $mcpLoginPassword = null,
         private readonly ?UserRepository $userRepository = null,
@@ -77,61 +79,78 @@ class McpController extends AbstractController
     }
 
     // SSE endpoint: opens a stream and sends the POST endpoint URL
-    #[Route('/mcp/sse', name: 'app_mcp_sse', methods: ['GET', 'POST'])]
+    #[Route('/mcp/sse', name: 'mcp_sse', methods: ['GET', 'POST'])]
     public function sse(Request $request): Response
     {
-        if (!$this->mcpEnabled) {
-            return new JsonResponse(['error' => 'MCP disabled'], Response::HTTP_NOT_FOUND);
+        if ($request->isMethod('POST')) {
+            // Instrada i POST verso la stessa logica di /mcp/messages
+            return $this->messages($request);
         }
 
+        set_time_limit(0);
         $sessionId = bin2hex(random_bytes(16));
-        $postUrl = $request->getSchemeAndHttpHost() . '/mcp/messages?sessionId=' . $sessionId;
+        $postUrl   = $request->getSchemeAndHttpHost() . '/mcp/messages?sessionId=' . $sessionId;
 
-        // Initialize session in cache
         $this->cache->get('mcp_session_' . $sessionId, function (ItemInterface $item) {
             $item->expiresAfter(300);
             return [
-                'queue' => [],
+                'queue'     => [],
                 'connected' => true,
             ];
         });
 
         $response = new StreamedResponse(function () use ($sessionId, $postUrl) {
+            // Disable PHP output buffering
             while (ob_get_level() > 0) {
                 ob_end_flush();
             }
 
+            // Send the endpoint event as per MCP SSE spec
             echo "event: endpoint\n";
             echo "data: " . $postUrl . "\n\n";
-            if (ob_get_level() > 0) { ob_flush(); }
+
+            if (ob_get_level() > 0) {
+                ob_flush();
+            }
             flush();
 
-            $timeout = time() + 300; // 5 minutes
+            // Keep streaming — poll the session queue for messages
+            $timeout = time() + 300; // 5 min max connection
+
             while (time() < $timeout) {
-                $session = $this->cache->get('mcp_session_' . $sessionId, function () { return null; });
+                $session = $this->cache->get('mcp_session_' . $sessionId, function() { return null; });
+
                 if (!$session || !($session['connected'] ?? false)) {
                     break;
                 }
+
                 if (!empty($session['queue'])) {
                     $msg = array_shift($session['queue']);
+
+                    // Update session in cache after shift
                     $item = $this->cache->getItem('mcp_session_' . $sessionId);
                     $item->set($session);
                     $this->cache->save($item);
 
                     echo "event: message\n";
                     echo "data: " . json_encode($msg) . "\n\n";
-                    if (ob_get_level() > 0) { ob_flush(); }
+                    if (ob_get_level() > 0) {
+                        ob_flush();
+                    }
                     flush();
                 }
-                usleep(200000); // 200ms
+
+                usleep(200_000); // 200ms polling
             }
+
             $this->cache->delete('mcp_session_' . $sessionId);
         });
 
         $response->headers->set('Content-Type', 'text/event-stream');
         $response->headers->set('Cache-Control', 'no-cache, no-transform');
         $response->headers->set('Connection', 'keep-alive');
-        $response->headers->set('X-Accel-Buffering', 'no');
+        $response->headers->set('X-Accel-Buffering', 'no'); // disable nginx buffering
+
         return $response;
     }
 
@@ -178,7 +197,14 @@ class McpController extends AbstractController
         if (str_starts_with($auth, 'Bearer ')) {
             return substr($auth, 7);
         }
-        return $request->headers->get('X-MCP-Token');
+        // Tenta header X-MCP-Token
+        $xToken = $request->headers->get('X-MCP-Token');
+        if ($xToken) {
+            return $xToken;
+        }
+        // Fallback: se configurate credenziali in .env e valide, genera un JWT per l'utente
+        $envJwt = $this->generateJwtFromEnvLogin();
+        return $envJwt;
     }
 
     private function isValidStaticToken(?string $provided): bool
@@ -216,4 +242,29 @@ class McpController extends AbstractController
         }
         return $this->passwordHasher->isPasswordValid($user, $this->mcpLoginPassword);
     }
+
+    /**
+     * Genera un JWT partendo da email/password configurati in .env (.env.local),
+     * se l'utente esiste e la password è valida. Restituisce null se non possibile.
+     */
+    private function generateJwtFromEnvLogin(): ?string
+    {
+        if (!$this->mcpLoginEmail || !$this->mcpLoginPassword || !$this->userRepository || !$this->passwordHasher) {
+            return null;
+        }
+        $user = $this->userRepository->findOneBy(['email' => $this->mcpLoginEmail]);
+        if (!$user) {
+            return null;
+        }
+        if (!$this->passwordHasher->isPasswordValid($user, $this->mcpLoginPassword)) {
+            return null;
+        }
+        try {
+            return $this->jwtManager->create($user);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    // handleMcpPost rimosso: tutta la logica di POST viene gestita da messages()/handle()
 }
