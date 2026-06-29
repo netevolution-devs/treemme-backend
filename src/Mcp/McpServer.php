@@ -85,10 +85,11 @@ class McpServer
             return $this->errorResponse($id, 404, 'Tool not found');
         }
         $result = $this->tools[$name]->run(is_array($args) ? $args : []);
+
         return $this->successResponse($id, [
             'content' => [[
                 'type' => 'text',
-                'data' => json_encode($result),
+                'text' => json_encode($result, JSON_UNESCAPED_UNICODE), // <-- Cambiato da 'data' a 'text'
             ]],
         ]);
     }
