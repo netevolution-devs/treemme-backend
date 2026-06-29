@@ -92,6 +92,7 @@ class McpServer
     private function successResponse(mixed $id, array $result): array
     {
         return [
+            'jsonrpc' => '2.0', // <-- Aggiunto
             'id' => $id,
             'result' => $result,
         ];
@@ -100,11 +101,12 @@ class McpServer
     private function errorResponse(mixed $id, int $code, string $message): array
     {
         return [
-            'id' => $id,
+            'jsonrpc' => '2.0', // <-- Aggiunto
             'error' => [
                 'code' => $code,
                 'message' => $message,
             ],
+            'id' => $id,
         ];
     }
 }

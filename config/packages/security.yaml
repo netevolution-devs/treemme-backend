@@ -51,6 +51,7 @@ security:
     - { path: ^/login, roles: PUBLIC_ACCESS }
     - { path: ^/api/token/refresh, roles: PUBLIC_ACCESS }
     - { path: ^/mcp$,       roles: PUBLIC_ACCESS }
+    - { path: ^/_profiler, roles: PUBLIC_ACCESS }
     - { path: ^/,       roles: IS_AUTHENTICATED_FULLY }
 
 when@test:
