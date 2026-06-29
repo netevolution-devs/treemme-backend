@@ -41,9 +41,14 @@ class McpController extends AbstractController
             return new JsonResponse(['error' => 'Unauthorized'], Response::HTTP_UNAUTHORIZED);
         }
 
-        $payload = json_decode($request->getContent() ?: '[]', true);
-        if (!is_array($payload)) {
-            return new JsonResponse(['error' => 'Invalid JSON body'], Response::HTTP_BAD_REQUEST);
+        try {
+            $payload = $request->toArray();
+        } catch (\Throwable $e) {
+            return new JsonResponse([
+                'jsonrpc' => '2.0',
+                'error' => ['code' => -32700, 'message' => 'Invalid JSON'],
+                'id' => null
+            ], Response::HTTP_OK);
         }
 
         $result = $this->server->handleRequestPublic($payload);

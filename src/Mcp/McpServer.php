@@ -54,6 +54,9 @@ class McpServer
 
         return $this->successResponse($id, [
             'protocolVersion' => $requestedVersion,
+            'capabilities' => [
+                'tools' => (object)[] // <-- FONDAMENTALE: Dice a OpenAI che questo server espone dei tool
+            ],
             'serverInfo' => [
                 'name' => 'tre_emme_backend',
                 'version' => '1.0.0',
