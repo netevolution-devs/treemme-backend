@@ -12,6 +12,11 @@ services:
     autowire: true      # Automatically injects dependencies in your services.
     autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
 
+  # Auto-tag all MCP tools
+  _instanceof:
+    App\Mcp\McpToolInterface:
+      tags: ['app.mcp_tool']
+
   # makes classes in src/ available to be used as services
   # this creates a service per class whose id is the fully-qualified class name
   App\:
@@ -51,6 +56,18 @@ services:
   App\Controller\BatchController:
     arguments:
       $subcontractor_tag: '%env(SUBCONTRACTOR_TAG)%'
+
+  App\Controller\McpController:
+    arguments:
+      $mcpEnabled: '%env(bool:MCP_ENABLED)%'
+      $mcpToken: '%env(string:MCP_TOKEN)%'
+      $mcpLoginEmail: '%env(string:MCP_LOGIN_EMAIL)%'
+      $mcpLoginPassword: '%env(string:MCP_LOGIN_PASSWORD)%'
+
+  # Inject the tagged MCP tools into the server
+  App\Mcp\McpServer:
+    arguments:
+      $tools: !tagged_iterator 'app.mcp_tool'
 
   App\Service\TotpService:
     arguments:

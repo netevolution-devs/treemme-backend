@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l /c/Users/developer2/PhpstormProjects/tre_emme_backend/aruba-mcp-symfony/src/Mcp/Tools/*.php)"
+    ]
+  }
+}
