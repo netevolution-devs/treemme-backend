@@ -44,12 +44,19 @@ class McpServer
 
     private function handleInitialize(mixed $id, array $params): array
     {
-        $client = $params['client'] ?? [];
+        $client = $params['clientInfo'] ?? $params['client'] ?? [];
         $name = $client['name'] ?? 'unknown';
         $version = $client['version'] ?? 'unknown';
+
         $this->logger->info('MCP initialize from client', ['name' => $name, 'version' => $version]);
+
+        $requestedVersion = $params['protocolVersion'] ?? '2024-11-05';
+
         return $this->successResponse($id, [
-            'protocolVersion' => '2024-11-05',
+            'protocolVersion' => $requestedVersion,
+            'capabilities' => [
+                'tools' => (object)[]
+            ],
             'serverInfo' => [
                 'name' => 'tre_emme_backend',
                 'version' => '1.0.0',
