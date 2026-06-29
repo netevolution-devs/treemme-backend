@@ -83,8 +83,8 @@ class McpServer
         $result = $this->tools[$name]->run(is_array($args) ? $args : []);
         return $this->successResponse($id, [
             'content' => [[
-                'type' => 'object',
-                'data' => $result,
+                'type' => 'text',
+                'data' => json_encode($result),
             ]],
         ]);
     }
