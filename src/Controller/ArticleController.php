@@ -93,6 +93,8 @@ class ArticleController extends AbstractController
             return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
 
+        $article->setFullGrain(false);
+
         $errors = $validator->validate($article);
         if (count($errors) > 0) {
             $formattedErrors = $this->validatorOutputFormatter->formatOutput($errors);
