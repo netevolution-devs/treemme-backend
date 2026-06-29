@@ -53,7 +53,7 @@ class McpServer
         $requestedVersion = $params['protocolVersion'] ?? '2024-11-05';
 
         return $this->successResponse($id, [
-            'protocolVersion' => '2024-11-05', // <-- Il server risponde con una versione diversa
+            'protocolVersion' => $requestedVersion,
             'serverInfo' => [
                 'name' => 'tre_emme_backend',
                 'version' => '1.0.0',
