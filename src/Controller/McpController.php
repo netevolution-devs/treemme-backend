@@ -77,7 +77,7 @@ class McpController extends AbstractController
     }
 
     // SSE endpoint: opens a stream and sends the POST endpoint URL
-    #[Route('/mcp/sse', name: 'app_mcp_sse', methods: ['GET'])]
+    #[Route('/mcp/sse', name: 'app_mcp_sse', methods: ['GET', 'POST'])]
     public function sse(Request $request): Response
     {
         if (!$this->mcpEnabled) {
