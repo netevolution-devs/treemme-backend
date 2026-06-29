@@ -105,6 +105,9 @@ class DdtRow
     #[Groups(['ddt_detail', 'ddt_row_list', 'ddt_row_detail', 'external_processing_print'])]
     private Collection $ddtRowProcessings;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $subcontractor_ddt_number = null;
+
     public function __construct()
     {
         $this->ddtRowProcessings = new ArrayCollection();
@@ -379,6 +382,18 @@ class DdtRow
                 $ddtRowProcessing->setDdtRow(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getSubcontractorDdtNumber(): ?string
+    {
+        return $this->subcontractor_ddt_number;
+    }
+
+    public function setSubcontractorDdtNumber(?string $subcontractor_ddt_number): static
+    {
+        $this->subcontractor_ddt_number = $subcontractor_ddt_number;
 
         return $this;
     }
