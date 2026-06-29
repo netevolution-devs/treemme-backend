@@ -66,11 +66,16 @@ MCP_TOKEN=
 - API key (opzionale): imposta `MCP_TOKEN` e invia `Authorization: Bearer <token>` oppure `X-MCP-Token: <token>`.
 - Credenziali da `.env.local` (fallback): configura `MCP_LOGIN_EMAIL` e `MCP_LOGIN_PASSWORD`. Se una chiamata a `/mcp` arriva senza header `Authorization` e senza `X-MCP-Token`, il server proverà ad autenticare internamente usando tali credenziali (verifica password dell'utente con quell'email). Nota di sicurezza: usare questa modalità solo in sviluppo/test; in produzione preferire il JWT.
 
-3) Rotta MCP:
-- URL: `POST /mcp`
-- Body: JSON secondo protocollo MCP (metodo, params). Vedi esempi in basso.
+3) Sicurezza (security.yaml):
+- In `config/packages/security.yaml` è previsto `PUBLIC_ACCESS` per il pattern `^/mcp(/.*)?$`. L'autenticazione/autorizzazione è gestita all'interno del controller MCP (Bearer JWT, API key o fallback da env per dev/test).
 
-Nota: La rotta `/mcp` è marcata `PUBLIC_ACCESS` in `security.yaml`, ma valida internamente il Bearer JWT o l’API key.
+4) Trasporti supportati
+- Streamable HTTP (SSE) — consigliato per ChatGPT con "URL del server":
+  - GET `/mcp` → health/discovery
+  - GET `/mcp/sse` → apre uno stream SSE; il server invia subito un evento `endpoint` con l'URL per i messaggi: `/mcp/messages?sessionId=...`
+  - POST `/mcp/messages?sessionId=...` → invio richieste MCP; le risposte vengono recapitate sullo stream SSE aperto in precedenza
+- Solo HTTP POST (compatibilità):
+  - POST `/mcp` → invio richieste MCP e ricezione risposta nella stessa connessione (alcuni client non-SSE)
 
 ### Tools disponibili (PoC)
 
@@ -104,7 +109,7 @@ curl -X POST http://localhost:8000/mcp \
   }'
 ```
 
-3) Lista tools:
+3) Lista tools (modalità POST /mcp):
 
 ```bash
 curl -X POST http://localhost:8000/mcp \
@@ -113,7 +118,7 @@ curl -X POST http://localhost:8000/mcp \
   -d '{"id":1, "method":"tools/list"}'
 ```
 
-4) Chiamate esempio ai tools:
+4) Chiamate esempio ai tools (modalità POST /mcp):
 
 - Ping
 ```bash
@@ -175,8 +180,55 @@ curl -X POST http://localhost:8000/mcp \
   }'
 ```
 
+### Trasporto SSE (per ChatGPT → "URL del server")
+
+1) Health/discovery
+```bash
+curl -i http://localhost:8000/mcp
+# Atteso: 200 con {"status":"ok","transport":"streamable-http"}
+```
+
+2) Apri lo stream SSE
+```bash
+curl -N http://localhost:8000/mcp/sse
+# Il server invierà subito un evento:
+# event: endpoint
+# data: http://localhost:8000/mcp/messages?sessionId=<ID>
+```
+
+3) Invia una richiesta MCP verso l'endpoint dei messaggi (includi autenticazione)
+```bash
+curl -X POST \
+  -H "Authorization: Bearer <JWT_O_APIKEY>" \
+  -H "Content-Type: application/json" \
+  "http://localhost:8000/mcp/messages?sessionId=<ID>" \
+  -d '{
+    "id": 10,
+    "method": "tools/list"
+  }'
+# La risposta arriverà come evento "message" sullo stream SSE aperto al punto 2.
+```
+
+4) Esempio tools/call via SSE
+```bash
+curl -X POST \
+  -H "Authorization: Bearer <JWT_O_APIKEY>" \
+  -H "Content-Type: application/json" \
+  "http://localhost:8000/mcp/messages?sessionId=<ID>" \
+  -d '{
+    "id": 11,
+    "method": "tools/call",
+    "params": {"name": "ping", "arguments": {"echo": "hello"}}
+  }'
+# Verifica l'evento "message" nello stream SSE.
+```
+
+Note:
+- Se non specifichi alcuna autenticazione, il controller tenta il fallback con `MCP_LOGIN_EMAIL`/`MCP_LOGIN_PASSWORD` (solo dev/test).
+- Lo stream SSE resta aperto per circa 5 minuti; ogni richiesta POST associata allo stesso `sessionId` accoderà la risposta allo stream.
+
 ### Note e Troubleshooting
 
 - Se ricevi `401 Unauthorized`, verifica di aver impostato correttamente l'header `Authorization` con un JWT valido (ottenuto da `/login`) o con una API key configurata.
 - Se ricevi `404 Tool not found`, verifica `tools/list` per i nomi esatti.
-- Per produzione, limita `CORS_ALLOW_ORIGIN` e mantieni `MCP_ENABLED=0` se non utilizzi la funzione MCP.
+- In produzione, limita `CORS_ALLOW_ORIGIN`, usa JWT/API key (evita il fallback da env) e mantieni `MCP_ENABLED=0` se non utilizzi la funzione MCP.
