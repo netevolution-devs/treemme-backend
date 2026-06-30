@@ -15,11 +15,6 @@
         <server name="SHELL_VERBOSITY" value="-1" />
         <server name="SYMFONY_PHPUNIT_REMOVE" value="" />
         <server name="SYMFONY_PHPUNIT_VERSION" value="9.5" />
-        <!-- Enable MCP in test env and set an API key for authentication in tests -->
-        <server name="MCP_ENABLED" value="1" />
-        <server name="MCP_TOKEN" value="test_key_for_mcp" />
-        <!-- Provide a lightweight logger DB for tests -->
-        <server name="DATABASE_LOGGER_URL" value="sqlite:///%kernel.cache_dir%/logger.db" />
     </php>
 
     <testsuites>
