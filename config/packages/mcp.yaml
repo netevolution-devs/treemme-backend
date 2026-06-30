@@ -6,6 +6,6 @@ mcp:
   http:
     path: "/_mcp"
     session:
-      store: "file"
-      directory: "%kernel.cache_dir%/mcp-sessions"
+      store: "doctrine"
+      connection: "default" # Usa la tua connessione database standard
       ttl: 3600
