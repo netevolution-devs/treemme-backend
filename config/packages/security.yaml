@@ -51,6 +51,9 @@ security:
   access_control:
     # - { path: ^/admin, roles: ROLE_ADMIN }
     # - { path: ^/profile, roles: ROLE_USER }
+    # Consenti probe/health per GET/HEAD/OPTIONS su /_mcp senza autenticazione
+    - { path: ^/_mcp$, roles: PUBLIC_ACCESS, methods: [GET, HEAD, OPTIONS] }
+    # Le richieste MCP "reali" (POST JSON-RPC) richiedono il token trasporto
     - { path: ^/_mcp, roles: ROLE_MCP }
     - { path: ^/api/totp, roles: PUBLIC_ACCESS }
     - { path: ^/api/public/change-password, roles: PUBLIC_ACCESS }
