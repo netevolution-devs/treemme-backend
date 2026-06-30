@@ -53,8 +53,7 @@ security:
     # - { path: ^/profile, roles: ROLE_USER }
     # 1. Permetti l'accesso pubblico all'health check (se usi ancora questo percorso)
     - { path: ^/_mcp/health$, roles: PUBLIC_ACCESS, methods: [GET, HEAD, OPTIONS] }
-    # Permetti l'aggancio in GET (SSE) liberamente (il protocollo userà i cookie/session-id internamente)
-    - { path: ^/_mcp$, roles: PUBLIC_ACCESS, methods: [GET] }
+    - { path: ^/_mcp$, roles: ROLE_MCP, methods: [POST] }
     # Proteggi rigidamente l'esecuzione dei comandi e dei tool in POST
     - { path: ^/_mcp$, roles: ROLE_MCP, methods: [POST] }
     - { path: ^/api/totp, roles: PUBLIC_ACCESS }
