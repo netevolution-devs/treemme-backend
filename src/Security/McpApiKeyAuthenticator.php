@@ -39,7 +39,7 @@ final class McpApiKeyAuthenticator extends AbstractAuthenticator
         }
 
         $userId = 'mcp';
-        $userLoader = static fn () => new InMemoryUser($userId, ['ROLE_MCP']);
+        $userLoader = static fn () => new InMemoryUser($userId, null, ['ROLE_MCP']);
 
         return new SelfValidatingPassport(new UserBadge($userId, $userLoader));
     }
