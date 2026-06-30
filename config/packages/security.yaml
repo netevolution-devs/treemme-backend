@@ -45,6 +45,7 @@ security:
   access_control:
     # - { path: ^/admin, roles: ROLE_ADMIN }
     # - { path: ^/profile, roles: ROLE_USER }
+    - { path: ^/_mcp, roles: PUBLIC_ACCESS }
     - { path: ^/api/totp, roles: PUBLIC_ACCESS }
     - { path: ^/api/public/change-password, roles: PUBLIC_ACCESS }
     - { path: ^/verify-totp, roles: PUBLIC_ACCESS }

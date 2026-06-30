@@ -8,6 +8,6 @@ mcp:
   http:
     path: "/_mcp"
     session:
-      store: "file"                # 'file' o 'memory' (default: file)
-      directory: "%kernel.cache_dir%/mcp-sessions" # default
+      store: "file"                # persistenza tra richieste HTTP
+      directory: "%kernel.cache_dir%/mcp-sessions"
       ttl: 3600                     # secondi
