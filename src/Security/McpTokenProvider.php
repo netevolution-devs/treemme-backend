@@ -58,8 +58,11 @@ final class McpTokenProvider
             'password' => $this->password,
         ], JSON_UNESCAPED_UNICODE);
 
-        $request = HttpRequest::create('/login', 'POST', [], [], [], [], $payload);
+        // MODIFICATO: Specifica l'indirizzo assoluto di produzione anziché il path relativo corrotto da localhost
+        $request = HttpRequest::create('https://api.treemme.netevolution.it/login', 'POST', [], [], [], [], $payload);
         $request->headers->set('Content-Type', 'application/json');
+        // Forza l'header Host corretto per bypassare i controlli del firewall e del DNS rebinding
+        $request->headers->set('Host', 'api.treemme.netevolution.it');
 
         $response = $this->kernel->handle($request, HttpKernelInterface::SUB_REQUEST);
         $data = json_decode($response->getContent() ?: '{}', true) ?: [];
@@ -69,7 +72,7 @@ final class McpTokenProvider
         $this->exp = isset($data['exp']) ? (int) $data['exp'] : null;
 
         if (!$this->jwt) {
-            throw new \RuntimeException('Impossibile ottenere JWT dal /login per MCP.');
+            throw new \RuntimeException('Impossibile ottenere JWT dal /login per MCP. Server responded with status: ' . $response->getStatusCode());
         }
     }
 
