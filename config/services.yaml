@@ -66,10 +66,7 @@ services:
       $useRefresh: '%env(bool:MCP_USE_REFRESH)%'
 
 
-  # Autenticatore per proteggere /_mcp tramite header X-MCP-Token
-  App\Security\McpApiKeyAuthenticator:
-    arguments:
-      $expected: '%env(string:MCP_TRANSPORT_TOKEN)%'
+  # Autenticatore MCP disabilitato: /_mcp è pubblico (nessun servizio necessario)
 
 
 #  App\Listeners\LocaleListener:

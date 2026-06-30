@@ -15,11 +15,7 @@ security:
       pattern: ^/(_(profiler|wdt)|css|images|js)/
       security: false
 
-    # Firewall dedicato all'endpoint MCP, protetto da token su header
-    mcp:
-      pattern: ^/_mcp
-      stateless: true
-      custom_authenticator: App\Security\McpApiKeyAuthenticator
+    # Nessun firewall dedicato per /_mcp: l'endpoint MCP è pubblico
 
     login:
       pattern: ^/(login|backoffice/login)
@@ -51,11 +47,8 @@ security:
   access_control:
     # - { path: ^/admin, roles: ROLE_ADMIN }
     # - { path: ^/profile, roles: ROLE_USER }
-    # 1. Permetti l'accesso pubblico all'health check (se usi ancora questo percorso)
-    - { path: ^/_mcp/health$, roles: PUBLIC_ACCESS, methods: [GET, HEAD, OPTIONS] }
-    - { path: ^/_mcp$, roles: ROLE_MCP, methods: [POST] }
-    # Proteggi rigidamente l'esecuzione dei comandi e dei tool in POST
-    - { path: ^/_mcp$, roles: ROLE_MCP, methods: [POST] }
+    # Endpoint MCP completamente pubblico (GET/HEAD/OPTIONS/POST)
+    - { path: ^/_mcp, roles: PUBLIC_ACCESS }
     - { path: ^/api/totp, roles: PUBLIC_ACCESS }
     - { path: ^/api/public/change-password, roles: PUBLIC_ACCESS }
     - { path: ^/verify-totp, roles: PUBLIC_ACCESS }
