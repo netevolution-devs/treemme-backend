@@ -1,13 +1,16 @@
 mcp:
-  # Abilita i trasporti esposti dal server MCP
   client_transports:
     http: true
     stdio: false
 
-  # Configurazione del trasporto HTTP
   http:
     path: "/_mcp"
+    allowed_hosts:
+      - "api.treemme.netevolution.it"
+    allowed_origins:
+      - "https://api.treemme.netevolution.it"
+      - "https://app.treemme.netevolution.it"
     session:
-      store: "file"                # persistenza tra richieste HTTP
+      store: "file"
       directory: "%kernel.cache_dir%/mcp-sessions"
-      ttl: 3600                     # secondi
+      ttl: 3600
