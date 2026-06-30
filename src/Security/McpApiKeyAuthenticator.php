@@ -33,22 +33,12 @@ final class McpApiKeyAuthenticator extends AbstractAuthenticator
         if ($this->expected === '' || !\is_string($this->expected)) {
             throw new AuthenticationException('MCP token non configurato sul server.');
         }
-
         if ($provided === '' || !hash_equals($this->expected, $provided)) {
             throw new AuthenticationException('Invalid MCP token');
         }
 
-        // --- AZIONE SALVA-SESSIONE PER CHATGPT (Sincrono/Webhook) ---
-        // Se ChatGPT non sta mandando l'header Mcp-Session-Id, lo iniettiamo noi a runtime.
-        // Usiamo un UUID fisso di fallback così l'SDK PHP lo riconosce istantaneamente
-        // come valido anche senza passare dall'handshake SSE.
-        if (!$request->headers->has('Mcp-Session-Id')) {
-            $request->headers->set('Mcp-Session-Id', '00000000-0000-0000-0000-000000000000');
-        }
-        // -------------------------------------------------------------
-
         $userId = 'mcp';
-        $userLoader = static fn () => new InMemoryUser($userId, null, ['ROLE_MCP']);
+        $userLoader = static fn () => new InMemoryUser($userId, ['ROLE_MCP']);
 
         return new SelfValidatingPassport(new UserBadge($userId, $userLoader));
     }
