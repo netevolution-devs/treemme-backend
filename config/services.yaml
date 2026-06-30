@@ -64,6 +64,16 @@ services:
       $mcpLoginEmail: '%env(string:MCP_LOGIN_EMAIL)%'
       $mcpLoginPassword: '%env(string:MCP_LOGIN_PASSWORD)%'
 
+  # Auth listener per l'endpoint del bundle MCP (/mcp)
+  App\EventListener\McpAuthListener:
+    arguments:
+      $mcpEnabled: '%env(bool:MCP_ENABLED)%'
+      $mcpToken: '%env(string:MCP_TOKEN)%'
+      $mcpLoginEmail: '%env(string:MCP_LOGIN_EMAIL)%'
+      $mcpLoginPassword: '%env(string:MCP_LOGIN_PASSWORD)%'
+    tags:
+      - { name: kernel.event_listener, event: kernel.request, method: __invoke, priority: 100 }
+
   # Inject the tagged MCP tools into the server
   App\Mcp\McpServer:
     arguments:

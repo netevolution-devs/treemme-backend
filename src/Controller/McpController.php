@@ -34,7 +34,7 @@ class McpController extends AbstractController
         $this->cache = new FilesystemAdapter('mcp_sessions', 3600);
     }
 
-    #[Route('/mcp', name: 'app_mcp', methods: ['POST'])]
+    #[Route('/mcp-legacy', name: 'app_mcp', methods: ['POST'])]
     public function handle(Request $request): Response
     {
         if (!$this->mcpEnabled) {
@@ -65,7 +65,7 @@ class McpController extends AbstractController
     }
 
     // Healthcheck and transport discovery
-    #[Route('/mcp', name: 'app_mcp_health', methods: ['GET'])]
+    #[Route('/mcp-legacy', name: 'app_mcp_health', methods: ['GET'])]
     public function health(Request $request): Response
     {
         if (!$this->mcpEnabled) {
@@ -79,7 +79,7 @@ class McpController extends AbstractController
     }
 
     // SSE endpoint: opens a stream and sends the POST endpoint URL
-    #[Route('/mcp/sse', name: 'mcp_sse', methods: ['GET', 'POST'])]
+    #[Route('/mcp-legacy/sse', name: 'mcp_sse', methods: ['GET', 'POST'])]
     public function sse(Request $request): Response
     {
         if ($request->isMethod('POST')) {
@@ -155,7 +155,7 @@ class McpController extends AbstractController
     }
 
     // Message endpoint used by the SSE transport
-    #[Route('/mcp/messages', name: 'app_mcp_messages', methods: ['POST'])]
+    #[Route('/mcp-legacy/messages', name: 'app_mcp_messages', methods: ['POST'])]
     public function messages(Request $request): Response
     {
         if (!$this->mcpEnabled) {
