@@ -51,10 +51,9 @@ security:
   access_control:
     # - { path: ^/admin, roles: ROLE_ADMIN }
     # - { path: ^/profile, roles: ROLE_USER }
-    access_control:
-      # 1. Permetti l'accesso pubblico all'health check (se usi ancora questo percorso)
+    # 1. Permetti l'accesso pubblico all'health check (se usi ancora questo percorso)
     - { path: ^/_mcp/health$, roles: PUBLIC_ACCESS, methods: [GET, HEAD, OPTIONS] }
-      # Permetti l'aggancio in GET (SSE) liberamente (il protocollo userà i cookie/session-id internamente)
+    # Permetti l'aggancio in GET (SSE) liberamente (il protocollo userà i cookie/session-id internamente)
     - { path: ^/_mcp$, roles: PUBLIC_ACCESS, methods: [GET] }
     # Proteggi rigidamente l'esecuzione dei comandi e dei tool in POST
     - { path: ^/_mcp$, roles: ROLE_MCP, methods: [POST] }
