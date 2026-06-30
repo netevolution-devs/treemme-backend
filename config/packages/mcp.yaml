@@ -5,11 +5,6 @@ mcp:
 
   http:
     path: "/_mcp"
-    allowed_hosts:
-      - "api.treemme.netevolution.it"
-    allowed_origins:
-      - "https://api.treemme.netevolution.it"
-      - "https://app.treemme.netevolution.it"
     session:
       store: "file"
       directory: "%kernel.cache_dir%/mcp-sessions"
