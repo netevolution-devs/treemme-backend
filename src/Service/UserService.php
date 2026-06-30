@@ -21,9 +21,15 @@ class UserService
         $this->doctrine = $entityManager;
     }
 
-    public function getCurrentUser(): ?User
+        public function getCurrentUser(): ?User
     {
-        return $this->security->getUser();
+        $user = $this->security->getUser();
+
+        if (!$user instanceof User) {
+            return null;
+        }
+
+        return $user;
     }
 
     public function getUserByRefreshToken($refreshToken): ?User
