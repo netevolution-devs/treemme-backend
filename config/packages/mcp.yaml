@@ -1,12 +1,7 @@
 mcp:
-mcp:
-  client_transports:
-    http: true
-    stdio: false
-
   http:
     path: "/_mcp"
     session:
-      store: "psr6"
-      cache_pool: "mcp_doctrine_pool" # Il nome del pool impostato sopra
+      store: "file"
+      directory: "%kernel.cache_dir%/mcp-sessions"
       ttl: 3600
