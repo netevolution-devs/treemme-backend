@@ -54,7 +54,7 @@ security:
     # Permetti l'accesso pubblico al nuovo health check
     - { path: ^/_mcp/health$, roles: PUBLIC_ACCESS, methods: [GET, HEAD, OPTIONS] }
     # Protezione per il server MCP vero e proprio
-    - { path: ^/_mcp$, roles: ROLE_MCP, methods: [POST] }
+    - { path: ^/_mcp$, roles: ROLE_MCP, methods: [GET, POST] }
     - { path: ^/api/totp, roles: PUBLIC_ACCESS }
     - { path: ^/api/public/change-password, roles: PUBLIC_ACCESS }
     - { path: ^/verify-totp, roles: PUBLIC_ACCESS }
