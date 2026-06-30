@@ -15,6 +15,12 @@ security:
       pattern: ^/(_(profiler|wdt)|css|images|js)/
       security: false
 
+    # Firewall dedicato all'endpoint MCP, protetto da token su header
+    mcp:
+      pattern: ^/_mcp
+      stateless: true
+      custom_authenticator: App\Security\McpApiKeyAuthenticator
+
     login:
       pattern: ^/(login|backoffice/login)
       stateless: true
@@ -45,7 +51,7 @@ security:
   access_control:
     # - { path: ^/admin, roles: ROLE_ADMIN }
     # - { path: ^/profile, roles: ROLE_USER }
-    - { path: ^/_mcp, roles: PUBLIC_ACCESS }
+    - { path: ^/_mcp, roles: ROLE_MCP }
     - { path: ^/api/totp, roles: PUBLIC_ACCESS }
     - { path: ^/api/public/change-password, roles: PUBLIC_ACCESS }
     - { path: ^/verify-totp, roles: PUBLIC_ACCESS }

@@ -57,6 +57,20 @@ services:
       $appName: '%app_name%'
 
 
+  # Token provider per MCP: ottiene un JWT usando credenziali da env
+  App\Security\McpTokenProvider:
+    arguments:
+      $email: '%env(string:MCP_SERVICE_EMAIL)%'
+      $password: '%env(string:MCP_SERVICE_PASSWORD)%'
+      $useRefresh: '%env(bool:MCP_USE_REFRESH)%'
+
+
+  # Autenticatore per proteggere /_mcp tramite header X-MCP-Token
+  App\Security\McpApiKeyAuthenticator:
+    arguments:
+      $expected: '%env(string:MCP_TRANSPORT_TOKEN)%'
+
+
 #  App\Listeners\LocaleListener:
 #    tags:
 #      - { name: kernel.event_listener, event: kernel.request, priority: 20 }

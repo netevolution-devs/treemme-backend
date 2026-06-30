@@ -5,11 +5,13 @@ namespace App\Mcp;
 use Mcp\Capability\Attribute\McpTool;
 use Symfony\Component\HttpFoundation\Request as HttpRequest;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
+use App\Security\McpTokenProvider;
 
 final class DdtTools
 {
     public function __construct(
         private readonly HttpKernelInterface $kernel,
+        private readonly McpTokenProvider $tokens,
     ) {}
 
     #[McpTool(
@@ -27,6 +29,7 @@ final class DdtTools
         ], static fn($v) => $v !== null && $v !== '');
 
         $request = HttpRequest::create('/ddt', 'GET', $query);
+        $request->headers->set('Authorization', 'Bearer ' . $this->tokens->getToken());
         $response = $this->kernel->handle($request, HttpKernelInterface::SUB_REQUEST);
         return json_decode($response->getContent() ?: '[]', true) ?? [];
     }
@@ -39,6 +42,7 @@ final class DdtTools
     public function get(int $id): array
     {
         $request = HttpRequest::create('/ddt/' . $id, 'GET');
+        $request->headers->set('Authorization', 'Bearer ' . $this->tokens->getToken());
         $response = $this->kernel->handle($request, HttpKernelInterface::SUB_REQUEST);
         return json_decode($response->getContent() ?: '[]', true) ?? [];
     }
@@ -51,6 +55,7 @@ final class DdtTools
     public function create(array $data): array
     {
         $request = HttpRequest::create('/ddt', 'POST', $data);
+        $request->headers->set('Authorization', 'Bearer ' . $this->tokens->getToken());
         $response = $this->kernel->handle($request, HttpKernelInterface::SUB_REQUEST);
         return json_decode($response->getContent() ?: '[]', true) ?? [];
     }
@@ -65,6 +70,7 @@ final class DdtTools
         // Usiamo PUT con JSON per massima compatibilità
         $request = HttpRequest::create('/ddt/' . $id, 'PUT', [], [], [], [], json_encode($data));
         $request->headers->set('Content-Type', 'application/json');
+        $request->headers->set('Authorization', 'Bearer ' . $this->tokens->getToken());
         $response = $this->kernel->handle($request, HttpKernelInterface::SUB_REQUEST);
         return json_decode($response->getContent() ?: '[]', true) ?? [];
     }
@@ -77,6 +83,7 @@ final class DdtTools
     public function delete(int $id): array
     {
         $request = HttpRequest::create('/ddt/' . $id, 'DELETE');
+        $request->headers->set('Authorization', 'Bearer ' . $this->tokens->getToken());
         $response = $this->kernel->handle($request, HttpKernelInterface::SUB_REQUEST);
         return json_decode($response->getContent() ?: '[]', true) ?? [];
     }

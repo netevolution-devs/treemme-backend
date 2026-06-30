@@ -5,11 +5,13 @@ namespace App\Mcp;
 use Mcp\Capability\Attribute\McpTool;
 use Symfony\Component\HttpFoundation\Request as HttpRequest;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
+use App\Security\McpTokenProvider;
 
 final class ArticleTools
 {
     public function __construct(
         private readonly HttpKernelInterface $kernel,
+        private readonly McpTokenProvider $tokens,
     ) {}
 
     #[McpTool(
@@ -24,6 +26,7 @@ final class ArticleTools
             $query['client'] = $client;
         }
         $request = HttpRequest::create('/article', 'GET', $query);
+        $request->headers->set('Authorization', 'Bearer ' . $this->tokens->getToken());
         $response = $this->kernel->handle($request, HttpKernelInterface::SUB_REQUEST);
         return json_decode($response->getContent() ?: '[]', true) ?? [];
     }
@@ -36,6 +39,7 @@ final class ArticleTools
     public function get(int $id): array
     {
         $request = HttpRequest::create('/article/' . $id, 'GET');
+        $request->headers->set('Authorization', 'Bearer ' . $this->tokens->getToken());
         $response = $this->kernel->handle($request, HttpKernelInterface::SUB_REQUEST);
         return json_decode($response->getContent() ?: '[]', true) ?? [];
     }
@@ -49,6 +53,7 @@ final class ArticleTools
     {
         // ArticleController supporta JSON o form-data
         $request = HttpRequest::create('/article', 'POST', $data);
+        $request->headers->set('Authorization', 'Bearer ' . $this->tokens->getToken());
         $response = $this->kernel->handle($request, HttpKernelInterface::SUB_REQUEST);
         return json_decode($response->getContent() ?: '[]', true) ?? [];
     }
@@ -62,6 +67,7 @@ final class ArticleTools
     {
         $request = HttpRequest::create('/article/' . $id, 'PUT', [], [], [], [], json_encode($data));
         $request->headers->set('Content-Type', 'application/json');
+        $request->headers->set('Authorization', 'Bearer ' . $this->tokens->getToken());
         $response = $this->kernel->handle($request, HttpKernelInterface::SUB_REQUEST);
         return json_decode($response->getContent() ?: '[]', true) ?? [];
     }
@@ -74,6 +80,7 @@ final class ArticleTools
     public function delete(int $id): array
     {
         $request = HttpRequest::create('/article/' . $id, 'DELETE');
+        $request->headers->set('Authorization', 'Bearer ' . $this->tokens->getToken());
         $response = $this->kernel->handle($request, HttpKernelInterface::SUB_REQUEST);
         return json_decode($response->getContent() ?: '[]', true) ?? [];
     }

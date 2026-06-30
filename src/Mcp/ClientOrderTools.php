@@ -5,11 +5,13 @@ namespace App\Mcp;
 use Mcp\Capability\Attribute\McpTool;
 use Symfony\Component\HttpFoundation\Request as HttpRequest;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
+use App\Security\McpTokenProvider;
 
 final class ClientOrderTools
 {
     public function __construct(
         private readonly HttpKernelInterface $kernel,
+        private readonly McpTokenProvider $tokens,
     ) {}
 
     #[McpTool(
@@ -27,6 +29,7 @@ final class ClientOrderTools
             $query['client'] = $client;
         }
         $request = HttpRequest::create('/client-order', 'GET', $query);
+        $request->headers->set('Authorization', 'Bearer ' . $this->tokens->getToken());
         $response = $this->kernel->handle($request, HttpKernelInterface::SUB_REQUEST);
         return json_decode($response->getContent() ?: '[]', true) ?? [];
     }
@@ -39,6 +42,7 @@ final class ClientOrderTools
     public function get(int $id): array
     {
         $request = HttpRequest::create('/client-order/' . $id, 'GET');
+        $request->headers->set('Authorization', 'Bearer ' . $this->tokens->getToken());
         $response = $this->kernel->handle($request, HttpKernelInterface::SUB_REQUEST);
         return json_decode($response->getContent() ?: '[]', true) ?? [];
     }
@@ -52,6 +56,7 @@ final class ClientOrderTools
     {
         // Il controller legge $request->request->all(), inviare come form params
         $request = HttpRequest::create('/client-order', 'POST', $data);
+        $request->headers->set('Authorization', 'Bearer ' . $this->tokens->getToken());
         $response = $this->kernel->handle($request, HttpKernelInterface::SUB_REQUEST);
         return json_decode($response->getContent() ?: '[]', true) ?? [];
     }
@@ -64,6 +69,7 @@ final class ClientOrderTools
     public function update(int $id, array $data): array
     {
         $request = HttpRequest::create('/client-order/' . $id, 'PUT', $data);
+        $request->headers->set('Authorization', 'Bearer ' . $this->tokens->getToken());
         $response = $this->kernel->handle($request, HttpKernelInterface::SUB_REQUEST);
         return json_decode($response->getContent() ?: '[]', true) ?? [];
     }
@@ -76,6 +82,7 @@ final class ClientOrderTools
     public function delete(int $id): array
     {
         $request = HttpRequest::create('/client-order/' . $id, 'DELETE');
+        $request->headers->set('Authorization', 'Bearer ' . $this->tokens->getToken());
         $response = $this->kernel->handle($request, HttpKernelInterface::SUB_REQUEST);
         return json_decode($response->getContent() ?: '[]', true) ?? [];
     }
@@ -88,6 +95,7 @@ final class ClientOrderTools
     public function close(int $id): array
     {
         $request = HttpRequest::create('/client-order/' . $id . '/close', 'PATCH');
+        $request->headers->set('Authorization', 'Bearer ' . $this->tokens->getToken());
         $response = $this->kernel->handle($request, HttpKernelInterface::SUB_REQUEST);
         return json_decode($response->getContent() ?: '[]', true) ?? [];
     }

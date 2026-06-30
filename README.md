@@ -68,6 +68,17 @@ Come provare in locale:
 2. `tools/list`: effettuare una POST JSON-RPC all’endpoint `/_mcp` con metodo `tools/list` per verificare gli strumenti esposti.
 3. `tools/call`: invocare ad esempio `contacts.list` passando i parametri desiderati.
 
+Autenticazione dei tool MCP (service account)
+- L’endpoint `/_mcp` è pubblico per la handshake MCP (vedi `security.yaml`), ma le sub‑request dei tool verso rotte protette usano un JWT “service account” ottenuto automaticamente con le credenziali definite in `.env.local`.
+- Aggiungere in `.env.local` (usare un utente tecnico con i soli ruoli necessari):
+```env
+MCP_SERVICE_EMAIL="service.account@tuodominio.it"
+MCP_SERVICE_PASSWORD="super-segreta"
+MCP_USE_REFRESH=true
+```
+- I tool MCP otterranno il token chiamando `POST /login` e lo riutilizzeranno in tutte le sub‑request (header `Authorization: Bearer <token>`). Se abilitato, tenteranno il refresh su `POST /api/token/refresh`.
+- In produzione è consigliato proteggere anche `/_mcp` (API key/Basic Auth/allowlist IP sul proxy) oltre al service account.
+
 Collegamento a ChatGPT (App):
 1. Nella sezione “Developer / Apps” di ChatGPT, creare o modificare un’App personalizzata.
 2. Aggiungere un “Connector” MCP indicando l’URL pubblico dell’endpoint `/_mcp`.
