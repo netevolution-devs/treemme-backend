@@ -42,3 +42,27 @@ access_control:
     - { path: ^/api/token/refresh, roles: PUBLIC_ACCESS }
     - { path: ^/,       roles: IS_AUTHENTICATED_FULLY }
 ```
+
+## MCP (Model Context Protocol) – Integrazione con ChatGPT
+
+Questa applicazione espone un server MCP via HTTP per permettere a ChatGPT (schede "App") di utilizzare le rotte dei contatti come strumenti.
+
+– Endpoint MCP HTTP: `/_mcp`
+
+Strumenti disponibili (principali):
+- `contacts.list` – elenca contatti con filtri opzionali (`type`, `contact_name`, `detail_name`).
+- `contacts.get` – dettaglio contatto per `id`.
+- `contacts.create` – crea un contatto (passare i campi nel payload).
+- `contacts.update` – aggiorna un contatto esistente via `id` (payload dei campi da aggiornare).
+- `contacts.delete` – elimina un contatto per `id`.
+
+Come provare in locale:
+1. Avviare il server Symfony: `symfony server:start` (o PHP built-in server) e assicurarsi che l’app sia raggiungibile.
+2. `tools/list`: effettuare una POST JSON-RPC all’endpoint `/_mcp` con metodo `tools/list` per verificare gli strumenti esposti.
+3. `tools/call`: invocare ad esempio `contacts.list` passando i parametri desiderati.
+
+Collegamento a ChatGPT (App):
+1. Nella sezione “Developer / Apps” di ChatGPT, creare o modificare un’App personalizzata.
+2. Aggiungere un “Connector” MCP indicando l’URL pubblico dell’endpoint `/_mcp`.
+   - Se l’app gira in locale, pubblicare temporaneamente l’endpoint con un tunnel (es. ngrok) e usare l’URL generato.
+3. Salvare e testare: dalla chat dell’App, usare gli strumenti (es. chiedere di elencare i contatti).

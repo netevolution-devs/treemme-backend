@@ -1,0 +1,15 @@
+mcp:
+  server:
+    # Abilita il server MCP via HTTP (utilizzabile da ChatGPT come "app")
+    client_transports:
+      http:
+        enabled: true
+        # Endpoint HTTP del server MCP
+        path: "/_mcp"
+        # Opzioni di sessione (persistenza lato server per OAuth/contesto se necessario)
+        sessions:
+          directory: "%kernel.cache_dir%/mcp-sessions"
+          prefix: "mcp-"
+      # Opzionale: abilita anche STDIO per uso locale (Claude Desktop, ecc.)
+      stdio:
+        enabled: false
