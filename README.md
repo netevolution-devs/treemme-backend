@@ -50,11 +50,18 @@ Questa applicazione espone un server MCP via HTTP per permettere a ChatGPT (sche
 – Endpoint MCP HTTP: `/_mcp`
 
 Strumenti disponibili (principali):
-- `contacts.list` – elenca contatti con filtri opzionali (`type`, `contact_name`, `detail_name`).
-- `contacts.get` – dettaglio contatto per `id`.
-- `contacts.create` – crea un contatto (passare i campi nel payload).
-- `contacts.update` – aggiorna un contatto esistente via `id` (payload dei campi da aggiornare).
-- `contacts.delete` – elimina un contatto per `id`.
+- Contatti:
+  - `contacts.list`, `contacts.get`, `contacts.create`, `contacts.update`, `contacts.delete`.
+- Articoli:
+  - `articles.list` (filtro opzionale `client`), `articles.get`, `articles.create`, `articles.update`, `articles.delete`.
+- Ordini cliente:
+  - `client_orders.list` (filtri opzionali `order_number`, `client`), `client_orders.get`, `client_orders.create`, `client_orders.update`, `client_orders.delete`, `client_orders.close`.
+- Righe ordini cliente:
+  - `client_order_rows.list`, `client_order_rows.get`, `client_order_rows.create`, `client_order_rows.update`, `client_order_rows.delete`, `client_order_rows.close`.
+- DDT:
+  - `ddt.list` (filtri opzionali `subcontractor_id`, `client_id`, `start_date`, `end_date`), `ddt.get`, `ddt.create`, `ddt.update`, `ddt.delete`.
+- Righe DDT:
+  - `ddt_rows.list`, `ddt_rows.get`, `ddt_rows.create`, `ddt_rows.update`, `ddt_rows.delete`.
 
 Come provare in locale:
 1. Avviare il server Symfony: `symfony server:start` (o PHP built-in server) e assicurarsi che l’app sia raggiungibile.
