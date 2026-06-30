@@ -1,7 +1,11 @@
 mcp:
+  client_transports:
+    http: true
+    stdio: false
+
   http:
     path: "/_mcp"
     session:
       store: "file"
-      directory: "%kernel.cache_dir%/mcp-sessions"
+      directory: "%kernel.project_dir%/var/mcp-sessions" # Spostato fuori da cache_dir
       ttl: 3600
