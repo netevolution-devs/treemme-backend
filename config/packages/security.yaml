@@ -15,8 +15,6 @@ security:
       pattern: ^/(_(profiler|wdt)|css|images|js)/
       security: false
 
-    # Nessun firewall dedicato per /_mcp: l'endpoint MCP è pubblico
-
     login:
       pattern: ^/(login|backoffice/login)
       stateless: true
@@ -47,7 +45,6 @@ security:
   access_control:
     # - { path: ^/admin, roles: ROLE_ADMIN }
     # - { path: ^/profile, roles: ROLE_USER }
-    # Endpoint MCP completamente pubblico (GET/HEAD/OPTIONS/POST)
     - { path: ^/_mcp, roles: PUBLIC_ACCESS }
     - { path: ^/api/totp, roles: PUBLIC_ACCESS }
     - { path: ^/api/public/change-password, roles: PUBLIC_ACCESS }

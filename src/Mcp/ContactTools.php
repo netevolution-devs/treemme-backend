@@ -5,7 +5,6 @@ namespace App\Mcp;
 use Mcp\Capability\Attribute\McpTool;
 use Symfony\Component\HttpFoundation\Request as HttpRequest;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
-use App\Security\McpTokenProvider;
 
 /**
  * Strumenti MCP per interagire con le rotte dei Contatti esistenti.
@@ -16,7 +15,6 @@ final class ContactTools
 {
     public function __construct(
         private readonly HttpKernelInterface $kernel,
-        private readonly McpTokenProvider $tokens,
     ) {
     }
 
@@ -34,7 +32,6 @@ final class ContactTools
         ], static fn($v) => null !== $v && $v !== '');
 
         $request = HttpRequest::create('/contact', 'GET', $query);
-        $request->headers->set('Authorization', 'Bearer ' . $this->tokens->getToken());
         $response = $this->kernel->handle($request, HttpKernelInterface::SUB_REQUEST);
 
         return json_decode($response->getContent() ?: '[]', true, 512, JSON_THROW_ON_ERROR);
@@ -48,7 +45,6 @@ final class ContactTools
     public function getContact(int $id): array
     {
         $request = HttpRequest::create('/contact/' . $id, 'GET');
-        $request->headers->set('Authorization', 'Bearer ' . $this->tokens->getToken());
         $response = $this->kernel->handle($request, HttpKernelInterface::SUB_REQUEST);
 
         return json_decode($response->getContent() ?: '[]', true, 512, JSON_THROW_ON_ERROR);
@@ -62,7 +58,6 @@ final class ContactTools
     public function createContact(array $data): array
     {
         $request = HttpRequest::create('/contact', 'POST', $data);
-        $request->headers->set('Authorization', 'Bearer ' . $this->tokens->getToken());
         $response = $this->kernel->handle($request, HttpKernelInterface::SUB_REQUEST);
 
         return json_decode($response->getContent() ?: '[]', true, 512, JSON_THROW_ON_ERROR);
@@ -78,7 +73,6 @@ final class ContactTools
         // Nota: il controller usa PUT per l’aggiornamento
         $request = HttpRequest::create('/contact/' . $id, 'PUT', [], [], [], [], json_encode($data, JSON_UNESCAPED_UNICODE));
         $request->headers->set('Content-Type', 'application/json');
-        $request->headers->set('Authorization', 'Bearer ' . $this->tokens->getToken());
 
         $response = $this->kernel->handle($request, HttpKernelInterface::SUB_REQUEST);
 
@@ -93,7 +87,6 @@ final class ContactTools
     public function deleteContact(int $id): array
     {
         $request = HttpRequest::create('/contact/' . $id, 'DELETE');
-        $request->headers->set('Authorization', 'Bearer ' . $this->tokens->getToken());
         $response = $this->kernel->handle($request, HttpKernelInterface::SUB_REQUEST);
 
         return json_decode($response->getContent() ?: '[]', true, 512, JSON_THROW_ON_ERROR);
