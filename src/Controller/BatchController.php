@@ -387,13 +387,38 @@ final class BatchController extends AbstractController
         bool               $createProduction = true
     ): JsonResponse
     {
-        $data = json_decode($request->getContent(), true);
-        if (!$data) {
-            $data = $request->request->all();
+        // Raccogli e normalizza i dati da più sorgenti per maggiore robustezza
+        $data = [];
+        // 1) Parametri form (application/x-www-form-urlencoded o multipart)
+        $formData = $request->request->all();
+        if (is_array($formData) && !empty($formData)) {
+            $data = array_merge($data, $formData);
+        }
+        // 2) Body JSON
+        $json = json_decode($request->getContent() ?? '', true);
+        if (is_array($json) && !empty($json)) {
+            $data = array_merge($data, $json);
+        }
+        // 3) Query string (fallback)
+        $query = $request->query->all();
+        if (is_array($query) && !empty($query)) {
+            $data = array_merge($data, $query);
+        }
+
+        // Supporta alias comuni per compatibilità con diversi client
+        if (!isset($data['client_order_row_id'])) {
+            if (isset($data['clientOrderRowId'])) {
+                $data['client_order_row_id'] = $data['clientOrderRowId'];
+            } elseif (isset($data['order_row_id'])) {
+                $data['client_order_row_id'] = $data['order_row_id'];
+            } elseif (isset($data['row_id'])) {
+                $data['client_order_row_id'] = $data['row_id'];
+            }
         }
 
         if (!isset($data['client_order_row_id'])) {
-            return $this->doResponse->doErrorJsonResponse('ID riga ordine mancante', 400);
+            $receivedKeys = implode(', ', array_keys($data));
+            return $this->doResponse->doErrorJsonResponse('ID riga ordine mancante. Chiavi ricevute: [' . $receivedKeys . ']', 400);
         }
 
         if (!isset($data['quantity']) || (float)$data['quantity'] <= 0) {
