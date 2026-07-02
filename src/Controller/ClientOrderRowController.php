@@ -119,17 +119,9 @@ final class ClientOrderRowController extends AbstractController
         // Filtro produzione e preparazione report (lista piatta)
         $report = [];
         foreach ($rows as $row) {
-            $totalProduced = 0;
-            foreach ($row->getBatchOrders() as $bo) {
-                $batch = $bo->getBatch();
-                if ($batch) {
-                    $totalProduced += (float)$batch->getQuantity();
-                }
-            }
-
-            // Consideriamo "prodotto" se non c'è più differenza tra quantità ordinata e prodotta (lotti)
-            $difference = (float)$row->getQuantity() - $totalProduced;
-            $isProduced = $difference <= 0;
+            // Usa getMissingQuantity() per determinare la quantità residua da produrre
+            $missing = (float)$row->getMissingQuantity();
+            $isProduced = $missing <= 0;
 
             if ($productionStatus === 'produced' && !$isProduced) continue;
             if ($productionStatus === 'to_produce' && $isProduced) continue;
