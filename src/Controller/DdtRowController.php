@@ -344,23 +344,183 @@ final class DdtRowController extends AbstractController
         if ($endDate) $endDate->setTime(0, 0, 0);
 
         $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
-        // Allineo la stampa alla tabella: stessa sorgente dati dell'endpoint
-        // /ddt-row/subcontracting-not-returned
-        $lots = $ddtRowRepository->findSubcontractingNotReturned($subcontractorId, $startDate, $endDate, $batchCode);
+        // Allineo la stampa ai medesimi filtri/dati dell'endpoint JSON
+        $ddtRows = $ddtRowRepository->findSubcontractingNotReturned($subcontractorId, $startDate, $endDate, $batchCode);
 
+        // Applica la stessa logica di getDdtRowSubcontractingNotReturned
         $groupedData = [];
-        foreach ($lots as $row) {
-            $subcontractor = $row->getDdt()->getSubcontractor();
-            if (!$subcontractor) continue;
-
-            $sId = $subcontractor->getId();
-            if (!isset($groupedData[$sId])) {
-                $groupedData[$sId] = [
-                    'subcontractor' => $this->groupSerializer->serializeGroup($subcontractor, 'client_summary_print'),
-                    'rows' => []
-                ];
+        foreach ($ddtRows as $ddtRow) {
+            $ddt = $ddtRow->getDdt();
+            if (!$ddt) {
+                continue;
             }
-            $groupedData[$sId]['rows'][] = $this->groupSerializer->serializeGroup($row, ['client_summary_print', 'external_processing_print']);
+            $ddtReason = $ddt->getReason();
+            $ddtReasonName = $ddtReason?->getName();
+
+            // Esclude i DDT con causale "Vendita" o senza causale
+            if (!$ddtReasonName || $ddtReasonName === 'Vendita') {
+                continue;
+            }
+
+            $batch = $ddtRow->getBatch();
+            if (!$batch || $batch->isCompleted()) {
+                continue;
+            }
+
+            $movements = $batch->getWarehouseMovements();
+            if ($movements->isEmpty()) {
+                continue;
+            }
+
+            $movementsArray = $movements->toArray();
+            usort($movementsArray, fn($a, $b) => $a->getId() <=> $b->getId());
+
+            $resoReasonName = "Reso " . $ddtReasonName;
+            $rientroTrasferimentoReasonName = "Rientro da Lavorazione";
+
+            $firstMovementOut = null;
+            // Tenta di identificare il movimento di uscita iniziale
+            foreach ($movementsArray as $movement) {
+                $reason = $movement->getReason();
+                $reasonName = $reason?->getName();
+                $reasonType = $reason?->getReasonType();
+                $movementType = $reasonType?->getMovementType();
+
+                // Un movimento è un'uscita valida se è di tipo Scarico (-)
+                if ($movementType === '-') {
+                    // Se c'è un match del numero DDT, o se la causale è la stessa, è un ottimo candidato
+                    if ($movement->getDdtNumber() === $ddt->getDdtNumber() || $reasonName === $ddtReasonName) {
+                        $firstMovementOut = $movement;
+                        // Se abbiamo anche il match del numero DDT, abbiamo finito la ricerca dell'uscita
+                        if ($movement->getDdtNumber() === $ddt->getDdtNumber()) {
+                            break;
+                        }
+                    }
+                    // Fallback: se non abbiamo ancora trovato nulla e il ddt_number è nullo, lo teniamo come candidato
+                    if ($firstMovementOut === null && $movement->getDdtNumber() === null) {
+                        $firstMovementOut = $movement;
+                    }
+                }
+            }
+
+            $returnedPieces = 0;
+            $returnedQuantity = 0;
+
+            foreach ($movementsArray as $movement) {
+                $reason = $movement->getReason();
+                $reasonName = $reason?->getName();
+                $reasonType = $reason?->getReasonType();
+                $movementType = $reasonType?->getMovementType();
+
+                // Un movimento è un rientro se è di tipo Carico (+)
+                // e ha il numero di DDT corrispondente, oppure ha una delle causali "note" di rientro
+                if ($movementType === '+') {
+                    if ($movement->getDdtNumber() === $ddt->getDdtNumber() ||
+                        $reasonName === $resoReasonName ||
+                        $reasonName === $rientroTrasferimentoReasonName ||
+                        (str_starts_with($reasonName, 'Reso ') && $movement->getDdtNumber() === $ddt->getDdtNumber())
+                    ) {
+                        $mPieces = abs($movement->getPiece() ?? 0);
+                        $returnedPieces += $mPieces;
+
+                        // Se il movimento ha una quantità esplicita diversa da zero, usiamo quella
+                        $mQuantity = abs($movement->getQuantity() ?? 0);
+                        if ($mQuantity > 0) {
+                            $returnedQuantity += $mQuantity;
+                        } else {
+                            // Fallback sul calcolo proporzionale se la quantità nel movimento è mancante
+                            $unitQuantity = 0;
+                            $pOut = $ddtRow->getPiecesOut() ?? $ddtRow->getPieces() ?? 0;
+                            $qOut = $ddtRow->getQuantityOut() ?? $ddtRow->getQuantity() ?? 0;
+                            if ($pOut > 0) {
+                                $unitQuantity = $qOut / $pOut;
+                            }
+                            $returnedQuantity += ($unitQuantity * $mPieces);
+                        }
+                    }
+                }
+            }
+
+            if ($firstMovementOut !== null || $ddtRow->getPiecesOut() !== null || $ddtRow->getPieces() !== null) {
+                $outPieces = $ddtRow->getPiecesOut() ?? $ddtRow->getPieces() ?? abs($firstMovementOut->getPiece() ?? 0);
+                $outQuantity = $ddtRow->getQuantityOut() ?? $ddtRow->getQuantity() ?? abs($firstMovementOut->getQuantity() ?? 0);
+
+                $remainingPieces = $outPieces - $returnedPieces;
+                $remainingQuantity = $outQuantity - $returnedQuantity;
+
+                // Includi la riga se non è ancora stata saldata (rimangono pezzi)
+                if ($remainingPieces > 0.01) {
+                    $rowData = $this->groupSerializer->serializeGroup($ddtRow, 'ddt_row_list');
+                    // Assicura la presenza di campi richiesti dal template PDF
+                    // In particolare, il template usa row.ddt.ddt_date e row.ddt.ddt_number
+                    if (!isset($rowData['ddt']) || !is_array($rowData['ddt'])) {
+                        $rowData['ddt'] = [];
+                    }
+                    $rowData['ddt']['ddt_number'] = $ddt->getDdtNumber();
+                    $rowData['ddt']['ddt_date'] = $ddt->getDdtDate();
+
+                    // Il template accede a row.batch.batch_orders per ricavare i nomi clienti
+                    // In alcuni casi il gruppo 'ddt_row_list' non include 'batch_orders'.
+                    // Qui costruiamo la struttura minima necessaria perché il template non vada in errore.
+                    if (!isset($rowData['batch']) || !is_array($rowData['batch'])) {
+                        $rowData['batch'] = [];
+                    }
+                    if (!isset($rowData['batch']['batch_orders']) || !is_array($rowData['batch']['batch_orders'])) {
+                        $rowData['batch']['batch_orders'] = [];
+                        $batchEntity = $ddtRow->getBatch();
+                        if ($batchEntity) {
+                            $batchOrders = method_exists($batchEntity, 'getBatchOrders') ? $batchEntity->getBatchOrders() : null;
+                            if ($batchOrders) {
+                                foreach ($batchOrders as $bo) {
+                                    $clientName = null;
+                                    $orderRow = method_exists($bo, 'getOrderRow') ? $bo->getOrderRow() : null;
+                                    if ($orderRow) {
+                                        $clientOrder = method_exists($orderRow, 'getClientOrder') ? $orderRow->getClientOrder() : null;
+                                        if ($clientOrder) {
+                                            $client = method_exists($clientOrder, 'getClient') ? $clientOrder->getClient() : null;
+                                            if ($client && method_exists($client, 'getName')) {
+                                                $clientName = $client->getName();
+                                            }
+                                        }
+                                    }
+
+                                    // Struttura minima per il template: bo.order_row.client_order.client.name
+                                    $boData = [];
+                                    if ($clientName !== null) {
+                                        $boData = [
+                                            'order_row' => [
+                                                'client_order' => [
+                                                    'client' => [
+                                                        'name' => $clientName,
+                                                    ],
+                                                ],
+                                            ],
+                                        ];
+                                    }
+                                    $rowData['batch']['batch_orders'][] = $boData;
+                                }
+                            }
+                        }
+                    }
+                    $rowData['pieces_out'] = $outPieces;
+                    $rowData['quantity_out'] = $outQuantity;
+                    $rowData['stock_pieces'] = $remainingPieces;
+                    $rowData['stock_quantity'] = round($remainingQuantity, 3);
+
+                    $subcontractor = $ddt->getSubcontractor();
+                    if (!$subcontractor) {
+                        continue;
+                    }
+                    $sId = $subcontractor->getId();
+                    if (!isset($groupedData[$sId])) {
+                        $groupedData[$sId] = [
+                            'subcontractor' => $this->groupSerializer->serializeGroup($subcontractor, 'client_summary_print'),
+                            'rows' => []
+                        ];
+                    }
+                    $groupedData[$sId]['rows'][] = $rowData;
+                }
+            }
         }
 
         // Ordina i terzisti per nome
