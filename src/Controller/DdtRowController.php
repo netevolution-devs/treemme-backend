@@ -365,18 +365,19 @@ final class DdtRowController extends AbstractController
             $subcontractor = $row->getDdt()->getSubcontractor();
             if (!$subcontractor) continue;
 
-            // Somma dei rientri collegati alla specifica riga DDT
-            $notePrefix = 'Rientro riga DDT ' . $row->getId();
+            // Somma dei rientri collegati alla specifica riga DDT.
+            // Per massima compatibilità non usiamo solo la movement_note, ma agganciamo per
+            // (batch + terzista + NUM. DDT uguale a quello di uscita).
             $returnedPieces = (float)$wmRepo->createQueryBuilder('wm')
                 ->select('COALESCE(SUM(wm.piece), 0) as returnedPieces')
                 ->andWhere('wm.batch = :batch')
                 ->andWhere('wm.contact = :contact')
                 ->andWhere('wm.reason IN (:reasons)')
-                ->andWhere('wm.movement_note LIKE :note')
+                ->andWhere('wm.ddt_number = :ddtNumber')
                 ->setParameter('batch', $row->getBatch())
                 ->setParameter('contact', $subcontractor)
                 ->setParameter('reasons', $returnReasons)
-                ->setParameter('note', $notePrefix . '%')
+                ->setParameter('ddtNumber', $row->getDdt()->getDdtNumber())
                 ->getQuery()
                 ->getSingleScalarResult();
 
