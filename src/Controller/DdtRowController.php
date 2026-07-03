@@ -321,6 +321,7 @@ final class DdtRowController extends AbstractController
         $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
         $lots = $ddtRowRepository->findExternalProcessingLots($subcontractorId, $startDate, $endDate, $batchCode);
 
+        // Come prima: restituisce le righe così come sono (solo filtro repository), senza calcolo residui
         $results = $this->groupSerializer->serializeGroup($lots, ['client_summary_print', 'external_processing_print']);
 
         return new JsonResponse($this->doResponse->doResponse($results));
