@@ -39,7 +39,7 @@
                     <th style="width: 100px;">LOTTO</th>
                     <th style="width: 120px;">CLIENTE</th>
                     <th style="width: 150px;">ARTICOLO</th>
-                    <th class="text-right" style="width: 50px;">PELLI</th>
+                    <th class="text-right" style="width: 70px;">PELLI DA RITORNARE</th>
                     <th>LAVORAZIONI</th>
                 </tr>
             </thead>
@@ -64,7 +64,7 @@
                             {{ clientNames|join(', ') }}
                         </td>
                         <td>{{ row.batch.article.client_code ?? row.batch.leather.name ?? '' }}</td>
-                        <td class="text-right">{{ row.pieces }}</td>
+                        <td class="text-right">{{ row.pieces_to_return }}</td>
                         <td>
                             {% set processings = [] %}
                             {% for drp in row.ddt_row_processings %}
@@ -75,7 +75,7 @@
                             {{ processings|join(', ') }}
                         </td>
                     </tr>
-                    {% set totalPieces = totalPieces + row.pieces %}
+                    {% set totalPieces = totalPieces + row.pieces_to_return %}
                     {% if row.batch.batch_code not in batchCodes %}
                         {% set batchCodes = batchCodes|merge([row.batch.batch_code]) %}
                     {% endif %}
