@@ -344,49 +344,14 @@ final class DdtRowController extends AbstractController
         if ($endDate) $endDate->setTime(0, 0, 0);
 
         $ddtRowRepository = $this->doctrine->getRepository(DdtRow::class);
-        $lots = $ddtRowRepository->findExternalProcessingLots($subcontractorId, $startDate, $endDate, $batchCode);
-
-        // Per la stampa PDF applichiamo la stessa logica della tabella applicativa:
-        // mostrare solo le righe DDT ancora aperte (pezzi residui > 0),
-        // dove residuo = pezzi usciti riga − rientri collegati a QUELLA riga.
-        $wmRepo = $this->doctrine->getRepository(WarehouseMovement::class);
-        $wmReasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
-
-        // Causali di rientro: tipi movimento positivi ('+' oppure 'Carico')
-        $returnReasons = $wmReasonRepo->createQueryBuilder('r')
-            ->join('r.reason_type', 'rt')
-            ->andWhere('rt.movement_type IN (:types)')
-            ->setParameter('types', ['+', 'Carico'])
-            ->getQuery()
-            ->getResult();
+        // Allineo la stampa alla tabella: stessa sorgente dati dell'endpoint
+        // /ddt-row/subcontracting-not-returned
+        $lots = $ddtRowRepository->findSubcontractingNotReturned($subcontractorId, $startDate, $endDate, $batchCode);
 
         $groupedData = [];
         foreach ($lots as $row) {
             $subcontractor = $row->getDdt()->getSubcontractor();
             if (!$subcontractor) continue;
-
-            // Somma dei rientri collegati alla specifica riga DDT.
-            // Per massima compatibilità non usiamo solo la movement_note, ma agganciamo per
-            // (batch + terzista + NUM. DDT uguale a quello di uscita).
-            $returnedPieces = (float)$wmRepo->createQueryBuilder('wm')
-                ->select('COALESCE(SUM(wm.piece), 0) as returnedPieces')
-                ->andWhere('wm.batch = :batch')
-                ->andWhere('wm.contact = :contact')
-                ->andWhere('wm.reason IN (:reasons)')
-                ->andWhere('wm.ddt_number = :ddtNumber')
-                ->setParameter('batch', $row->getBatch())
-                ->setParameter('contact', $subcontractor)
-                ->setParameter('reasons', $returnReasons)
-                ->setParameter('ddtNumber', $row->getDdt()->getDdtNumber())
-                ->getQuery()
-                ->getSingleScalarResult();
-
-            $outPieces = $row->getPiecesOut() ?? $row->getPieces() ?? 0.0;
-            $residual = (float)$outPieces - (float)$returnedPieces;
-            if ($residual <= 0.0001) {
-                // Riga completamente rientrata: non va in stampa
-                continue;
-            }
 
             $sId = $subcontractor->getId();
             if (!isset($groupedData[$sId])) {
@@ -395,9 +360,7 @@ final class DdtRowController extends AbstractController
                     'rows' => []
                 ];
             }
-            $serializedRow = $this->groupSerializer->serializeGroup($row, ['client_summary_print', 'external_processing_print']);
-            $serializedRow['pieces_to_return'] = round($residual, 2);
-            $groupedData[$sId]['rows'][] = $serializedRow;
+            $groupedData[$sId]['rows'][] = $this->groupSerializer->serializeGroup($row, ['client_summary_print', 'external_processing_print']);
         }
 
         // Ordina i terzisti per nome
