@@ -707,7 +707,7 @@ final class BatchController extends AbstractController
         $batchComposition->setFatherBatch($fatherBatch);
         $batchComposition->setFatherBatchPiece($piecesToRework);
         $batchComposition->setFatherBatchQuantity($newQuantity);
-        $batchComposition->setCompositionNote('Riverdimento da lotto ' . $fatherBatch->getBatchCode());
+        $batchComposition->setCompositionNote('Rinverdimento e Pressatura da lotto ' . $fatherBatch->getBatchCode());
 
         $batchComposition->setFatherBatchPieceAvailable($batchComposition->getFatherBatchPiece());
         $batchComposition->setFatherBatchQuantityAvailable($batchComposition->getFatherBatchQuantity());
@@ -725,7 +725,7 @@ final class BatchController extends AbstractController
             $outMovement->setQuantity($newQuantity);
             $outMovement->setPiece($piecesToRework);
             $outMovement->setDate(new \DateTime());
-            $outMovement->setMovementNote('Uscita per riverdimento (Lotto R' . $fatherBatch->getBatchCode() . ')');
+            $outMovement->setMovementNote('Uscita per riverdimento e pressatura (Lotto R' . $fatherBatch->getBatchCode() . ')');
             $this->doctrine->persist($outMovement);
         }
 
