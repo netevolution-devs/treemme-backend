@@ -103,7 +103,7 @@
                                 <table style="width: 100%; border-collapse: collapse;">
                                     <tr>
                                         <td style="width: 14%; font-size: 10px;">
-                                            {{ row.measurement_unit.prefix }} {{ row.quantity }}
+                                            MQ {{ (row.quantity|to_mq(row.measurement_unit))|number_format(2, ',', '.') }}
                                         </td>
                                         <td style="width: 14%; font-size: 10px;">
                                             {{ row.currency ? row.currency.sign : '€'}} {{ row.currency_price ? row.currency_price|number_format(2, ',', '.') : row.price|number_format(2, ',', '.')}}
@@ -119,13 +119,17 @@
                                             P {{ total_pieces }}
                                         </td>
                                         <td style="width: 14%; font-size: 10px;">
-                                            E {{ row.quantity - row.quantity_to_ship }}
+                                            {# E (evadere): in MQ #}
+                                            {% set e_value = (row.quantity|to_mq(row.measurement_unit)) - (row.quantity_to_ship|default(0)) %}
+                                            E {{ e_value|number_format(2, ',', '.') }}
                                         </td>
                                         <td style="width: 14%; font-size: 10px;">
-                                            DAP {{ row.missing_quantity }}
+                                            {# DAP (da produrre): approssimiamo mostrando valore come MQ #}
+                                            DAP {{ row.missing_quantity|number_format(2, ',', '.') }}
                                         </td>
                                         <td style="width: 16%; font-size: 10px;">
-                                            DAS {{ row.quantity_to_ship }}
+                                            {# DAS (da spedire): già su base lotti/DDT presumibilmente in MQ #}
+                                            DAS {{ row.quantity_to_ship|number_format(2, ',', '.') }}
                                         </td>
                                     </tr>
 
@@ -149,7 +153,7 @@
                                 {% if row.ddt_row %}
                                     <div style="margin-bottom: 3px; font-weight: bold;">
                                         {{ row.ddt_row.ddt.ddt_number }} {{ row.ddt_row.ddt.ddt_date|date('d/m/Y') }}
-                                        {{ row.ddt_row.measurement_unit.prefix }} {{ row.ddt_row.quantity }}
+                                        MQ {{ (row.ddt_row.quantity|to_mq(row.ddt_row.measurement_unit))|number_format(2, ',', '.') }}
                                         {{ row.ddt_row.currency.sign }} {{ row.ddt_row.price }}
                                     </div>
                                 {% endif %}

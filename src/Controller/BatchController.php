@@ -17,6 +17,8 @@ use App\Entity\ClientOrderRow;
 use App\Entity\Leather;
 use App\Entity\LeatherThickness;
 use App\Entity\Selection;
+use App\Entity\LeatherProvenance;
+use App\Entity\Contact;
 use App\Entity\WarehouseMovement;
 use App\Entity\WarehouseMovementReason;
 use App\Entity\MeasurementUnit;
@@ -35,7 +37,9 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: 'batch')]
 final class BatchController extends AbstractController
 {
     private $createMethodsByInput;
@@ -98,11 +102,18 @@ final class BatchController extends AbstractController
                 if (empty($batch)) {
                     return $this->doResponse->doErrorJsonResponse('Nessun batch trovato contenente il codice ' . $code . ' (ignorando zeri)', 404);
                 }
-            } else if ($request->query->get('type') || $request->query->get('year')) {
+            } else if ($request->query->get('type') ||
+                $request->query->get('year') ||
+                $request->query->get('provenance_id') ||
+                $request->query->get('supplier_id') ||
+                $request->query->get('selection_id') ||
+                $request->query->get('thickness_id')) {
+
                 $type = $request->query->get('type');
                 $year = $request->query->get('year');
 
-                $qb = $batchRepository->createQueryBuilder('b');
+                $qb = $batchRepository->createQueryBuilder('b')
+                    ->select('DISTINCT b');
 
                 if ($type) {
                     $batchType = $this->doctrine->getRepository(BatchType::class)->find($type);
@@ -115,6 +126,68 @@ final class BatchController extends AbstractController
                 if ($year) {
                     $qb->andWhere('YEAR(b.batch_date) = :year')
                         ->setParameter('year', $year);
+                }
+
+                // Nuovi filtri
+                $provenance = $request->query->get('provenance_id');
+                $supplier = $request->query->get('supplier_id');
+                $selection = $request->query->get('selection_id');
+                $thickness = $request->query->get('thickness_id');
+
+                // Filtri basati sul pellame associato al lotto
+                if ($provenance || $supplier) {
+                    // Join al pellame solo se necessario
+                    $qb->leftJoin('b.leather', 'l');
+                }
+
+                if ($provenance) {
+                    // Confronto per id di LeatherProvenance
+                    $provEntity = $this->doctrine->getRepository(LeatherProvenance::class)->find($provenance);
+                    if ($provEntity) {
+                        $qb->andWhere('l.provenance = :provenance')
+                            ->setParameter('provenance', $provEntity);
+                    } else {
+                        // Se l'id non esiste, forziamo risultato vuoto
+                        $qb->andWhere('1 = 0');
+                    }
+                }
+
+                if ($supplier) {
+                    // Confronto per id di Contact (fornitore)
+                    $supplierEntity = $this->doctrine->getRepository(Contact::class)->find($supplier);
+                    if ($supplierEntity) {
+                        $qb->andWhere('l.supplier = :supplier')
+                            ->setParameter('supplier', $supplierEntity);
+                    } else {
+                        $qb->andWhere('1 = 0');
+                    }
+                }
+
+                // Filtri basati sulle selezioni del lotto
+                if ($selection || $thickness) {
+                    $qb->leftJoin('b.batchSelections', 'bs');
+                }
+
+                if ($selection) {
+                    // Confronto per id Selection
+                    $selectionEntity = $this->doctrine->getRepository(Selection::class)->find($selection);
+                    if ($selectionEntity) {
+                        $qb->andWhere('bs.selection = :selection')
+                            ->setParameter('selection', $selectionEntity);
+                    } else {
+                        $qb->andWhere('1 = 0');
+                    }
+                }
+
+                if ($thickness) {
+                    // Confronto per id LeatherThickness
+                    $thicknessEntity = $this->doctrine->getRepository(LeatherThickness::class)->find($thickness);
+                    if ($thicknessEntity) {
+                        $qb->andWhere('bs.thickness = :thickness')
+                            ->setParameter('thickness', $thicknessEntity);
+                    } else {
+                        $qb->andWhere('1 = 0');
+                    }
                 }
 
                 $batch = $qb->orderBy('b.batch_code', 'ASC')
@@ -412,10 +485,11 @@ final class BatchController extends AbstractController
             }
 
             $requestedQuantity = (float)$data['quantity'];
-            $currentStock = (float)$orderRow->getQuantity();
+            // Usa la quantità mancante da produrre sulla riga ordine
+            $availableToProduce = (float)$orderRow->getMissingQuantity();
 
-            if ($currentStock < $requestedQuantity) {
-                return $this->doResponse->doErrorJsonResponse('Giacenza insufficiente sulla riga ordine. Disponibile: ' . $currentStock, 400);
+            if ($availableToProduce < $requestedQuantity) {
+                return $this->doResponse->doErrorJsonResponse('Quantità da produrre insufficiente sulla riga ordine. Disponibile: ' . $availableToProduce, 400);
             }
 
             $article = $orderRow->getArticle();
@@ -635,7 +709,7 @@ final class BatchController extends AbstractController
         $batchComposition->setFatherBatch($fatherBatch);
         $batchComposition->setFatherBatchPiece($piecesToRework);
         $batchComposition->setFatherBatchQuantity($newQuantity);
-        $batchComposition->setCompositionNote('Riverdimento da lotto ' . $fatherBatch->getBatchCode());
+        $batchComposition->setCompositionNote('Rinverdimento e Pressatura da lotto ' . $fatherBatch->getBatchCode());
 
         $batchComposition->setFatherBatchPieceAvailable($batchComposition->getFatherBatchPiece());
         $batchComposition->setFatherBatchQuantityAvailable($batchComposition->getFatherBatchQuantity());
@@ -653,7 +727,7 @@ final class BatchController extends AbstractController
             $outMovement->setQuantity($newQuantity);
             $outMovement->setPiece($piecesToRework);
             $outMovement->setDate(new \DateTime());
-            $outMovement->setMovementNote('Uscita per riverdimento (Lotto R' . $fatherBatch->getBatchCode() . ')');
+            $outMovement->setMovementNote('Uscita per riverdimento e pressatura (Lotto R' . $fatherBatch->getBatchCode() . ')');
             $this->doctrine->persist($outMovement);
         }
 
@@ -1129,8 +1203,8 @@ final class BatchController extends AbstractController
 
         $sign = $data['sign'] === '+' ? 1 : -1;
         $reasonName = $data['sign'] === '+'
-            ? 'Compensazione Positiva'
-            : 'Compensazione Negativa';
+            ? 'Variazione Inventario'
+            : 'Scarto';
 
         $sqFtAverageExpected = $batch->getSqFtAverageExpected() ?? 1;
         $quantity = $pieces * $sqFtAverageExpected;
