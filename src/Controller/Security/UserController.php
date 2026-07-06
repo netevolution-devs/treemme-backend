@@ -22,8 +22,10 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use OpenApi\Attributes as OAA;
 
 
+#[OAA\Tag(name: 'security')]
 class UserController extends AbstractController
 {
     private UserService $userService;

@@ -13,7 +13,9 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: 'leather')]
 final class LeatherWeightController extends AbstractController
 {
     private $createMethodsByInput;

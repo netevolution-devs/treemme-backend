@@ -18,7 +18,9 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: 'production')]
 class ProductionController extends AbstractController
 {
     private $createMethodsByInput;

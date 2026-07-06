@@ -47,6 +47,7 @@ security:
     # - { path: ^/profile, roles: ROLE_USER }
     - { path: ^/api/totp, roles: PUBLIC_ACCESS }
     - { path: ^/api/public/change-password, roles: PUBLIC_ACCESS }
+    - { path: ^/api/doc, roles: PUBLIC_ACCESS }
     - { path: ^/verify-totp, roles: PUBLIC_ACCESS }
     - { path: ^/login, roles: PUBLIC_ACCESS }
     - { path: ^/api/token/refresh, roles: PUBLIC_ACCESS }

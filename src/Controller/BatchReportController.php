@@ -12,7 +12,9 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: 'batch')]
 class BatchReportController extends AbstractController
 {
     private EntityManagerInterface $entityManager;
