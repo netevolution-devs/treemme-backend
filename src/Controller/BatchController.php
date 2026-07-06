@@ -104,10 +104,10 @@ final class BatchController extends AbstractController
                 }
             } else if ($request->query->get('type') ||
                 $request->query->get('year') ||
-                $request->query->get('provenance') ||
-                $request->query->get('supplier') ||
-                $request->query->get('selection') ||
-                $request->query->get('thickness')) {
+                $request->query->get('provenance_id') ||
+                $request->query->get('supplier_id') ||
+                $request->query->get('selection_id') ||
+                $request->query->get('thickness_id')) {
 
                 $type = $request->query->get('type');
                 $year = $request->query->get('year');
@@ -129,10 +129,10 @@ final class BatchController extends AbstractController
                 }
 
                 // Nuovi filtri
-                $provenance = $request->query->get('provenance');
-                $supplier = $request->query->get('supplier');
-                $selection = $request->query->get('selection');
-                $thickness = $request->query->get('thickness');
+                $provenance = $request->query->get('provenance_id');
+                $supplier = $request->query->get('supplier_id');
+                $selection = $request->query->get('selection_id');
+                $thickness = $request->query->get('thickness_id');
 
                 // Filtri basati sul pellame associato al lotto
                 if ($provenance || $supplier) {

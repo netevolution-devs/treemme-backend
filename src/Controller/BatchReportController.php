@@ -97,7 +97,7 @@ class BatchReportController extends AbstractController
                         'pieces' => 0.0,
                         'quantity' => 0.0,
                         'quantity_ftsq' => 0.0,
-                    ],
+                    ]
                 ];
             }
 
