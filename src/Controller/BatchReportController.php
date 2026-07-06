@@ -87,6 +87,10 @@ class BatchReportController extends AbstractController
                 $selectionMap[$selectionId] = [
                     'selection_id' => $selectionId,
                     'selection_name' => $sel->getName(),
+                    'total' => [
+                        'pieces' => 0.0,
+                        'quantity' => 0.0
+                    ],
                     'available' => [
                         'pieces' => 0.0,
                         'quantity' => 0.0,
@@ -95,6 +99,8 @@ class BatchReportController extends AbstractController
                 ];
             }
 
+            $selectionMap[$selectionId]['total']['pieces'] += $pieces;
+            $selectionMap[$selectionId]['total']['quantity'] += $qty;
             $selectionMap[$selectionId]['available']['pieces'] += $stockPieces;
             $selectionMap[$selectionId]['available']['quantity'] += $stockQty;
             $selectionMap[$selectionId]['available']['quantity_ftsq'] += $stockQtyFtsq;
