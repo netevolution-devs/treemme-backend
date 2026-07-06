@@ -24,6 +24,91 @@ class BatchReportController extends AbstractController
         $this->doResponse = $doResponse;
     }
 
+    #[Route('/batch/{id}/selections/quantities', name: 'get_batch_selections_quantities', methods: ['GET'])]
+    public function getBatchSelectionsQuantities(int $id): JsonResponse
+    {
+        $batch = $this->entityManager->getRepository(Batch::class)->find($id);
+
+        if (!$batch) {
+            return $this->doResponse->doErrorJsonResponse('Batch non trovato', 404);
+        }
+
+        $selectionMap = [];
+
+        $this->collectSelectionsRecursive($batch, $selectionMap);
+
+        // Trasforma la mappa in lista ordinata per nome selezione
+        usort($selectionMap, function ($a, $b) {
+            return strcmp($a['selection_name'] ?? '', $b['selection_name'] ?? '');
+        });
+
+        $result = [
+            'batch_id' => $batch->getId(),
+            'batch_code' => $batch->getBatchCode(),
+            'selections' => array_values($selectionMap),
+        ];
+
+        return new JsonResponse($this->doResponse->doResponse($result));
+    }
+
+    /**
+     * Aggrega ricorsivamente le quantità per Selezione sul lotto e sui suoi figli.
+     *
+     * Struttura $selectionMap[selection_id]:
+     * - selection_id
+     * - selection_name
+     * - sold: { pieces, quantity, quantity_ftsq }
+     * - available: { pieces, quantity, quantity_ftsq }
+     */
+    private function collectSelectionsRecursive(Batch $batch, array &$selectionMap): void
+    {
+        // Aggrega le selezioni del lotto corrente
+        foreach ($batch->getBatchSelections() as $bs) {
+            $sel = $bs->getSelection();
+            if (!$sel) {
+                continue;
+            }
+
+            $selectionId = $sel->getId();
+            if ($selectionId === null) {
+                continue;
+            }
+
+            $um = $batch->getMeasurementUnit();
+
+            $pieces = (float)($bs->getPieces() ?? 0.0);
+            $qty = (float)($bs->getQuantity() ?? 0.0);
+            $stockPieces = (float)($bs->getStockPieces() ?? 0.0);
+            $stockQty = (float)($bs->getStockQuantity() ?? 0.0);
+
+            $stockQtyFtsq = $this->convertToFtsq($stockQty, $um);
+
+            if (!isset($selectionMap[$selectionId])) {
+                $selectionMap[$selectionId] = [
+                    'selection_id' => $selectionId,
+                    'selection_name' => $sel->getName(),
+                    'available' => [
+                        'pieces' => 0.0,
+                        'quantity' => 0.0,
+                        'quantity_ftsq' => 0.0,
+                    ],
+                ];
+            }
+
+            $selectionMap[$selectionId]['available']['pieces'] += $stockPieces;
+            $selectionMap[$selectionId]['available']['quantity'] += $stockQty;
+            $selectionMap[$selectionId]['available']['quantity_ftsq'] += $stockQtyFtsq;
+        }
+
+        // Ricorsione sui lotti figli
+        foreach ($batch->getSonBatches() as $composition) {
+            $sonBatch = $composition->getBatch();
+            if ($sonBatch) {
+                $this->collectSelectionsRecursive($sonBatch, $selectionMap);
+            }
+        }
+    }
+
     #[Route('/batch/{id}/report', name: 'get_batch_report', methods: ['GET'])]
     public function getBatchReport(int $id): JsonResponse
     {
@@ -36,6 +121,36 @@ class BatchReportController extends AbstractController
         $reportData = $this->getBatchRecursiveData($batch);
 
         return new JsonResponse($this->doResponse->doResponse($reportData));
+    }
+
+    #[Route('/batch/{id}/quantities', name: 'get_batch_quantities', methods: ['GET'])]
+    public function getBatchQuantities(int $id): JsonResponse
+    {
+        $batch = $this->entityManager->getRepository(Batch::class)->find($id);
+
+        if (!$batch) {
+            return $this->doResponse->doErrorJsonResponse('Batch non trovato', 404);
+        }
+
+        // Riutilizza la logica ricorsiva esistente per contare anche i lotti figli
+        $data = $this->getBatchRecursiveData($batch);
+
+        $report = $data['report'] ?? [];
+
+        // Totali richiesti: somma delle quantity (vendute + disponibili) e le disponibili.
+        // Se l'UM è MQ, vengono restituiti convertiti in PQ usando i coefficienti configurati.
+        $availablePq = (float)($report['available_quantity_ftsq'] ?? 0.0);
+        $soldPq = (float)($report['sold_quantity_ftsq'] ?? 0.0);
+        $totalPq = $soldPq + $availablePq;
+
+        $quantities = [
+            'batch_id' => $data['id'] ?? $id,
+            'batch_code' => $data['code'] ?? $batch->getBatchCode(),
+            'quantity' => $totalPq,                // Totale (venduto + disponibile) in PQ se necessario
+            'quantity_available' => $availablePq,  // Disponibile in PQ se necessario
+        ];
+
+        return new JsonResponse($this->doResponse->doResponse($quantities));
     }
 
     private function getBatchRecursiveData(Batch $batch): array
