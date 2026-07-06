@@ -412,10 +412,11 @@ final class BatchController extends AbstractController
             }
 
             $requestedQuantity = (float)$data['quantity'];
-            $currentStock = (float)$orderRow->getQuantity();
+            // Usa la quantità mancante da produrre sulla riga ordine
+            $availableToProduce = (float)$orderRow->getMissingQuantity();
 
-            if ($currentStock < $requestedQuantity) {
-                return $this->doResponse->doErrorJsonResponse('Giacenza insufficiente sulla riga ordine. Disponibile: ' . $currentStock, 400);
+            if ($availableToProduce < $requestedQuantity) {
+                return $this->doResponse->doErrorJsonResponse('Quantità da produrre insufficiente sulla riga ordine. Disponibile: ' . $availableToProduce, 400);
             }
 
             $article = $orderRow->getArticle();
