@@ -17,6 +17,8 @@ use App\Entity\ClientOrderRow;
 use App\Entity\Leather;
 use App\Entity\LeatherThickness;
 use App\Entity\Selection;
+use App\Entity\LeatherProvenance;
+use App\Entity\Contact;
 use App\Entity\WarehouseMovement;
 use App\Entity\WarehouseMovementReason;
 use App\Entity\MeasurementUnit;
@@ -98,11 +100,18 @@ final class BatchController extends AbstractController
                 if (empty($batch)) {
                     return $this->doResponse->doErrorJsonResponse('Nessun batch trovato contenente il codice ' . $code . ' (ignorando zeri)', 404);
                 }
-            } else if ($request->query->get('type') || $request->query->get('year')) {
+            } else if ($request->query->get('type') ||
+                $request->query->get('year') ||
+                $request->query->get('provenance') ||
+                $request->query->get('supplier') ||
+                $request->query->get('selection') ||
+                $request->query->get('thickness')) {
+
                 $type = $request->query->get('type');
                 $year = $request->query->get('year');
 
-                $qb = $batchRepository->createQueryBuilder('b');
+                $qb = $batchRepository->createQueryBuilder('b')
+                    ->select('DISTINCT b');
 
                 if ($type) {
                     $batchType = $this->doctrine->getRepository(BatchType::class)->find($type);
@@ -115,6 +124,68 @@ final class BatchController extends AbstractController
                 if ($year) {
                     $qb->andWhere('YEAR(b.batch_date) = :year')
                         ->setParameter('year', $year);
+                }
+
+                // Nuovi filtri
+                $provenance = $request->query->get('provenance');
+                $supplier = $request->query->get('supplier');
+                $selection = $request->query->get('selection');
+                $thickness = $request->query->get('thickness');
+
+                // Filtri basati sul pellame associato al lotto
+                if ($provenance || $supplier) {
+                    // Join al pellame solo se necessario
+                    $qb->leftJoin('b.leather', 'l');
+                }
+
+                if ($provenance) {
+                    // Confronto per id di LeatherProvenance
+                    $provEntity = $this->doctrine->getRepository(LeatherProvenance::class)->find($provenance);
+                    if ($provEntity) {
+                        $qb->andWhere('l.provenance = :provenance')
+                            ->setParameter('provenance', $provEntity);
+                    } else {
+                        // Se l'id non esiste, forziamo risultato vuoto
+                        $qb->andWhere('1 = 0');
+                    }
+                }
+
+                if ($supplier) {
+                    // Confronto per id di Contact (fornitore)
+                    $supplierEntity = $this->doctrine->getRepository(Contact::class)->find($supplier);
+                    if ($supplierEntity) {
+                        $qb->andWhere('l.supplier = :supplier')
+                            ->setParameter('supplier', $supplierEntity);
+                    } else {
+                        $qb->andWhere('1 = 0');
+                    }
+                }
+
+                // Filtri basati sulle selezioni del lotto
+                if ($selection || $thickness) {
+                    $qb->leftJoin('b.batchSelections', 'bs');
+                }
+
+                if ($selection) {
+                    // Confronto per id Selection
+                    $selectionEntity = $this->doctrine->getRepository(Selection::class)->find($selection);
+                    if ($selectionEntity) {
+                        $qb->andWhere('bs.selection = :selection')
+                            ->setParameter('selection', $selectionEntity);
+                    } else {
+                        $qb->andWhere('1 = 0');
+                    }
+                }
+
+                if ($thickness) {
+                    // Confronto per id LeatherThickness
+                    $thicknessEntity = $this->doctrine->getRepository(LeatherThickness::class)->find($thickness);
+                    if ($thicknessEntity) {
+                        $qb->andWhere('bs.thickness = :thickness')
+                            ->setParameter('thickness', $thicknessEntity);
+                    } else {
+                        $qb->andWhere('1 = 0');
+                    }
                 }
 
                 $batch = $qb->orderBy('b.batch_code', 'ASC')
@@ -1130,8 +1201,8 @@ final class BatchController extends AbstractController
 
         $sign = $data['sign'] === '+' ? 1 : -1;
         $reasonName = $data['sign'] === '+'
-            ? 'Compensazione Positiva'
-            : 'Compensazione Negativa';
+            ? 'Variazione Inventario'
+            : 'Scarto';
 
         $sqFtAverageExpected = $batch->getSqFtAverageExpected() ?? 1;
         $quantity = $pieces * $sqFtAverageExpected;

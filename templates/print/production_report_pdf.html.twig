@@ -68,6 +68,10 @@
 
         .article-name { font-weight: bold; font-size: 11px; }
         .client-name { font-style: italic; }
+        /* Evidenzia righe già messe in produzione */
+        .in-production {
+            background-color: #d4edda; /* verde tenue per evidenziare */
+        }
     </style>
 </head>
 <body>
@@ -101,22 +105,22 @@
                         <th style="width: 15%;">Articolo</th>
                         <th style="width: 8%;">Colore</th>
                         <th style="width: 8%;">Scelta</th>
-                        <th style="width: 8%;">Quantità</th>
+                        <th style="width: 8%;">Quantità (MQ)</th>
                         <th style="width: 5%;">U.M.</th>
                         <th>Note Produzione</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for row in rows %}
-                        <tr>
+                        <tr class="{% if row.batchOrders is defined and row.batchOrders|length > 0 %}in-production{% endif %}">
                             <td class="center">{{ row.clientOrder.orderDate ? row.clientOrder.orderDate|date('d/m/Y') : '' }}</td>
                             <td class="center">{{ row.clientOrder.orderNumber }}</td>
                             <td class="client-name">{{ row.clientOrder.client ? row.clientOrder.client.name : '' }}</td>
                             <td class="article-name">{{ row.article ? row.article.name : '' }}</td>
                             <td>{{ row.article and row.article.color ? row.article.color.color : '' }}</td>
                             <td class="center">{{ row.selection ? row.selection.name : '' }}</td>
-                            <td class="right bold">{{ row.quantity|number_format(2, ',', '.') }}</td>
-                            <td class="center">{{ row.measurementUnit ? row.measurementUnit.prefix : '' }}</td>
+                            <td class="right bold">{{ (row.quantity|to_mq(row.measurementUnit))|number_format(2, ',', '.') }}</td>
+                            <td class="center">MQ</td>
                             <td>
                                 {% if row.productionRowNote %}
                                     <div>{{ row.productionRowNote }}</div>

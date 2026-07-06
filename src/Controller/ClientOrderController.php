@@ -153,7 +153,7 @@ final class ClientOrderController extends AbstractController
     {
         $startDateStr = $request->query->get('start_date');
         $endDateStr = $request->query->get('end_date');
-        $printedStatus = $request->query->get('print_status');
+        $printedStatus = $request->query->get('print_status', 'to_print');
 
         $startDate = null;
         if ($startDateStr) {
