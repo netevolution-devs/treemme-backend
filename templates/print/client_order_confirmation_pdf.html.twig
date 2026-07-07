@@ -247,7 +247,7 @@
             <th style="width: 5%;">N</th>
             <th style="width: 35%;">ARTICOLO</th>
             <th style="width: 20%;">NOTE RIF. CLIENTE</th>
-            <th style="width: 15%;" class="center">QUANTITA'</th>
+            <th style="width: 15%;" class="center">QUANTITA' (MQ)</th>
             <th style="width: 12%;" class="right">PREZZO</th>
             <th style="width: 13%;" class="center">DATA PRV</th>
         </tr>
@@ -267,7 +267,7 @@
                     {% endif %}
                 </td>
                 <td class="center">
-                    {{ row.measurementUnit ? row.measurementUnit.prefix : '' }} &nbsp; {{ row.quantity }}
+                    MQ&nbsp;{{ (row.quantity|to_mq(row.measurementUnit))|number_format(2, ',', '.') }}
                 </td>
                 <td class="right">
                     {{ row.currency ? row.currency.sign : '' }} &nbsp; {{ row.currencyPrice|number_format(2, ',', '.') }}

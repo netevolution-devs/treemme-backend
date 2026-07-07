@@ -22,7 +22,9 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: 'order')]
 final class ClientOrderRowController extends AbstractController
 {
     private $createMethodsByInput;
@@ -119,17 +121,8 @@ final class ClientOrderRowController extends AbstractController
         // Filtro produzione e preparazione report (lista piatta)
         $report = [];
         foreach ($rows as $row) {
-            $totalProduced = 0;
-            foreach ($row->getBatchOrders() as $bo) {
-                $batch = $bo->getBatch();
-                if ($batch) {
-                    $totalProduced += (float)$batch->getQuantity();
-                }
-            }
-
-            // Consideriamo "prodotto" se non c'è più differenza tra quantità ordinata e prodotta (lotti)
-            $difference = (float)$row->getQuantity() - $totalProduced;
-            $isProduced = $difference <= 0;
+            $missing = (float)$row->getMissingQuantity();
+            $isProduced = $missing <= 0;
 
             if ($productionStatus === 'produced' && !$isProduced) continue;
             if ($productionStatus === 'to_produce' && $isProduced) continue;
