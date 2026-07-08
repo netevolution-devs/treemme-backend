@@ -89,6 +89,28 @@ class BatchSelectionController extends AbstractController
             $fatherBatch = $batchSelection->getBatch();
             $thickness = $batchSelection->getThickness();
 
+            // Calcolo quantità totale prelevata in base alle composizioni (se presenti)
+            $calculatedQty = 0.0;
+            // Determina la quantità per pezzo da usare, basata prima sui dati del batch padre
+            $perPieceFromBatch = null;
+            if ($fatherBatch) {
+                if (method_exists($fatherBatch, 'getSqFtAverageExpected')) {
+                    $avg = $fatherBatch->getSqFtAverageExpected();
+                    if ($avg !== null && $avg > 0) {
+                        $perPieceFromBatch = (float)$avg;
+                    }
+                }
+                if ($perPieceFromBatch === null) {
+                    if (method_exists($fatherBatch, 'getQuantity') && method_exists($fatherBatch, 'getPieces')) {
+                        $fbQty = $fatherBatch->getQuantity();
+                        $fbPieces = $fatherBatch->getPieces();
+                        if ($fbQty !== null && $fbPieces !== null && $fbPieces > 0) {
+                            $perPieceFromBatch = (float)$fbQty / (float)$fbPieces;
+                        }
+                    }
+                }
+            }
+
             if ($fatherBatch && $thickness) {
                 $compositions = $this->doctrine->getRepository(BatchComposition::class)->findBy([
                     'father_batch' => $fatherBatch,
@@ -107,19 +129,59 @@ class BatchSelectionController extends AbstractController
 
                     $comp->setFatherBatchPieceAvailable($available - $toTake);
 
-                    if ($comp->getFatherBatchPiece() > 0) {
-                        $qtyPerPiece = $comp->getFatherBatchQuantity() / $comp->getFatherBatchPiece();
-                        $qtyToTake = $qtyPerPiece * $toTake;
-                        $comp->setFatherBatchQuantityAvailable($comp->getFatherBatchQuantityAvailable() - $qtyToTake);
+                    // Calcola quantità per pezzo: priorità al valore derivato dal batch padre
+                    $qtyToTake = 0.0;
+                    if ($perPieceFromBatch !== null) {
+                        $qtyToTake = $perPieceFromBatch * $toTake;
+                        // Aggiorna anche la quantità disponibile della composizione, se valorizzata
+                        $currentAvailQty = $comp->getFatherBatchQuantityAvailable();
+                        if ($currentAvailQty !== null) {
+                            $comp->setFatherBatchQuantityAvailable($currentAvailQty - $qtyToTake);
+                        }
+                    } else {
+                        // Fallback: usa i valori della composizione (available o totali)
+                        $piecesAvail = $comp->getFatherBatchPieceAvailable();
+                        $qtyAvail = $comp->getFatherBatchQuantityAvailable();
+                        $piecesTotal = $comp->getFatherBatchPiece();
+                        $qtyTotal = $comp->getFatherBatchQuantity();
+
+                        if ($piecesAvail !== null && $piecesAvail > 0 && $qtyAvail !== null) {
+                            $qtyPerPiece = $qtyAvail / $piecesAvail;
+                            $qtyToTake = $qtyPerPiece * $toTake;
+                            $comp->setFatherBatchQuantityAvailable($qtyAvail - $qtyToTake);
+                        } elseif ($piecesTotal !== null && $piecesTotal > 0 && $qtyTotal !== null) {
+                            $qtyPerPiece = $qtyTotal / $piecesTotal;
+                            $qtyToTake = $qtyPerPiece * $toTake;
+                            $currentAvail = $comp->getFatherBatchQuantityAvailable() ?? $qtyTotal;
+                            $comp->setFatherBatchQuantityAvailable($currentAvail - $qtyToTake);
+                        }
                     }
+
+                    $calculatedQty += $qtyToTake;
 
                     $remainingPieces -= $toTake;
                     $this->doctrine->persist($comp);
                 }
             }
 
+            // Se non sono state trovate composizioni o non è stato possibile determinare la quantità dal ciclo
+            // ma abbiamo un valore per pezzo dal batch padre, calcolo comunque la quantità attesa
+            if ($calculatedQty <= 0 && $perPieceFromBatch !== null) {
+                $calculatedQty = $perPieceFromBatch * (float)$batchSelection->getPieces();
+            }
+
             if ($batchSelection->getStockPieces() === null) {
                 $batchSelection->setStockPieces($batchSelection->getPieces());
+            }
+
+            if (isset($data['quantity'])) {
+                $q = (float)$data['quantity'];
+                $batchSelection->setQuantity(round($q, 3));
+                $batchSelection->setStockQuantity(round($q, 3));
+            } else {
+                // Se non abbiamo input esplicito, usiamo la quantità calcolata (0 se non determinabile)
+                $batchSelection->setQuantity(round($calculatedQty, 3));
+                $batchSelection->setStockQuantity(round($calculatedQty, 3));
             }
 
             $errors = $validator->validate($batchSelection);
