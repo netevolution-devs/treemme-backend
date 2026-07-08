@@ -117,13 +117,13 @@ final class BatchCompositionController extends AbstractController
             }
 
             if ($fatherBatch && (!isset($data['father_batch_quantity']) || $data['father_batch_quantity'] === null || $data['father_batch_quantity'] === '')) {
-                $fatherBatchPiecesToConvert = isset($data['father_batch_piece']) ? (float) $data['father_batch_piece'] : 0.0;
-                
+                $fatherBatchPiecesToConvert = isset($data['father_batch_piece']) ? (float)$data['father_batch_piece'] : 0.0;
+
                 if ($fatherBatch->getSqFtAverageExpected() > 0) {
                     $quantityToConvert = $fatherBatchPiecesToConvert * $fatherBatch->getSqFtAverageExpected();
                 } elseif ($batchSelection) {
-                    $fatherBatchPiecesTotal = (float) ($batchSelection->getPieces() ?? 0);
-                    $fatherBatchQuantityTotal = (float) ($batchSelection->getQuantity() ?? 0);
+                    $fatherBatchPiecesTotal = (float)($batchSelection->getPieces() ?? 0);
+                    $fatherBatchQuantityTotal = (float)($batchSelection->getQuantity() ?? 0);
 
                     if ($fatherBatchPiecesTotal > 0) {
                         $pieceQuantity = $fatherBatchQuantityTotal / $fatherBatchPiecesTotal;
@@ -132,8 +132,8 @@ final class BatchCompositionController extends AbstractController
                         $quantityToConvert = 0.0;
                     }
                 } else {
-                    $fatherBatchPiecesTotal = (float) ($fatherBatch->getPieces() ?? 0);
-                    $fatherBatchQuantityTotal = (float) ($fatherBatch->getQuantity() ?? 0);
+                    $fatherBatchPiecesTotal = (float)($fatherBatch->getPieces() ?? 0);
+                    $fatherBatchQuantityTotal = (float)($fatherBatch->getQuantity() ?? 0);
 
                     if ($fatherBatchPiecesTotal > 0) {
                         $pieceQuantity = $fatherBatchQuantityTotal / $fatherBatchPiecesTotal;
@@ -161,19 +161,19 @@ final class BatchCompositionController extends AbstractController
             $batch = $batchComposition->getBatch();
 
             $batch->setPieces($batch->getPieces() + $batchComposition->getFatherBatchPiece());
-            $childQuantity = (float) ($batchComposition->getFatherBatchQuantity() ?? 0.0);
 
-                // L'aggiornamento dello stock del Batch viene gestito automaticamente dai movimenti creati in createMovements()
-                // Manteniamo solo l'aggiornamento della Selezione se presente
-                if ($batchSelection) {
-                    $batchSelection->setStockQuantity(($batchSelection->getStockQuantity() ?? 0.0) - (float)$batchComposition->getFatherBatchQuantity());
+            // L'aggiornamento dello stock del Batch viene gestito automaticamente dai movimenti creati in createMovements()
+            // Manteniamo solo l'aggiornamento della Selezione se presente
+            if ($batchSelection) {
+                $batchSelection->setStockQuantity(($batchSelection->getStockQuantity() ?? 0.0) - (float)$batchComposition->getFatherBatchQuantity());
 
-                    $batchSelection->setStockPieces(($batchSelection->getStockPieces() ?? 0.0) - (float)$batchComposition->getFatherBatchPiece());
-                    $this->doctrine->persist($batchSelection);
-                }
+                $batchSelection->setStockPieces(($batchSelection->getStockPieces() ?? 0.0) - (float)$batchComposition->getFatherBatchPiece());
+                $this->doctrine->persist($batchSelection);
+            }
 
             $em = $this->doctrine;
             $em->persist($batchComposition);
+            $em->persist($batch);
             $em->flush();
 
             $this->createMovements($batchComposition);
@@ -352,7 +352,7 @@ final class BatchCompositionController extends AbstractController
         }
 
         // Carico nel figlio
-        $inReason =  $reasonRepo->findOneBy(['name' => 'Carico']);
+        $inReason = $reasonRepo->findOneBy(['name' => 'Carico']);
 
         if ($inReason) {
             $inMovement = new WarehouseMovement();
