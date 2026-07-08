@@ -97,7 +97,9 @@ class BatchReportController extends AbstractController
                         'pieces' => 0.0,
                         'quantity' => 0.0,
                         'quantity_ftsq' => 0.0,
-                    ]
+                    ],
+                    // Elenco dei lotti che presentano questa scelta nella composizione
+                    'batches' => []
                 ];
             }
 
@@ -108,9 +110,62 @@ class BatchReportController extends AbstractController
             $selectionMap[$selectionId]['available']['quantity_ftsq'] += $stockQtyFtsq;
         }
 
-        // Ricorsione sui lotti figli
+        // Ricorsione sui lotti figli e raccolta riferimenti lotti per selezioni presenti nelle composizioni
         foreach ($batch->getSonBatches() as $composition) {
             $sonBatch = $composition->getBatch();
+
+            // Se la composizione ha una selezione, aggiunge il riferimento del lotto figlio per quella selezione
+            $compSel = $composition->getSelection();
+            if ($compSel) {
+                $compSelId = $compSel->getId();
+                if ($compSelId !== null) {
+                    if (!isset($selectionMap[$compSelId])) {
+                        $selectionMap[$compSelId] = [
+                            'selection_id' => $compSelId,
+                            'selection_name' => $compSel->getSelection()->getName(),
+                            'total' => [
+                                'pieces' => 0.0,
+                                'quantity' => 0.0
+                            ],
+                            'available' => [
+                                'pieces' => 0.0,
+                                'quantity' => 0.0,
+                                'quantity_ftsq' => 0.0,
+                            ],
+                            'batches' => []
+                        ];
+                    }
+
+                    if ($sonBatch) {
+                        $batchId = $sonBatch->getId();
+                        // Evita duplicati del medesimo lotto per la stessa selezione
+                        $already = false;
+                        foreach ($selectionMap[$compSelId]['batches'] as $bRef) {
+                            if (($bRef['id'] ?? null) === $batchId) {
+                                $already = true;
+                                break;
+                            }
+                        }
+                        if (!$already) {
+                            $selectionMap[$compSelId]['batches'][] = [
+                                'id' => $batchId,
+                                'code' => $sonBatch->getBatchCode(),
+                                'pieces' => (float)($composition->getFatherBatchPiece() ?? 0.0)
+                            ];
+                        } else {
+                            // Se già presente, somma i pezzi
+                            foreach ($selectionMap[$compSelId]['batches'] as &$bRef) {
+                                if (($bRef['id'] ?? null) === $batchId) {
+                                    $bRef['pieces'] = (float)($bRef['pieces'] ?? 0.0) + (float)($composition->getFatherBatchPiece() ?? 0.0);
+                                    break;
+                                }
+                            }
+                            unset($bRef);
+                        }
+                    }
+                }
+            }
+
             if ($sonBatch) {
                 $this->collectSelectionsRecursive($sonBatch, $selectionMap);
             }
