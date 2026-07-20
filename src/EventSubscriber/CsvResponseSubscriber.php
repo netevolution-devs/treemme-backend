@@ -48,6 +48,26 @@ final class CsvResponseSubscriber
             [$data, $columns, $filename] = $this->auto->autoMap($request, $payload);
         }
         $csv = $this->export->stream($data, $columns, $filename, ['delimiter' => ';', 'bom' => 'utf-8-sig']);
+
+        // Preserva status code e header (CORS, Cache, ecc.) della risposta originale
+        $csv->setStatusCode($response->getStatusCode());
+
+        // Copia tutti gli header esistenti, senza sovrascrivere Content-Type/Disposition impostati per il CSV
+        $originalHeaders = $response->headers->allPreserveCaseWithoutCookies();
+        foreach ($originalHeaders as $name => $values) {
+            $lname = strtolower($name);
+            if (in_array($lname, ['content-type', 'content-disposition'])) {
+                continue;
+            }
+            foreach ($values as $v) {
+                $csv->headers->set($name, $v, false);
+            }
+        }
+        // Copia eventuali cookie
+        foreach ($response->headers->getCookies() as $cookie) {
+            $csv->headers->setCookie($cookie);
+        }
+
         $event->setResponse($csv);
     }
 }
