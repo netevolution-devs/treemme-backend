@@ -49,7 +49,14 @@ class ActionLoggerListener implements EventSubscriberInterface
                     $recordId = null; 
                 }
 
-                $this->actionLoggerService->logAction($action, [], false, null, is_int($recordId) ? $recordId : null);
+                $this->actionLoggerService->logAction(
+                    $action,
+                    [],
+                    false,
+                    null,
+                    is_int($recordId) ? $recordId : null,
+                    $request
+                );
             }
         }
     }
