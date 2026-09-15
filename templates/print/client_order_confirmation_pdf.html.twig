@@ -296,13 +296,20 @@
     <div class="footer-info">
         <p class="bold italic" style="margin-bottom: 0; font-style: oblique;">CONDIZIONI D 'ORDINE</p>
         <div class="signature-line" style="width: 50%; margin-top: 0; "></div>
-        <p><span class="bold">PAGAMENTO:</span> {{ order.payment ? order.payment.name : '' }}</p>
-        <p><span class="bold">RESA MERCE:</span> {{ order.shipmentCondition ? order.shipmentCondition.name : '' }}</p>
+        <p><span class="bold">PAGAMENTO: </span> {{ order.payment ? order.payment.name : '' }}</p>
+        <p><span class="bold">RESA MERCE: </span> {{ order.shipmentCondition ? order.shipmentCondition.name : '' }}</p>
         {% if order.shippingCarrier %}
-            <p><span class="bold">VETTORE:</span> {{ order.shippingCarrier.name }}</p>
+            <p><span class="bold">VETTORE: </span> {{ order.shippingCarrier.name }}</p>
         {% endif %}
         {% if order.address and (order.address.addressName|trim == 'DEST. DIVERSA'|trim) %}
-            <p><span class="bold"> DEST. DIVERSA:</span>{{ order.address.address }},
+            <p><span class="bold"> DEST. DIVERSA: </span>
+                {% if order.address.differentDestination %}
+                    {%  if order.address.differentDestination.contact %}
+                        {{ order.address.differentDestination.contact.name }},
+                    {% endif %}
+                {% else %}
+                    {{ order.client.name }},
+                {% endif %}
 
                 {% if order.address.address2 %}
                     {{ order.address.address2 }},
