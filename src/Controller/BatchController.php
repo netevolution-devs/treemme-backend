@@ -529,7 +529,7 @@ final class BatchController extends AbstractController
             $newBatch->setPieces(0);
             $newBatch->setQuantity($requestedQuantity);
             $newBatch->setStockItems(0.0);
-            $newBatch->setStockQuantity($requestedQuantity);
+            $newBatch->setStockQuantity(0.0);
 
             $newBatch->setSqFtAverageExpected(0.0);
             $newBatch->setSqFtAverageFound(0.0);
@@ -691,11 +691,6 @@ final class BatchController extends AbstractController
 
         $newBatch->setPieces($newBatch->getPieces() + $piecesToRework);
         $newBatch->setQuantity($newBatch->getQuantity() + $newQuantity);
-        $newBatch->setStockItems($newBatch->getStockItems() + (float)$piecesToRework);
-        $newBatch->setStockQuantity($newBatch->getStockQuantity() + $newQuantity);
-
-        $fatherBatch->setStockItems($availablePieces - $piecesToRework);
-        $fatherBatch->setStockQuantity($availableQuantity - $newQuantity);
 
         if ($isNew) {
             $this->doctrine->persist($newBatch);
@@ -786,9 +781,6 @@ final class BatchController extends AbstractController
             return $this->doResponse->doErrorJsonResponse('Numero di pezzi superiore alla disponibilità (' . $availablePieces . ')', 400);
         }
 
-        $reworkedBatch->setStockItems($availablePieces - $pieces);
-        $reworkedBatch->setStockQuantity($availableQuantity - $calculatedQuantity);
-
         $newType = $this->doctrine->getRepository(BatchType::class)->findOneBy(['name' => 'Spaccato']);
 
         $originalLeather = $reworkedBatch->getLeather();
@@ -828,8 +820,6 @@ final class BatchController extends AbstractController
 
         $sfBatch->setPieces($sfBatch->getPieces() + (int)$pieces);
         $sfBatch->setQuantity($sfBatch->getQuantity() + $calculatedQuantity);
-        $sfBatch->setStockItems($sfBatch->getStockItems() + $pieces);
-        $sfBatch->setStockQuantity($sfBatch->getStockQuantity() + $calculatedQuantity);
 
         if ($isNewSf) {
             $this->doctrine->persist($sfBatch);
@@ -863,8 +853,6 @@ final class BatchController extends AbstractController
 
         $scBatch->setPieces($scBatch->getPieces() + (int)$pieces);
         $scBatch->setQuantity($scBatch->getQuantity() + $calculatedQuantity);
-        $scBatch->setStockItems($scBatch->getStockItems() + $pieces);
-        $scBatch->setStockQuantity($scBatch->getStockQuantity() + $calculatedQuantity);
 
         if ($isNewSc) {
             $this->doctrine->persist($scBatch);

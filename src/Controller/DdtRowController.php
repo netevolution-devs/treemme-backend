@@ -1216,10 +1216,6 @@ final class DdtRowController extends AbstractController
 
         $this->doctrine->persist($movementIn);
 
-        // Aggiorno stock del lotto per il rientro
-        $batch->setStockQuantity($batch->getStockQuantity() + $quantity);
-        $batch->setStockItems($batch->getStockItems() + $pieces);
-
         // 2. CREAZIONE NUOVO DDT IN USCITA
         $newDdt = new Ddt();
         $newDdt->setSubcontractor($subcontractor);
