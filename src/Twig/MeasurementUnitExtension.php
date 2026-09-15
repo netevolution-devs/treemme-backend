@@ -27,36 +27,63 @@ class MeasurementUnitExtension extends AbstractExtension
      * - Se l'UM è PQ e non esiste coefficiente esplicito, usa 1 MQ = 10.764 PQ.
      * - Altrimenti tenta il primo coefficiente disponibile come fallback.
      */
-    public function toMq(float $quantity, ?MeasurementUnit $unit = null): float
+    public function toMq(mixed $quantity, mixed $unit = null): float
     {
+        $qty = (float) $quantity;
+
         if (!$unit) {
-            return $quantity;
+            return $qty;
         }
 
-        $prefix = $unit->getPrefix();
-        if ($prefix === 'MQ') {
-            return $quantity;
+        $unitEntity = null;
+        if ($unit instanceof MeasurementUnit) {
+            $unitEntity = $unit;
+        } elseif (is_array($unit)) {
+            if (isset($unit['id'])) {
+                $unitEntity = $this->em->getRepository(MeasurementUnit::class)->find($unit['id']);
+            }
+        } elseif (is_numeric($unit)) {
+            $unitEntity = $this->em->getRepository(MeasurementUnit::class)->find((int) $unit);
         }
 
-        // Cerca coefficiente diretto: start = $unit, end = UM con prefix MQ
-        foreach ($unit->getMeasurementUnitCoefficients() as $coeff) {
-            $end = $coeff->getEndUm();
-            if ($end && $end->getPrefix() === 'MQ' && $coeff->getCoefficient() > 0) {
-                return $quantity * (float) $coeff->getCoefficient();
+        if ($unitEntity instanceof MeasurementUnit) {
+            $prefix = $unitEntity->getPrefix();
+            if ($prefix === 'MQ') {
+                return $qty;
+            }
+
+            // Cerca coefficiente diretto: start = $unitEntity, end = UM con prefix MQ
+            foreach ($unitEntity->getMeasurementUnitCoefficients() as $coeff) {
+                $end = $coeff->getEndUm();
+                if ($end && $end->getPrefix() === 'MQ' && $coeff->getCoefficient() > 0) {
+                    return $qty * (float) $coeff->getCoefficient();
+                }
+            }
+
+            // Fallback comune: da PQ a MQ dividendo per 10.764
+            if ($prefix === 'PQ') {
+                return $qty / 10.764;
+            }
+
+            // Ultimo fallback: usa il primo coefficiente disponibile
+            $first = $unitEntity->getMeasurementUnitCoefficients()->first();
+            if ($first && method_exists($first, 'getCoefficient') && $first->getCoefficient() > 0) {
+                return $qty * (float) $first->getCoefficient();
+            }
+
+            return $qty;
+        }
+
+        // Se non abbiamo trovato l'entità, proviamo a usare i dati presenti nell'array se disponibili
+        if (is_array($unit) && isset($unit['prefix'])) {
+            if ($unit['prefix'] === 'MQ') {
+                return $qty;
+            }
+            if ($unit['prefix'] === 'PQ') {
+                return $qty / 10.764;
             }
         }
 
-        // Fallback comune: da PQ a MQ dividendo per 10.764
-        if ($prefix === 'PQ') {
-            return $quantity / 10.764;
-        }
-
-        // Ultimo fallback: usa il primo coefficiente disponibile
-        $first = $unit->getMeasurementUnitCoefficients()->first();
-        if ($first && method_exists($first, 'getCoefficient') && $first->getCoefficient() > 0) {
-            return $quantity * (float) $first->getCoefficient();
-        }
-
-        return $quantity;
+        return $qty;
     }
 }
