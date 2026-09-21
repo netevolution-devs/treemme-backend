@@ -26,7 +26,8 @@ class PdfGeneratorService
         $dompdf = new Dompdf($options);
         $html = $this->twig->render($template, $data);
         $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'portrait');
+        $orientation = $data['orientation'] ?? 'portrait';
+        $dompdf->setPaper('A4', $orientation);
         $dompdf->render();
 
         return $dompdf->output();

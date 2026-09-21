@@ -56,6 +56,11 @@ services:
     arguments:
       $appName: '%app_name%'
 
+  # Inizializza i mapping CSV al primo request
+  App\Csv\CsvMappingProvider:
+    tags:
+      - { name: kernel.event_listener, event: kernel.request, method: onKernelRequest, priority: -255 }
+
 
 #  App\Listeners\LocaleListener:
 #    tags:

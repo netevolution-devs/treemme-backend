@@ -11,8 +11,10 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
+use OpenApi\Attributes as OA;
 
 #[Route('/api/totp')]
+#[OA\Tag(name: 'security')]
 class TotpController extends AbstractController
 {
     private TotpService $totpService;

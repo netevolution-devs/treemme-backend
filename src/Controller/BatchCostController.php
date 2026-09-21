@@ -16,7 +16,9 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: 'batch')]
 final class BatchCostController extends AbstractController
 {
     private $createMethodsByInput;
@@ -55,13 +57,29 @@ final class BatchCostController extends AbstractController
                 return $this->doResponse->doErrorJsonResponse('BatchCost not found', 404);
             }
         } else {
-            $batchCost = $batchCostRepository->findBy([], ['name' => 'ASC']);
+            $batchCost = $batchCostRepository->findBy([], ['date' => 'ASC']);
         }
         $results = $this->groupSerializer->serializeGroup($batchCost, $id ? 'batch_cost_detail' : 'batch_cost_list');
 
         if ($id) {
             return new JsonResponse($this->doResponse->doResponse($results[0]));
         }
+        return new JsonResponse($this->doResponse->doResponse($results));
+    }
+
+    #[Route('/batch/{id}/cost',
+        name: 'get_batch_costs_by_batch',
+        methods: ['GET'])]
+    public function getBatchCostsByBatch(int $id): JsonResponse
+    {
+        $batch = $this->doctrine->getRepository(Batch::class)->find($id);
+        if (!$batch) {
+            return $this->doResponse->doErrorJsonResponse('Batch not found', 404);
+        }
+
+        $batchCosts = $this->doctrine->getRepository(BatchCost::class)->findBy(['batch' => $batch], ['date' => 'DESC']);
+        $results = $this->groupSerializer->serializeGroup($batchCosts, 'batch_cost_list');
+
         return new JsonResponse($this->doResponse->doResponse($results));
     }
 

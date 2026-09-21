@@ -28,7 +28,7 @@ class BatchComposition
 
     #[ORM\Column]
     #[Groups(['batch_composition_list', 'batch_composition_detail', 'batch_detail'])]
-    private ?int $father_batch_piece = null;
+    private ?float $father_batch_piece = null;
 
     #[ORM\Column(nullable: true)]
     #[Groups(['batch_composition_list', 'batch_composition_detail', 'batch_detail'])]
@@ -43,7 +43,19 @@ class BatchComposition
     private ?\DateTime $date = null;
 
     #[ORM\ManyToOne(inversedBy: 'batchCompositions')]
+    #[Groups(['batch_composition_list', 'batch_composition_detail', 'batch_detail'])]
     private ?BatchSelection $selection = null;
+
+    #[ORM\ManyToOne(inversedBy: 'batchCompositions')]
+    #[ORM\JoinColumn(nullable: true)]
+    #[Groups(['batch_composition_list', 'batch_composition_detail', 'batch_detail'])]
+    private ?LeatherThickness $thickness = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?float $father_batch_piece_available = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?float $father_batch_quantity_available = null;
 
     public function getId(): ?int
     {
@@ -74,13 +86,15 @@ class BatchComposition
         return $this;
     }
 
-    public function getFatherBatchPiece(): ?int
+    public function getFatherBatchPiece(): ?float
     {
         return $this->father_batch_piece;
     }
 
-    public function setFatherBatchPiece(int $father_batch_piece): static
+    public function setFatherBatchPiece(float $father_batch_piece): static
     {
+        // Movimenti composizioni devono essere SEMPRE gestiti in intere
+        $father_batch_piece = (float)round($father_batch_piece);
         $this->father_batch_piece = $father_batch_piece;
 
         return $this;
@@ -130,6 +144,46 @@ class BatchComposition
     public function setSelection(?BatchSelection $selection): static
     {
         $this->selection = $selection;
+
+        return $this;
+    }
+
+    public function getThickness(): ?LeatherThickness
+    {
+        return $this->thickness;
+    }
+
+    public function setThickness(?LeatherThickness $thickness): static
+    {
+        $this->thickness = $thickness;
+
+        return $this;
+    }
+
+    public function getFatherBatchPieceAvailable(): ?float
+    {
+        return $this->father_batch_piece_available;
+    }
+
+    public function setFatherBatchPieceAvailable(?float $father_batch_piece_available): static
+    {
+        if ($father_batch_piece_available !== null) {
+            // Movimenti composizioni devono essere SEMPRE gestiti in intere
+            $father_batch_piece_available = (float)round($father_batch_piece_available);
+        }
+        $this->father_batch_piece_available = $father_batch_piece_available;
+
+        return $this;
+    }
+
+    public function getFatherBatchQuantityAvailable(): ?float
+    {
+        return $this->father_batch_quantity_available;
+    }
+
+    public function setFatherBatchQuantityAvailable(?float $father_batch_quantity_available): static
+    {
+        $this->father_batch_quantity_available = $father_batch_quantity_available;
 
         return $this;
     }

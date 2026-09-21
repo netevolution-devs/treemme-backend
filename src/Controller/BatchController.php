@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Service\StockService;
 use App\Entity\BatchData;
 use App\Entity\LeatherType;
 use App\Entity\MeasurementUnitCoefficient;
@@ -14,7 +15,10 @@ use App\Entity\BatchSelection;
 use App\Entity\BatchType;
 use App\Entity\ClientOrderRow;
 use App\Entity\Leather;
+use App\Entity\LeatherThickness;
 use App\Entity\Selection;
+use App\Entity\LeatherProvenance;
+use App\Entity\Contact;
 use App\Entity\WarehouseMovement;
 use App\Entity\WarehouseMovementReason;
 use App\Entity\MeasurementUnit;
@@ -26,13 +30,16 @@ use App\Service\ValidatorOutputFormatter;
 use App\Service\PdfGeneratorService;
 use App\Service\QrCodeService;
 use Doctrine\ORM\EntityManagerInterface;
+use FontLib\Table\Type\name;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: 'batch')]
 final class BatchController extends AbstractController
 {
     private $createMethodsByInput;
@@ -42,6 +49,7 @@ final class BatchController extends AbstractController
     private $validatorOutputFormatter;
     private $pdfGenerator;
     private $qrCodeService;
+    private $stockService;
     private string $subcontractor_tag;
 
     public function __construct(
@@ -52,6 +60,7 @@ final class BatchController extends AbstractController
         ValidatorOutputFormatter $validatorOutputFormatter,
         PdfGeneratorService      $pdfGenerator,
         QrCodeService            $qrCodeService,
+        StockService             $stockService,
                                  $subcontractor_tag,
     )
     {
@@ -62,6 +71,7 @@ final class BatchController extends AbstractController
         $this->validatorOutputFormatter = $validatorOutputFormatter;
         $this->pdfGenerator = $pdfGenerator;
         $this->qrCodeService = $qrCodeService;
+        $this->stockService = $stockService;
         $this->subcontractor_tag = $subcontractor_tag;
     }
 
@@ -92,11 +102,18 @@ final class BatchController extends AbstractController
                 if (empty($batch)) {
                     return $this->doResponse->doErrorJsonResponse('Nessun batch trovato contenente il codice ' . $code . ' (ignorando zeri)', 404);
                 }
-            } else if ($request->query->get('type') || $request->query->get('year')) {
+            } else if ($request->query->get('type') ||
+                $request->query->get('year') ||
+                $request->query->get('provenance_id') ||
+                $request->query->get('supplier_id') ||
+                $request->query->get('selection_id') ||
+                $request->query->get('thickness_id')) {
+
                 $type = $request->query->get('type');
                 $year = $request->query->get('year');
 
-                $qb = $batchRepository->createQueryBuilder('b');
+                $qb = $batchRepository->createQueryBuilder('b')
+                    ->select('DISTINCT b');
 
                 if ($type) {
                     $batchType = $this->doctrine->getRepository(BatchType::class)->find($type);
@@ -111,6 +128,68 @@ final class BatchController extends AbstractController
                         ->setParameter('year', $year);
                 }
 
+                // Nuovi filtri
+                $provenance = $request->query->get('provenance_id');
+                $supplier = $request->query->get('supplier_id');
+                $selection = $request->query->get('selection_id');
+                $thickness = $request->query->get('thickness_id');
+
+                // Filtri basati sul pellame associato al lotto
+                if ($provenance || $supplier) {
+                    // Join al pellame solo se necessario
+                    $qb->leftJoin('b.leather', 'l');
+                }
+
+                if ($provenance) {
+                    // Confronto per id di LeatherProvenance
+                    $provEntity = $this->doctrine->getRepository(LeatherProvenance::class)->find($provenance);
+                    if ($provEntity) {
+                        $qb->andWhere('l.provenance = :provenance')
+                            ->setParameter('provenance', $provEntity);
+                    } else {
+                        // Se l'id non esiste, forziamo risultato vuoto
+                        $qb->andWhere('1 = 0');
+                    }
+                }
+
+                if ($supplier) {
+                    // Confronto per id di Contact (fornitore)
+                    $supplierEntity = $this->doctrine->getRepository(Contact::class)->find($supplier);
+                    if ($supplierEntity) {
+                        $qb->andWhere('l.supplier = :supplier')
+                            ->setParameter('supplier', $supplierEntity);
+                    } else {
+                        $qb->andWhere('1 = 0');
+                    }
+                }
+
+                // Filtri basati sulle selezioni del lotto
+                if ($selection || $thickness) {
+                    $qb->leftJoin('b.batchSelections', 'bs');
+                }
+
+                if ($selection) {
+                    // Confronto per id Selection
+                    $selectionEntity = $this->doctrine->getRepository(Selection::class)->find($selection);
+                    if ($selectionEntity) {
+                        $qb->andWhere('bs.selection = :selection')
+                            ->setParameter('selection', $selectionEntity);
+                    } else {
+                        $qb->andWhere('1 = 0');
+                    }
+                }
+
+                if ($thickness) {
+                    // Confronto per id LeatherThickness
+                    $thicknessEntity = $this->doctrine->getRepository(LeatherThickness::class)->find($thickness);
+                    if ($thicknessEntity) {
+                        $qb->andWhere('bs.thickness = :thickness')
+                            ->setParameter('thickness', $thicknessEntity);
+                    } else {
+                        $qb->andWhere('1 = 0');
+                    }
+                }
+
                 $batch = $qb->orderBy('b.batch_code', 'ASC')
                     ->getQuery()
                     ->getResult();
@@ -121,13 +200,130 @@ final class BatchController extends AbstractController
         $results = $this->groupSerializer->serializeGroup($batch, $id ? 'batch_detail' : 'batch_list');
 
         if ($id) {
-            return new JsonResponse($this->doResponse->doResponse($results[0]));
+            $batchData = $results[0];
+            $batchData['son_batches'] = $this->recursiveGroupSonBatches($batchData['son_batches'] ?? []);
+            return new JsonResponse($this->doResponse->doResponse($batchData));
         }
         return new JsonResponse($this->doResponse->doResponse($results));
     }
 
+    private function recursiveGroupSonBatches(array $sonBatches): array
+    {
+        if (empty($sonBatches)) {
+            return [];
+        }
+
+        $groupedSonBatches = [];
+
+        foreach ($sonBatches as $composition) {
+            $sonBatch = $composition['batch'] ?? null;
+            if (!$sonBatch || !isset($sonBatch['id'])) {
+                continue;
+            }
+
+            $sonBatchId = $sonBatch['id'];
+
+            if (!isset($groupedSonBatches[$sonBatchId])) {
+                // Chiamata ricorsiva sui figli del figlio
+                if (isset($sonBatch['son_batches']) && is_array($sonBatch['son_batches'])) {
+                    $sonBatch['son_batches'] = $this->recursiveGroupSonBatches($sonBatch['son_batches']);
+                }
+
+                $groupedSonBatches[$sonBatchId] = [
+                    'batch' => $sonBatch,
+                    'details' => [],
+                ];
+            }
+
+            $groupedSonBatches[$sonBatchId]['details'][] = [
+                'father_batch_pieces' => $composition['father_batch_pieces'] ?? $composition['father_batch_piece'] ?? null,
+                'date' => $composition['date'] ?? null,
+            ];
+        }
+
+        $finalSonBatches = [];
+        foreach ($groupedSonBatches as $item) {
+            $finalSonBatches[] = [
+                'batch' => $item['batch'],
+                'details' => $item['details'],
+            ];
+        }
+
+        return $finalSonBatches;
+    }
+
+    #[Route('/batch/{id}/available-thicknesses',
+        name: 'get_batch_available_thicknesses',
+        requirements: ['id' => '\d+'],
+        methods: ['GET'])]
+    public function getAvailableThicknesses(int $id): JsonResponse
+    {
+        $batch = $this->doctrine->getRepository(Batch::class)->find($id);
+
+        if (!$batch) {
+            return $this->doResponse->doErrorJsonResponse('Batch not found', 404);
+        }
+
+        $compositions = $batch->getBatchCompositions();
+        $selections = $batch->getBatchSelections();
+        $thicknesses = [];
+
+        foreach ($compositions as $composition) {
+            $thickness = $composition->getThickness();
+            if ($thickness) {
+                $thicknessId = $thickness->getId();
+                if (!isset($thicknesses[$thicknessId])) {
+                    $thicknesses[$thicknessId] = [
+                        'thickness' => $thickness,
+                        'total_pieces' => 0
+                    ];
+                }
+                
+                // Sottraiamo i pezzi che sono già stati assegnati a una selezione da questa composizione
+                $available = $composition->getFatherBatchPieceAvailable() ?? 0;
+                $selection = $composition->getSelection();
+                if ($selection && $selection->getThickness() && $selection->getThickness()->getId() === $thicknessId) {
+                    // Se la selezione della composizione ha lo stesso spessore, 
+                    // i pezzi sono già conteggiati o sottratti? 
+                    // In realtà father_batch_piece_available dovrebbe essere il residuo.
+                }
+
+                $thicknesses[$thicknessId]['total_pieces'] += $available;
+            }
+        }
+
+        foreach ($selections as $selection) {
+            $thickness = $selection->getThickness();
+            if ($thickness) {
+                $thicknessId = $thickness->getId();
+                // Se sottraiamo indiscriminatamente tutte le selezioni, rischiamo il doppio conteggio
+                // se la selezione è legata a una composizione già processata.
+                
+                $isConsumedByComposition = false;
+                foreach ($selection->getBatchCompositions() as $bc) {
+                    if ($bc->getFatherBatch() && $bc->getFatherBatch()->getId() === $batch->getId()) {
+                         $isConsumedByComposition = true;
+                         break;
+                    }
+                }
+
+                if (!$isConsumedByComposition && isset($thicknesses[$thicknessId])) {
+                    $thicknesses[$thicknessId]['total_pieces'] -= $selection->getPieces();
+                }
+            }
+        }
+
+        $results = array_values(array_filter($thicknesses, function ($item) {
+            return $item['total_pieces'] > 0;
+        }));
+
+        $serializedResults = $this->groupSerializer->serializeGroup($results, 'leather_thickness_detail');
+
+        return new JsonResponse($this->doResponse->doResponse($serializedResults));
+    }
+
     #[Route('/batch/{id}/pdf',
-        name: 'get_batch_pdf',
+        name: 'get_batch_lot_pdf',
         requirements: ['id' => '\d+'],
         methods: ['GET'])]
     public function generateBatchPdf(int $id): Response
@@ -145,6 +341,28 @@ final class BatchController extends AbstractController
         return new Response($pdfContent, 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="batch_' . $batch->getBatchCode() . '.pdf"'
+        ]);
+    }
+
+    #[Route('/batch/{id}/batch-data/pdf',
+        name: 'get_batch_pdf',
+        requirements: ['id' => '\d+'],
+        methods: ['GET'])]
+    public function generateBatchDataPdf(int $id): Response
+    {
+        $batch = $this->doctrine->getRepository(Batch::class)->find($id);
+
+        if (!$batch) {
+            return $this->doResponse->doErrorJsonResponse('Batch not found', 404);
+        }
+
+        $pdfContent = $this->pdfGenerator->generatePdf('print/batch_details_005552.html.twig', [
+            'batch' => $batch
+        ], 'batch_data_' . $batch->getBatchCode() . '.pdf');
+
+        return new Response($pdfContent, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="batch_data_' . $batch->getBatchCode() . '.pdf"'
         ]);
     }
 
@@ -202,7 +420,7 @@ final class BatchController extends AbstractController
 
         $batches = [];
         foreach ($allAvailableBatches as $batch) {
-            if($batch->getBatchType()->getName() === 'Spaccato' && $batch->getLeather()->getType()->getName() === "Fiore"){
+            if ($batch->getBatchType()->getName() === 'Spaccato' && $batch->getLeather()->getType()->getName() === "Fiore") {
                 $batches[] = $batch;
             }
         }
@@ -231,7 +449,7 @@ final class BatchController extends AbstractController
         ValidatorInterface $validator,
     ): JsonResponse
     {
-        return $this->createGenericProductionBatch($request, $validator, 'Rifinizione', 'UF', false);
+        return $this->createGenericProductionBatch($request, $validator, 'Rifinizione', 'UF', true);
     }
 
     private function createGenericProductionBatch(
@@ -267,10 +485,11 @@ final class BatchController extends AbstractController
             }
 
             $requestedQuantity = (float)$data['quantity'];
-            $currentStock = (float)$orderRow->getQuantity();
+            // Usa la quantità mancante da produrre sulla riga ordine
+            $availableToProduce = (float)$orderRow->getMissingQuantity();
 
-            if ($currentStock < $requestedQuantity) {
-                return $this->doResponse->doErrorJsonResponse('Giacenza insufficiente sulla riga ordine. Disponibile: ' . $currentStock, 400);
+            if ($availableToProduce < $requestedQuantity) {
+                return $this->doResponse->doErrorJsonResponse('Quantità da produrre insufficiente sulla riga ordine. Disponibile: ' . $availableToProduce, 400);
             }
 
             $article = $orderRow->getArticle();
@@ -310,7 +529,7 @@ final class BatchController extends AbstractController
             $newBatch->setPieces(0);
             $newBatch->setQuantity($requestedQuantity);
             $newBatch->setStockItems(0.0);
-            $newBatch->setStockQuantity($requestedQuantity);
+            $newBatch->setStockQuantity(0.0);
 
             $newBatch->setSqFtAverageExpected(0.0);
             $newBatch->setSqFtAverageFound(0.0);
@@ -327,28 +546,31 @@ final class BatchController extends AbstractController
 
             $this->doctrine->persist($newBatch);
 
-            if ($createProduction && isset($data['scheduled_date']) && isset($data['machine_id'])) {
-                $machine = $this->doctrine->getRepository(Machine::class)->find($data['machine_id']);
-                if ($machine) {
-                    $production = new Production();
-                    $production->setBatch($newBatch);
-                    $production->setMachine($machine);
-                    
-                    $scheduledDate = null;
-                    try {
-                        $scheduledDate = new \DateTime($data['scheduled_date']);
-                    } catch (\Exception $e) {
-                    }
+            if ($createProduction) {
 
-                    if ($scheduledDate) {
-                        $production->setScheduledDate($scheduledDate);
-                        $this->doctrine->persist($production);
-                    }
-
-                    if($orderRow->getProductionRowNote() || $orderRow->getClientOrder()->getOrderNoteProduction()){
-                        $production->setProductionNote($orderRow->getProductionRowNote() ?? $orderRow->getClientOrder()->getOrderNoteProduction());
-                    }
+                if (isset($data['machine_id'])) {
+                    $machine = $this->doctrine->getRepository(Machine::class)->find($data['machine_id']);
+                } else {
+                    $machine = $this->doctrine->getRepository(Machine::class)->findOneBy(['name' => 'Rifinizione', 'prefix' => 'RFZ']);
                 }
+
+                $production = new Production();
+                $production->setBatch($newBatch);
+                $production->setMachine($machine);
+
+                if (isset($data['scheduled_date'])) {
+                    $scheduledDate = new \DateTime($data['scheduled_date']);
+                } else {
+                    $scheduledDate = new \DateTime();
+                }
+
+                $production->setScheduledDate($scheduledDate);
+                $this->doctrine->persist($production);
+
+                if ($orderRow->getProductionRowNote() || $orderRow->getClientOrder()->getOrderNoteProduction()) {
+                    $production->setProductionNote($orderRow->getProductionRowNote() ?? $orderRow->getClientOrder()->getOrderNoteProduction());
+                }
+
             }
 
             $this->handleRelations($newBatch, $data);
@@ -457,7 +679,7 @@ final class BatchController extends AbstractController
             $newBatch->setCompleted(false);
             $newBatch->setChecked(false);
             $newBatch->setSqFtAverageExpected($fatherBatch->getSqFtAverageExpected() ?? 0.0);
-            $newBatch->setSqFtAverageFound($fatherBatch->getSqFtAverageFound() ?? 0.0);
+            $newBatch->setSqFtAverageFound(0.0);
             $newBatch->setSelectionNote($fatherBatch->getSelectionNote());
             $newBatch->setBatchNote($fatherBatch->getBatchNote());
             $newBatch->setMeasurementUnit($fatherBatch->getMeasurementUnit());
@@ -469,25 +691,23 @@ final class BatchController extends AbstractController
 
         $newBatch->setPieces($newBatch->getPieces() + $piecesToRework);
         $newBatch->setQuantity($newBatch->getQuantity() + $newQuantity);
-        $newBatch->setStockItems($newBatch->getStockItems() + (float)$piecesToRework);
-        $newBatch->setStockQuantity($newBatch->getStockQuantity() + $newQuantity);
-
-        $fatherBatch->setStockItems($availablePieces - $piecesToRework);
-        $fatherBatch->setStockQuantity($availableQuantity - $newQuantity);
 
         if ($isNew) {
             $this->doctrine->persist($newBatch);
         }
 
         $batchComposition = new BatchComposition();
-        if(isset($data['date'])){
+        if (isset($data['date'])) {
             $batchComposition->setDate(new \DateTime($data['date']) ?: new \DateTime());
         }
         $batchComposition->setBatch($newBatch);
         $batchComposition->setFatherBatch($fatherBatch);
         $batchComposition->setFatherBatchPiece($piecesToRework);
         $batchComposition->setFatherBatchQuantity($newQuantity);
-        $batchComposition->setCompositionNote('Riverdimento da lotto ' . $fatherBatch->getBatchCode());
+        $batchComposition->setCompositionNote('Rinverdimento e Pressatura da lotto ' . $fatherBatch->getBatchCode());
+
+        $batchComposition->setFatherBatchPieceAvailable($batchComposition->getFatherBatchPiece());
+        $batchComposition->setFatherBatchQuantityAvailable($batchComposition->getFatherBatchQuantity());
 
         $this->doctrine->persist($batchComposition);
 
@@ -502,7 +722,7 @@ final class BatchController extends AbstractController
             $outMovement->setQuantity($newQuantity);
             $outMovement->setPiece($piecesToRework);
             $outMovement->setDate(new \DateTime());
-            $outMovement->setMovementNote('Uscita per riverdimento (Lotto R' . $fatherBatch->getBatchCode() . ')');
+            $outMovement->setMovementNote('Uscita per riverdimento e pressatura (Lotto R' . $fatherBatch->getBatchCode() . ')');
             $this->doctrine->persist($outMovement);
         }
 
@@ -555,14 +775,11 @@ final class BatchController extends AbstractController
         $availablePieces = (float)($reworkedBatch->getStockItems() ?? 0);
         $availableQuantity = (float)($reworkedBatch->getStockQuantity() ?? 0);
 
-        $calculatedQuantity = ($reworkedBatch->getQuantity() / $reworkedBatch->getPieces()) * $pieces ;
+        $calculatedQuantity = ($reworkedBatch->getQuantity() / $reworkedBatch->getPieces()) * $pieces;
 
         if ($pieces > $availablePieces) {
             return $this->doResponse->doErrorJsonResponse('Numero di pezzi superiore alla disponibilità (' . $availablePieces . ')', 400);
         }
-
-        $reworkedBatch->setStockItems($availablePieces - $pieces);
-        $reworkedBatch->setStockQuantity($availableQuantity - $calculatedQuantity);
 
         $newType = $this->doctrine->getRepository(BatchType::class)->findOneBy(['name' => 'Spaccato']);
 
@@ -591,7 +808,7 @@ final class BatchController extends AbstractController
             $sfBatch->setCompleted(false);
             $sfBatch->setChecked(false);
             $sfBatch->setSqFtAverageExpected($reworkedBatch->getSqFtAverageExpected() ?? 0.0);
-            $sfBatch->setSqFtAverageFound($reworkedBatch->getSqFtAverageFound() ?? 0.0);
+            $sfBatch->setSqFtAverageFound(0.0);
             $sfBatch->setSelectionNote($reworkedBatch->getSelectionNote());
             $sfBatch->setBatchNote($reworkedBatch->getBatchNote());
             $sfBatch->setMeasurementUnit($reworkedBatch->getMeasurementUnit());
@@ -603,8 +820,6 @@ final class BatchController extends AbstractController
 
         $sfBatch->setPieces($sfBatch->getPieces() + (int)$pieces);
         $sfBatch->setQuantity($sfBatch->getQuantity() + $calculatedQuantity);
-        $sfBatch->setStockItems($sfBatch->getStockItems() + $pieces);
-        $sfBatch->setStockQuantity($sfBatch->getStockQuantity() + $calculatedQuantity);
 
         if ($isNewSf) {
             $this->doctrine->persist($sfBatch);
@@ -626,7 +841,7 @@ final class BatchController extends AbstractController
             $scBatch->setCompleted(false);
             $scBatch->setChecked(false);
             $scBatch->setSqFtAverageExpected($reworkedBatch->getSqFtAverageExpected() ?? 0.0);
-            $scBatch->setSqFtAverageFound($reworkedBatch->getSqFtAverageFound() ?? 0.0);
+            $scBatch->setSqFtAverageFound(0.0);
             $scBatch->setSelectionNote($reworkedBatch->getSelectionNote());
             $scBatch->setBatchNote($reworkedBatch->getBatchNote());
             $scBatch->setMeasurementUnit($reworkedBatch->getMeasurementUnit());
@@ -638,15 +853,13 @@ final class BatchController extends AbstractController
 
         $scBatch->setPieces($scBatch->getPieces() + (int)$pieces);
         $scBatch->setQuantity($scBatch->getQuantity() + $calculatedQuantity);
-        $scBatch->setStockItems($scBatch->getStockItems() + $pieces);
-        $scBatch->setStockQuantity($scBatch->getStockQuantity() + $calculatedQuantity);
 
         if ($isNewSc) {
             $this->doctrine->persist($scBatch);
         }
 
         $sfComp = new BatchComposition();
-        if(isset($data['date'])){
+        if (isset($data['date'])) {
             $sfComp->setDate(new \DateTime($data['date']) ?: new \DateTime());
         }
         $sfComp->setBatch($sfBatch);
@@ -654,10 +867,19 @@ final class BatchController extends AbstractController
         $sfComp->setFatherBatchPiece((int)$pieces);
         $sfComp->setFatherBatchQuantity($calculatedQuantity);
         $sfComp->setCompositionNote('Spaccatura lotto ' . $batchCode);
+        if (isset($data['thickness_id'])) {
+            $thickness = $this->doctrine->getRepository(LeatherThickness::class)->find($data['thickness_id']);
+            if ($thickness) {
+                $sfComp->setThickness($thickness);
+            }
+        }
+        $sfComp->setFatherBatchPieceAvailable($sfComp->getFatherBatchPiece());
+        $sfComp->setFatherBatchQuantityAvailable($sfComp->getFatherBatchQuantity());
+
         $this->doctrine->persist($sfComp);
 
         $scComp = new BatchComposition();
-        if(isset($data['date'])){
+        if (isset($data['date'])) {
             $scComp->setDate(new \DateTime($data['date']) ?: new \DateTime());
         }
         $scComp->setBatch($scBatch);
@@ -665,6 +887,19 @@ final class BatchController extends AbstractController
         $scComp->setFatherBatchPiece((int)$pieces);
         $scComp->setFatherBatchQuantity($calculatedQuantity);
         $scComp->setCompositionNote('Spaccatura lotto ' . $batchCode);
+        if (isset($data['thickness_id'])) {
+            if (isset($thickness)) {
+                $scComp->setThickness($thickness);
+            } else {
+                $thickness = $this->doctrine->getRepository(LeatherThickness::class)->find($data['thickness_id']);
+                if ($thickness) {
+                    $scComp->setThickness($thickness);
+                }
+            }
+        }
+        $scComp->setFatherBatchPieceAvailable($scComp->getFatherBatchPiece());
+        $scComp->setFatherBatchQuantityAvailable($scComp->getFatherBatchQuantity());
+
         $this->doctrine->persist($scComp);
 
         $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
@@ -724,6 +959,42 @@ final class BatchController extends AbstractController
 
         $results = $this->groupSerializer->serializeGroup([$sfBatch, $scBatch], 'batch_list');
         return new JsonResponse($this->doResponse->doResponse($results));
+    }
+
+    #[Route('/batch/recalculate-all-stocks',
+        name: 'batch_recalculate_all_stocks',
+        methods: ['POST'])]
+    public function recalculateAllStocks(): JsonResponse
+    {
+        $batches = $this->doctrine->getRepository(Batch::class)->findAll();
+        $report = [];
+        foreach ($batches as $batch) {
+            $report[] = $this->stockService->recalculateBatchStock($batch);
+            $this->stockService->updateBatchAverageFromMovements($batch);
+        }
+        return new JsonResponse($this->doResponse->doResponse($report));
+    }
+
+    #[Route('/batch/{id}/calculate-half-pieces',
+        name: 'batch_calculate_half_pieces',
+        requirements: ['id' => '\d+'],
+        methods: ['POST'])]
+    public function calculateHalfPieces(int $id): JsonResponse
+    {
+        $batch = $this->doctrine->getRepository(Batch::class)->find($id);
+        if (!$batch) {
+            return $this->doResponse->doErrorJsonResponse('Lotto non trovato', 404);
+        }
+
+        $pieces = $batch->getPieces() ?? 0;
+        $halfPiecesCount = (int)($pieces * 2);
+        $batch->setHalfPiecesCount($halfPiecesCount);
+        $batch->setStockHalfPieces($halfPiecesCount);
+
+        $this->doctrine->flush();
+
+        $result = $this->groupSerializer->serializeGroup($batch, 'batch_detail');
+        return new JsonResponse($this->doResponse->doResponse($result));
     }
 
     #[Route('/batch',
@@ -804,7 +1075,7 @@ final class BatchController extends AbstractController
                 $batch->setSqFtAverageExpected($batch->getSqFtAverageFound() ?? (float)0);
             }
 
-            if($batch->getSqFtAverageFound() === null || $batch->getSqFtAverageFound() == 0.0){
+            if ($batch->getSqFtAverageFound() === null || $batch->getSqFtAverageFound() == 0.0) {
                 $batch->setSqFtAverageFound((float)0);
             }
 
@@ -825,21 +1096,18 @@ final class BatchController extends AbstractController
             }
 
             if ($batch->getQuantity() === null) {
-                $batch->setQuantity((float) 0);
+                $batch->setQuantity((float)0);
             }
 
             $batch->setSplitSelected(false);
 
             $batch = $this->createMethodsByInput->createMethods($batch, $data);
 
-            if ($batch->getStockItems() === null || $batch->getStockItems() == 0.0) {
-                $batch->setStockItems((float)($batch->getPieces() ?? 0));
-            }
+            // Lo stock iniziale non viene più impostato qui ma tramite il WarehouseMovementListener
+            // che reagirà al movimento di "Carico" creato sotto.
 
-            if ($batch->getStockQuantity() === null || $batch->getStockQuantity() == 0.0) {
-                $batch->setStockQuantity((float)($batch->getQuantity() ?? 0));
-            }
-
+            $batch->setStockItems($pieces);
+            $batch->setStockQuantity($quantity);
             $now = new \DateTimeImmutable();
             $batch->setCreatedAt($now);
             $batch->setUpdatedAt($now);
@@ -862,7 +1130,7 @@ final class BatchController extends AbstractController
             $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
             $inReason = $reasonRepo->findOneBy(['name' => 'Carico']);
 
-            if(!$inReason) {
+            if (!$inReason) {
                 return $this->doResponse->doErrorJsonResponse('Causale "Carico" non trovata', 400);
             }
 
@@ -891,6 +1159,101 @@ final class BatchController extends AbstractController
         }
     }
 
+    #[Route('/batch/{id}/compensation',
+        name: 'put_batch_compensation',
+        methods: ['PUT'])]
+    public function modifyBatchCompensation(
+        Request $request,
+        int     $id,
+    ): JsonResponse
+    {
+        $data = $request->toArray();
+
+        if (!isset($data['pieces'], $data['sign'])) {
+            return $this->doResponse->doErrorJsonResponse('Dati mancanti: pieces e type sono obbligatori', 400);
+        }
+
+        $pieces = (int)$data['pieces'];
+
+        if ($pieces <= 0) {
+            return $this->doResponse->doErrorJsonResponse('Il numero di pezzi deve essere maggiore di zero', 400);
+        }
+
+        if (!in_array($data['sign'], ['+', '-'], true)) {
+            return $this->doResponse->doErrorJsonResponse('Tipo compensazione non valido', 400);
+        }
+
+        $batch = $this->doctrine->getRepository(Batch::class)->find($id);
+
+        if (!$batch) {
+            return $this->doResponse->doErrorJsonResponse('Batch not found', 404);
+        }
+
+        $sign = $data['sign'] === '+' ? 1 : -1;
+        $reasonName = $data['sign'] === '+'
+            ? 'Variazione Inventario'
+            : 'Scarto';
+
+        $sqFtAverageExpected = $batch->getSqFtAverageExpected() ?? 1;
+        $quantity = $pieces * $sqFtAverageExpected;
+
+        $batchSelection = null;
+        if (isset($data['batch_selection_id'])) {
+            $batchSelection = $this->doctrine
+                ->getRepository(BatchSelection::class)
+                ->find($data['batch_selection_id']);
+
+            if (!$batchSelection) {
+                return $this->doResponse->doErrorJsonResponse('Selezione batch non trovata', 404);
+            }
+        }
+
+        $reasonRepo = $this->doctrine->getRepository(WarehouseMovementReason::class);
+
+        $adjReason = $reasonRepo->createQueryBuilder('r')
+            ->join('r.reason_type', 't')
+            ->where('r.name = :name')
+            ->setParameter('name', $reasonName)
+            ->getQuery()
+            ->getOneOrNullResult()
+            ?? $reasonRepo->findOneBy(['name' => $reasonName]);
+
+        if (!$adjReason) {
+            return $this->doResponse->doErrorJsonResponse('Causale "' . $reasonName . '" non trovata', 400);
+        }
+
+        $movement = new WarehouseMovement();
+        $movement->setBatch($batch);
+        $movement->setReason($adjReason);
+        $movement->setQuantity($quantity * $sign);
+        $movement->setPiece($pieces * $sign);
+        $movement->setDate(new \DateTime());
+        $movement->setMovementNote('Compensazione lotto');
+
+        if ($batchSelection) {
+            // Lo stock della selezione viene aggiornato manualmente perché non c'è ancora un listener su BatchSelection
+            // Aggiorniamo solo la selezione per evitare raddoppio sul Batch (gestito dal listener sul movimento)
+            $batchSelection->setStockQuantity(($batchSelection->getStockQuantity() ?? 0.0) + ($quantity * $sign));
+            $batchSelection->setStockPieces(($batchSelection->getStockPieces() ?? 0.0) + ($pieces * $sign));
+            $this->doctrine->persist($batchSelection);
+        }
+
+        // Il Batch stock viene aggiornato dal listener sul WarehouseMovement salvato sotto.
+
+        if ($data['sign'] === '-') {
+            $currentWaste = $batch->getCompensationWaste() ?? 0.0;
+            $batch->setCompensationWaste($currentWaste + $data['pieces']);
+        }
+
+        $this->doctrine->persist($batch);
+        $this->doctrine->persist($movement);
+        $this->doctrine->flush();
+
+        $result = $this->groupSerializer->serializeGroup($batch, 'batch_detail');
+
+        return new JsonResponse($this->doResponse->doResponse($result));
+    }
+
     #[Route('/batch/{id}',
         name: 'put_batch',
         methods: ['PUT'])]
@@ -914,29 +1277,12 @@ final class BatchController extends AbstractController
             $batch = $this->handleRelations($batch, $data);
             $batch = $this->createMethodsByInput->createMethods($batch, $data);
 
-            if($batch->getMeasurementUnit()){
-                $measurementUnit = $batch->getMeasurementUnit();
 
-                if ($measurementUnit->getPrefix() == 'MQ') {
-                    $coefficientUm = $measurementUnit->getMeasurementUnitCoefficients()->first();
-                    if($batch->getPieces() > 0 && $batch->getQuantity() > 0) {
-                        $batch->setSqFtAverageFound($batch->getPieces() / ($coefficientUm->getCoefficient() * $batch->getQuantity()));
-                    }
-                } elseif($batch->getMeasurementUnit()->getPrefix() == 'PQ') {
-                    if($batch->getPieces() > 0 && $batch->getQuantity() > 0) {
-                        $batch->setSqFtAverageFound($batch->getPieces() / $batch->getQuantity());
-                    }
-                }
-            }
-
-            if ($batch->getPieces() !== $oldPieces) {
-                $diffPieces = $batch->getPieces() - $oldPieces;
-                $batch->setStockItems($batch->getStockItems() + $diffPieces);
-            }
-
-            if ($batch->getQuantity() !== $oldQuantity) {
-                $diffQuantity = $batch->getQuantity() - $oldQuantity;
-                $batch->setStockQuantity($batch->getStockQuantity() + $diffQuantity);
+            if ($batch->getPieces() !== $oldPieces || $batch->getQuantity() !== $oldQuantity) {
+                // Lo stock viene ricalcolato dal WarehouseMovementListener se ci sono movimenti.
+                // Se non ci sono movimenti, usiamo comunque lo StockService per allineare i campi.
+                $this->stockService->recalculateBatchStock($batch);
+                // La media taglia viene ricalcolata solo dal WarehouseMovementListener basandosi sulle vendite
             }
 
             if ($batch->isCompleted() === null) {
@@ -956,15 +1302,15 @@ final class BatchController extends AbstractController
             }
 
             if ($batch->getQuantity() === null) {
-                $batch->setQuantity((float) 0);
+                $batch->setQuantity((float)0);
             }
 
             if ($batch->getSqFtAverageExpected() === null) {
-                $batch->setSqFtAverageExpected((float) 0);
+                $batch->setSqFtAverageExpected((float)0);
             }
 
             if ($batch->getSqFtAverageFound() === null) {
-                $batch->setSqFtAverageFound((float) 0);
+                $batch->setSqFtAverageFound((float)0);
             }
 
             $batch->setUpdatedAt(new \DateTimeImmutable());
@@ -1098,6 +1444,8 @@ final class BatchController extends AbstractController
                         $composition->setBatch($batch);
                         $composition->setFatherBatch($fatherBatch);
                         $composition = $this->createMethodsByInput->createMethods($composition, $compositionData);
+                        $composition->setFatherBatchPieceAvailable($composition->getFatherBatchPiece());
+                        $composition->setFatherBatchQuantityAvailable($composition->getFatherBatchQuantity());
                         $batch->addBatchComposition($composition);
                         $this->doctrine->persist($composition);
                     }

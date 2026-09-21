@@ -15,18 +15,18 @@ class Selection
     #[ORM\GeneratedValue]
     #[ORM\Column]
     #[Groups(['batch_selection_detail', 'batch_detail', 'selection_list', 'selection_detail', 'batch_list',
-        'ddt_row_detail', 'client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
+        'ddt_row_detail', 'client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'batch_composition_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
     #[Groups(['batch_selection_detail', 'batch_detail', 'selection_list', 'selection_detail', 'batch_list', 'ddt_row_detail',
-        'client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
+        'client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'batch_composition_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(nullable: true)]
     private ?int $weight = null;
 
-    #[ORM\Column]
+    #[ORM\Column(nullable: true)]
     #[Groups(['batch_selection_detail', 'batch_detail', 'selection_detail', 'batch_list', 'ddt_row_detail',
         'client_order_row_list', 'client_order_row_detail', 'client_order_detail'])]
     private ?float $value = null;
@@ -100,7 +100,7 @@ class Selection
         return $this->value;
     }
 
-    public function setValue(float $value): static
+    public function setValue(?float $value): static
     {
         $this->value = $value;
 

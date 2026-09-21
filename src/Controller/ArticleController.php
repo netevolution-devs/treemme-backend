@@ -20,7 +20,9 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: 'article')]
 class ArticleController extends AbstractController
 {
     public function __construct(
@@ -81,7 +83,7 @@ class ArticleController extends AbstractController
             if (!$article->getCode()) {
                 $prefix = 'AR';
                 $lastCode = $this->articleRepository->findLatestArticleCode($prefix);
-                
+
                 $nextNumber = 1;
                 if ($lastCode && preg_match('/' . preg_quote($prefix, '/') . '(\d+)$/', $lastCode, $matches)) {
                     $nextNumber = (int)$matches[1] + 1;
@@ -92,6 +94,8 @@ class ArticleController extends AbstractController
         } catch (\Exception $e) {
             return $this->doResponse->doErrorJsonResponse($e->getMessage());
         }
+
+        $article->setFullGrain(false);
 
         $errors = $validator->validate($article);
         if (count($errors) > 0) {
@@ -197,27 +201,36 @@ class ArticleController extends AbstractController
             $article->getArticleType()?->getName(),
             $article->getArticleType()?->getLeatherType()?->getName(),
             $article->getThickness()?->getName(),
-            $article->getPrint()?->getName(),
             $article->getColor()?->getColor(),
         ];
 
-        $article->setName(implode(' ', array_filter(
+        $article->setName(strtoupper(implode(' ', array_filter(
             $nameParts,
             static fn (?string $value): bool => $value !== null && trim($value) !== ''
-        )));
+        ))));
+
+        $clientCodeParts = [
+            $article->getArticleType()?->getName(),
+            $article->getThickness()?->getName(),
+            $article->getColor()?->getColor(),
+        ];
+
+        $article->setClientCode(strtoupper(implode(' ', array_filter(
+            $clientCodeParts,
+            static fn (?string $value): bool => $value !== null && trim($value) !== ''
+        ))));
 
         $codeParts = [
             $this->compressString($article->getArticleType()?->getName()),
             $article->getThickness()?->getName(),
-            $this->compressString($article->getPrint()?->getName()),
             $this->compressString($article->getColor()?->getColor()),
             $this->compressString($article->getClient()?->getName()),
         ];
 
-        $article->setCode(implode('-', array_filter(
+        $article->setCode(strtoupper(implode('-', array_filter(
             $codeParts,
             static fn (?string $value): bool => $value !== null && trim($value) !== ''
-        )));
+        ))));
     }
 
     private function compressString(?string $string): ?string

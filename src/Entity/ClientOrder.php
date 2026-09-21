@@ -15,52 +15,52 @@ class ClientOrder
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_summary_print', 'ddt_row_list_sold', 'external_processing_print'])]
     private ?int $id = null;
 
     #[ORM\Column]
-    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_summary_print'])]
     private ?bool $processed = null;
 
     #[ORM\Column]
-    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_summary_print'])]
     private ?bool $cancelled = null;
 
     #[ORM\Column]
-    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_summary_print'])]
     private ?bool $checked = null;
 
     #[ORM\ManyToOne(inversedBy: 'clientOrders')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['client_order_list', 'client_order_detail'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_summary_print', 'client_order_row_list', 'ddt_row_list_sold', 'external_processing_print'])]
     private ?Contact $client = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_order_row_list', 'client_summary_print', 'ddt_row_list_sold'])]
     private ?string $order_number = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_order_row_list', 'client_summary_print', 'ddt_row_list_sold'])]
     private ?\DateTime $order_date = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_order_row_list'])]
     private ?float $percentage_agent = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_order_row_list', 'client_summary_print', 'ddt_row_list_sold'])]
     private ?string $client_order_number = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_order_row_list', 'client_summary_print', 'ddt_row_list_sold'])]
     private ?\DateTime $client_order_date = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?string $agent_order_number = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['client_order_list', 'client_order_detail', 'client_detail'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_detail', 'client_order_row_list', 'client_summary_print'])]
     private ?\DateTime $agent_order_date = null;
 
     #[ORM\ManyToOne(inversedBy: 'clientOrders')]
@@ -84,7 +84,7 @@ class ClientOrder
     private ?string $order_note_production = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['client_order_list', 'client_order_detail'])]
+    #[Groups(['client_order_list', 'client_order_detail', 'client_summary_print'])]
     private ?string $order_note_administration = null;
 
     #[ORM\Column(nullable: true)]
@@ -122,9 +122,17 @@ class ClientOrder
     #[Groups(['client_order_detail'])]
     private ?ContactAddress $address = null;
 
+    #[ORM\ManyToOne(inversedBy: 'clientOrders')]
+    #[Groups(['client_order_detail'])]
+    private ?ShippingCarrier $shipping_carrier = null;
+
     public function __construct()
     {
         $this->clientOrderRows = new ArrayCollection();
+        $this->processed = false;
+        $this->cancelled = false;
+        $this->checked = false;
+        $this->printed = false;
     }
 
     public function getId(): ?int
@@ -446,6 +454,18 @@ class ClientOrder
     public function setAddress(?ContactAddress $address): static
     {
         $this->address = $address;
+
+        return $this;
+    }
+
+    public function getShippingCarrier(): ?ShippingCarrier
+    {
+        return $this->shipping_carrier;
+    }
+
+    public function setShippingCarrier(?ShippingCarrier $shipping_carrier): static
+    {
+        $this->shipping_carrier = $shipping_carrier;
 
         return $this;
     }

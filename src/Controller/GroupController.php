@@ -19,7 +19,9 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: 'group')]
 final class GroupController extends AbstractController
 {
     public function __construct(
@@ -98,6 +100,23 @@ final class GroupController extends AbstractController
 
             $em = $this->doctrine;
             $em->persist($group);
+
+            $workAreas = $em->getRepository(WorkArea::class)->findAll();
+            $role = $em->getRepository(Role::class)->findOneBy(['name' => 'USER']) ?? $em->getRepository(Role::class)->findOneBy([]);
+
+            if ($role) {
+                foreach ($workAreas as $workArea) {
+                    $groupRoleWorkArea = new GroupRoleWorkArea();
+                    $groupRoleWorkArea->setGroup($group);
+                    $groupRoleWorkArea->setWorkArea($workArea);
+                    $groupRoleWorkArea->setRole($role);
+                    $groupRoleWorkArea->setCanGet(true);
+                    $groupRoleWorkArea->setCreatedAt($now);
+                    $groupRoleWorkArea->setUpdatedAt($now);
+                    $em->persist($groupRoleWorkArea);
+                }
+            }
+
             $em->flush();
 
             $result = $this->groupSerializer->serializeGroup($group, 'group_detail');

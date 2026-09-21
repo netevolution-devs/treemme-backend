@@ -48,7 +48,7 @@
         }
 
         .content {
-            margin-top: 20px;
+            margin-top: 10px;
         }
 
         .header {
@@ -58,25 +58,25 @@
 
         .header-top {
             font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .customer-info {
             margin-left: 50px;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             line-height: 1.2;
         }
 
         .subject {
             font-weight: bold;
             text-transform: uppercase;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .disclaimer {
             font-size: 9px;
             text-align: center;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         table.items {
@@ -191,17 +191,47 @@
 
         <span class="bold">SPETT. LE &nbsp;&nbsp; {{ order.client ? order.client.name : '' }}</span><br><br>
         <div class="customer-info">
-            {% if order.address %}
+            {% set sedeAddress = null %}
+            {% if order.client %}
+                {% for contactAddress in order.client.contactAddresses %}
+                    {% if contactAddress.addressName == 'SEDE' %}
+                        {% set sedeAddress = contactAddress %}
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+
+            {% if sedeAddress %}
+                {{ sedeAddress.address }}<br>
+
+                {% if sedeAddress.address2 %}
+                    {{ sedeAddress.address2 }}<br>
+                {% endif %}
+
+                {% if sedeAddress.address3 %}
+                    {{ sedeAddress.address3 }}<br>
+                {% endif %}
+
+                {{ sedeAddress.zipCode ? sedeAddress.zipCode ~ ' ' : '' }}
+                {{ sedeAddress.nation ? sedeAddress.nation.name : '' }}
+            {% elseif order.address %}
                 {{ order.address.address }}<br>
-                {{ order.address.town ? order.address.town.cap : '' }} {{ order.address.town ? order.address.town.name : '' }} {{ order.address.town and order.address.town.province ? '- ' ~ order.address.town.province.acronym : '' }}
-                <br>
+
+                {% if order.address.address2 %}
+                    {{ order.address.address2 }}<br>
+                {% endif %}
+
+                {% if order.address.address3 %}
+                    {{ order.address.address3 }}<br>
+                {% endif %}
+
+                {{ order.address.zipCode ? order.address.zipCode ~ ' ' : '' }}
                 {{ order.address.nation ? order.address.nation.name : '' }}
             {% endif %}
         </div>
 
         <div class="subject">
-            OGGETTO: CONFERMA VOSTRO ORDINE &nbsp; {{ order.clientOrderNumber }}
-            DEL {{ order.clientOrderDate ? order.clientOrderDate|date('d/m/Y') : '' }} &nbsp; NOSTRO
+            OGGETTO: CONFERMA VOSTRO ORDINE &nbsp; {{ order.agentOrderNumber ? order.agentOrderNumber : order.clientOrderNumber }}
+            DEL {{ order.agentOrderDate ? order.agentOrderDate|date('d/m/Y') : (order.clientOrderDate ? order.clientOrderDate|date('d/m/Y'): '') }} &nbsp; NOSTRO
             RIF {{ order.orderNumber }}
         </div>
 
@@ -215,9 +245,9 @@
         <thead>
         <tr>
             <th style="width: 5%;">N</th>
-            <th style="width: 15%;">CODICE</th>
-            <th style="width: 40%;">ARTICOLO</th>
-            <th style="width: 15%;" class="center">QUANTITA'</th>
+            <th style="width: 35%;">ARTICOLO</th>
+            <th style="width: 20%;">NOTE RIF. CLIENTE</th>
+            <th style="width: 15%;" class="center">QUANTITA' (MQ)</th>
             <th style="width: 12%;" class="right">PREZZO</th>
             <th style="width: 13%;" class="center">DATA PRV</th>
         </tr>
@@ -228,19 +258,19 @@
                 <td class="center">{{ loop.index }}</td>
                 <td>
                     {% if row.article %}
-                        {{ row.article.clientCode ?: row.article.code }}
+                        {{ row.article.clientCode ?: row.article.name }}
                     {% endif %}
                 </td>
                 <td>
                     {% if row.article %}
-                        {{ row.article.name }}
+                        {{  row.article.clientCodeNote }}
                     {% endif %}
                 </td>
                 <td class="center">
-                    {{ row.measurementUnit ? row.measurementUnit.prefix : '' }} &nbsp; {{ row.quantity }}
+                    MQ&nbsp;{{ (row.quantity|to_mq(row.measurementUnit))|number_format(2, ',', '.') }}
                 </td>
                 <td class="right">
-                    € &nbsp; {{ row.price|number_format(2, ',', '.') }}
+                    {{ row.currency ? row.currency.sign : '' }} &nbsp; {{ row.currencyPrice|number_format(2, ',', '.') }}
                 </td>
                 <td class="center">
                     {{ row.deliveryDateConfirmed ? row.deliveryDateConfirmed|date('d/m/Y') : '' }}
@@ -248,8 +278,8 @@
             </tr>
         {% endfor %}
 
-        {% if order.clientOrderRows|length < 15 %}
-            {% for i in range(order.clientOrderRows|length + 1, 15) %}
+        {% if order.clientOrderRows|length < 13 %}
+            {% for i in range(order.clientOrderRows|length + 1, 13) %}
                 <tr>
                     <td style="height: 20px;">&nbsp;</td>
                     <td>&nbsp;</td>
@@ -266,10 +296,35 @@
     <div class="footer-info">
         <p class="bold italic" style="margin-bottom: 0; font-style: oblique;">CONDIZIONI D 'ORDINE</p>
         <div class="signature-line" style="width: 50%; margin-top: 0; "></div>
-        <p><span class="bold">PAGAMENTO:</span> {{ order.payment ? order.payment.name : '' }}</p>
-        <p><span class="bold">RESA MERCE:</span> {{ order.shipmentCondition ? order.shipmentCondition.name : '' }}</p>
-        {% if order.agent %}
-            <p><span class="bold">VETTORE:</span> {{ order.agent.name }}</p>
+        <p><span class="bold">PAGAMENTO: </span> {{ order.payment ? order.payment.name : '' }}</p>
+        <p><span class="bold">RESA MERCE: </span> {{ order.shipmentCondition ? order.shipmentCondition.name : '' }}</p>
+        {% if order.shippingCarrier %}
+            <p><span class="bold">VETTORE: </span> {{ order.shippingCarrier.name }}</p>
+        {% endif %}
+        {% if order.address and (order.address.addressName|trim == 'DEST. DIVERSA'|trim) %}
+            <p><span class="bold"> DEST. DIVERSA: </span>
+                {% if order.address.differentDestination %}
+                    {%  if order.address.differentDestination.contact %}
+                        {{ order.address.differentDestination.contact.name }},
+                    {% endif %}
+                {% else %}
+                    {{ order.client.name }},
+                {% endif %}
+
+                {% if order.address.address %}
+                    {{ order.address.address }},
+                {% endif %}
+
+                {% if order.address.address2 %}
+                    {{ order.address.address2 }},
+                {% endif %}
+
+                {% if order.address.address3 %}
+                    {{ order.address.address3 }}
+                {% endif %}
+
+                {{ order.address.zipCode ? order.address.zipCode ~ ' ' : '' }}
+                {{ order.address.nation ? order.address.nation.name : '' }}</p>
         {% endif %}
     </div>
 
@@ -300,33 +355,6 @@
             </td>
         </tr>
     </table>
-</div>
-
-<div class="page-break"></div>
-
-<div class="privacy-page">
-    <div class="privacy-footer">
-        <div class="privacy-title">INFORMATIVA</div>
-
-        <div class="privacy-text">
-            Art. 13 Reg. Ue 2016/679 CONCERIA TRE EMME s.r.l. a socio unico, Via Marconi 3/1 36050 Zermeghedo (VI),
-            P.IVA e Cod. Fisc. 00532550241<br>
-            è in possesso dei suoi dati per adempiere alle normali operazioni derivanti da obbligo di legge o
-            contrattuale. In qualunque<br>
-            momento potranno essere esercitati dagli interessati i diritti di cui artt. 15, 16, 17, 18, 19, 20, 21, 22
-            del Reg. UE e richiedere<br>
-            l'informativa completa scrivendo a mmarcolungo@treemmeconceria.com
-        </div>
-
-        <div class="privacy-text">
-            Art. 13 Reg. Ue 2016/679 CONCERIA TRE EMME s.r.l. a socio unico, Via Marconi 3/1 36050 Zermeghedo (VI),
-            P.IVA e Cod. Fisc. 00532550241<br>
-            uses your personal data to manage relationship with you, provide with after-sale services and comply with
-            applicable laws.<br>
-            You may at any time access your personal data (artt. 15, 16, 17, 18, 19, 20, 21, 22 del Reg. UE) and receive<br>
-            the complete statement writing to mmarcolungo@treemmeconceria.com
-        </div>
-    </div>
 </div>
 </body>
 </html>

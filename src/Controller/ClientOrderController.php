@@ -3,16 +3,20 @@
 namespace App\Controller;
 
 use App\Entity\ClientOrder;
+use App\Entity\ClientOrderRow;
 use App\Entity\Contact;
 use App\Entity\ContactAddress;
 use App\Entity\Payment;
 use App\Entity\ShipmentCondition;
+use App\Entity\ShippingCarrier;
 use App\Entity\User;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
+use App\Service\ClientOrderRowService;
 use App\Service\ValidatorOutputFormatter;
 use App\Service\PdfGeneratorService;
+use App\Service\ActionLoggerService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -20,7 +24,9 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: 'order')]
 final class ClientOrderController extends AbstractController
 {
     private $createMethodsByInput;
@@ -29,6 +35,8 @@ final class ClientOrderController extends AbstractController
     private $groupSerializer;
     private $validatorOutputFormatter;
     private $pdfGenerator;
+    private $actionLogger;
+    private $clientOrderRowService;
 
     public function __construct(
         CreateMethodsByInput     $createMethodsByInput,
@@ -37,6 +45,8 @@ final class ClientOrderController extends AbstractController
         GroupSerializerService   $groupSerializer,
         ValidatorOutputFormatter $validatorOutputFormatter,
         PdfGeneratorService      $pdfGenerator,
+        ActionLoggerService      $actionLogger,
+        ClientOrderRowService    $clientOrderRowService,
     )
     {
         $this->createMethodsByInput = $createMethodsByInput;
@@ -45,6 +55,21 @@ final class ClientOrderController extends AbstractController
         $this->groupSerializer = $groupSerializer;
         $this->validatorOutputFormatter = $validatorOutputFormatter;
         $this->pdfGenerator = $pdfGenerator;
+        $this->actionLogger = $actionLogger;
+        $this->clientOrderRowService = $clientOrderRowService;
+    }
+
+    #[Route('/client-order/{id}/close', name: 'close_client_order', requirements: ['id' => '\d+'], methods: ['PATCH'])]
+    public function closeClientOrder(int $id): JsonResponse
+    {
+        $order = $this->doctrine->getRepository(ClientOrder::class)->find($id);
+        if (!$order) {
+            return $this->doResponse->doErrorJsonResponse('Ordine non trovato', 404);
+        }
+
+        $this->clientOrderRowService->manualCloseOrder($order);
+
+        return new JsonResponse($this->doResponse->doResponse(['message' => 'Ordine chiuso con successo']));
     }
 
     #[Route('/client-order/{id}',
@@ -123,6 +148,69 @@ final class ClientOrderController extends AbstractController
         ]);
     }
 
+    #[Route('/client-order/production-report/pdf',
+        name: 'get_client_order_production_report_pdf',
+        methods: ['GET'])]
+    public function generateProductionReportPdf(Request $request): Response
+    {
+        $startDateStr = $request->query->get('start_date');
+        $endDateStr = $request->query->get('end_date');
+        $printedStatus = $request->query->get('print_status', 'to_print');
+
+        $startDate = null;
+        if ($startDateStr) {
+            try {
+                $startDate = new \DateTime($startDateStr);
+            } catch (\Exception $e) {
+            }
+        }
+
+        $endDate = null;
+        if ($endDateStr) {
+            try {
+                $endDate = new \DateTime($endDateStr);
+            } catch (\Exception $e) {
+            }
+        }
+
+        $rows = $this->doctrine->getRepository(ClientOrderRow::class)->findByProductionCriteria($startDate, $endDate, $printedStatus);
+
+        $groupedRows = [];
+        foreach ($rows as $row) {
+            $typeName = 'Nessun Tipo';
+            if ($row->getArticle() && $row->getArticle()->getArticleType()) {
+                $typeName = $row->getArticle()->getArticleType()->getName();
+            }
+            $groupedRows[$typeName][] = $row;
+        }
+
+        $pdfContent = $this->pdfGenerator->generatePdf('print/production_report_pdf.html.twig', [
+            'groupedRows' => $groupedRows,
+            'date' => new \DateTime(),
+            'app_root' => $this->getParameter('kernel.project_dir')
+        ], 'programma_produzione.pdf');
+
+        // Segna gli ordini coinvolti come stampati (solo se non lo erano già)
+        $em = $this->doctrine;
+        $ordersToUpdate = [];
+        foreach ($rows as $row) {
+            $order = $row->getClientOrder();
+            if ($order && !$order->isPrinted()) {
+                $ordersToUpdate[$order->getId()] = $order;
+            }
+        }
+        foreach ($ordersToUpdate as $order) {
+            $order->setPrinted(true);
+            $order->setPrintDate(new \DateTime());
+        }
+        $em->flush();
+
+        return new Response($pdfContent, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="programma_produzione.pdf"'
+        ]);
+    }
+
     #[Route('/client-order',
         name: 'post_client_order',
         methods: ['POST'])]
@@ -176,6 +264,10 @@ final class ClientOrderController extends AbstractController
             return $this->doResponse->doErrorJsonResponse('ClientOrder not found', 404);
         }
 
+        if ($clientOrder->isChecked()) {
+            return $this->doResponse->doErrorJsonResponse('Non è possibile modificare un ordine già controllato', 403);
+        }
+
         try {
             $clientOrder = $this->handleRelations($clientOrder, $data);
             $clientOrder = $this->createMethodsByInput->createMethods($clientOrder, $data);
@@ -188,6 +280,43 @@ final class ClientOrderController extends AbstractController
 
             $this->doctrine->persist($clientOrder);
             $this->doctrine->flush();
+
+            $result = $this->groupSerializer->serializeGroup($clientOrder, 'client_order_detail');
+            return new JsonResponse($this->doResponse->doResponse($result));
+        } catch (\Exception $e) {
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
+        }
+    }
+
+    #[Route('/client-order/{id}/check',
+        name: 'put_client_order_check',
+        methods: ['PUT'])]
+    public function checkClientOrder(int $id): JsonResponse
+    {
+        $clientOrder = $this->doctrine->getRepository(ClientOrder::class)->find($id);
+
+        if (!$clientOrder) {
+            return $this->doResponse->doErrorJsonResponse('ClientOrder not found', 404);
+        }
+
+        try {
+            $newStatus = !$clientOrder->isChecked();
+            $clientOrder->setChecked($newStatus);
+
+            if ($newStatus) {
+                $clientOrder->setCheckDate(new \DateTime());
+            } else {
+                $clientOrder->setCheckDate(null);
+            }
+
+            $this->doctrine->persist($clientOrder);
+            $this->doctrine->flush();
+
+            $this->actionLogger->logAction('check_client_order', [
+                'id' => $clientOrder->getId(),
+                'order_number' => $clientOrder->getOrderNumber(),
+                'checked' => $newStatus
+            ]);
 
             $result = $this->groupSerializer->serializeGroup($clientOrder, 'client_order_detail');
             return new JsonResponse($this->doResponse->doResponse($result));
@@ -259,6 +388,13 @@ final class ClientOrderController extends AbstractController
                 $clientOrder->setAddress($address);
             }
             unset($data['address_id']);
+        }
+        if(isset($data['shipping_carrier_id'])) {
+            $carrier = $this->doctrine->getRepository(ShippingCarrier::class)->find($data['shipping_carrier_id']);
+            if ($carrier) {
+                $clientOrder->setShippingCarrier($carrier);
+            }
+            unset($data['shipping_carrier_id']);
         }
 
         return $clientOrder;

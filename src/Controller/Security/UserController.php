@@ -22,8 +22,10 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use OpenApi\Attributes as OAA;
 
 
+#[OAA\Tag(name: 'security')]
 class UserController extends AbstractController
 {
     private UserService $userService;
@@ -104,6 +106,7 @@ class UserController extends AbstractController
         $user->setEmail($email)
             ->setPassword($hashedPassword)
             ->setRoles($roles)
+            ->setLastChangePassword(new \DateTimeImmutable())
             ->setUserCode($code);
 
         unset($data['password']);
@@ -146,7 +149,7 @@ class UserController extends AbstractController
             return $this->doResponse->doErrorJsonResponse('Utente non trovato', 404);
         }
 
-        $data = $this->request->getCurrentRequest()->request->all();
+        $data = $this->request->getCurrentRequest()->toArray();
 
         if (isset($data['password']) && !empty($data['password'])) {
             $hashedPassword = $passwordHasher->hashPassword(
@@ -176,6 +179,7 @@ class UserController extends AbstractController
         }
 
         try {
+            $this->doctrine->persist($user);
             $this->doctrine->flush();
         } catch (Exception $e) {
             return $this->doResponse->doErrorJsonResponse('Errore durante il salvataggio o email già esistente', $e->getFile());
@@ -294,6 +298,83 @@ class UserController extends AbstractController
         $response->headers->setCookie($refreshTokenCookie);
 
         return $response;
+    }
+
+    #[Route('/api/public/change-password', name: 'public_change_password', methods: ['PUT'])]
+    public function changePasswordFromPublic(UserPasswordHasherInterface $passwordHasher,
+                                   ActionLoggerService $actionLoggerService): JsonResponse
+    {
+        $data = $this->request->getCurrentRequest()->toArray();
+
+        if(!isset($data['user_code'])){
+            return $this->doResponse->doErrorJsonResponse('User code is required', 400);
+        }
+        if(!isset($data['new_password']) && !isset($data['old_password'])) {
+            return new JsonResponse($this->doResponse->doErrorJsonResponse('Old password and new password are required'), 400);
+        }
+
+        $currentUser = $this->doctrine->getRepository(User::class)->findOneBy(['user_code' => $data['user_code']]);
+
+        if(!$currentUser) {
+            return $this->doResponse->doErrorJsonResponse('User not found', 400);
+        }
+
+        if(!$passwordHasher->isPasswordValid($currentUser, $data['old_password'])) {
+            return $this->doResponse->doErrorJsonResponse('Old password is incorrect', 400);
+        }
+
+        $newPassword = $data['new_password'];
+
+        if(strlen($newPassword) < 8) {
+            return $this->doResponse->doErrorJsonResponse('New password must be at least 8 characters long', 400);
+        }
+
+        $currentUser->setPassword($passwordHasher->hashPassword($currentUser, $newPassword));
+        $currentUser->setLastChangePassword(new \DateTimeImmutable());
+
+        $this->doctrine->persist($currentUser);
+        $this->doctrine->flush();
+
+        $actionLoggerService->logAction('Change password', $currentUser);
+
+        return new JsonResponse('Change password success');
+    }
+
+    #[Route('/api/change-password', name: 'change_password', methods: ['PUT'])]
+    public function changePassword(UserPasswordHasherInterface $passwordHasher,
+                                   ActionLoggerService $actionLoggerService): JsonResponse
+    {
+        $data = $this->request->getCurrentRequest()->toArray();
+
+        if(!isset($data['new_password']) && !isset($data['old_password'])) {
+            return new JsonResponse($this->doResponse->doErrorJsonResponse('Old password and new password are required'), 400);
+        }
+
+        $currentUser = $this->getUser();
+
+        if(!$currentUser) {
+            return $this->doResponse->doErrorJsonResponse('User not found', 400);
+        }
+
+        if(!$passwordHasher->isPasswordValid($currentUser, $data['old_password'])) {
+            return $this->doResponse->doErrorJsonResponse('Old password is incorrect', 400);
+        }
+
+        $newPassword = $data['new_password'];
+
+        if(strlen($newPassword) < 8) {
+            return $this->doResponse->doErrorJsonResponse('New password must be at least 8 characters long', 400);
+        }
+
+        $currentUser->setPassword($passwordHasher->hashPassword($currentUser, $newPassword));
+        $currentUser->setLastChangePassword(new \DateTimeImmutable());
+
+        $this->doctrine->persist($currentUser);
+        $this->doctrine->flush();
+
+        $actionLoggerService->logAction('Change password', $currentUser);
+
+        return new JsonResponse('Change password success');
     }
 }
 

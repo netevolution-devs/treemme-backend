@@ -18,7 +18,9 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: 'production')]
 class ProductionController extends AbstractController
 {
     private $createMethodsByInput;
@@ -76,6 +78,16 @@ class ProductionController extends AbstractController
         }
 
         $results = $this->groupSerializer->serializeGroup($productions, 'production_list');
+
+        foreach ( $productions as $index => $production ) {
+            $batchOrder = $production->getBatch()->getBatchOrders()->first();
+            if ($batchOrder) {
+                $results[$index]['client_name'] = $batchOrder->getOrderRow()->getClientOrder()->getClient()->getName();
+            } else {
+                $results[$index]['client_name'] = null;
+            }
+        }
+
 
         return new JsonResponse($this->doResponse->doResponse($results));
     }
@@ -237,6 +249,10 @@ class ProductionController extends AbstractController
         $groupedProductions = [];
         foreach ($productions as $production) {
             $machine = $production->getMachine();
+            $batch = $production->getBatch();
+            if(str_starts_with($batch->getBatchCode(), 'UF')){
+                continue;
+            }
             $machineId = $machine ? $machine->getId() : 0;
             if (!isset($groupedProductions[$machineId])) {
                 $groupedProductions[$machineId] = [

@@ -16,48 +16,49 @@ class WarehouseMovement
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?int $id = null;
 
     #[ORM\Column]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?\DateTime $date = null;
 
     #[ORM\ManyToOne(inversedBy: 'warehouseMovements')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['warehouse_movement_list', 'movement_detail'])]
     private ?Batch $batch = null;
 
     #[ORM\ManyToOne(inversedBy: 'warehouseMovements')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?WarehouseMovementReason $reason = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_detail'])]
-    private ?int $piece = null;
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
+    private ?float $piece = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?float $price = null;
 
     #[ORM\Column]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?float $quantity = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?float $total_value = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?string $ddt_number = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?\DateTime $ddt_date = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     private ?string $movement_note = null;
 
     #[ORM\ManyToOne(targetEntity: self::class, inversedBy: 'sonWarehouseMovements')]
@@ -70,7 +71,7 @@ class WarehouseMovement
     private Collection $sonWarehouseMovements;
 
     #[ORM\ManyToOne(inversedBy: 'warehouseMovements')]
-    #[Groups(['batch_detail'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list'])]
     #[MaxDepth(1)]
     private ?Contact $contact = null;
 
@@ -128,13 +129,26 @@ class WarehouseMovement
         return $this;
     }
 
-    public function getPiece(): ?int
+    public function isOutgoing(): bool
+    {
+        return $this->getReason()?->getReasonType()?->getMovementType() === '-';
+    }
+
+    public function getPiece(): ?float
     {
         return $this->piece;
     }
 
-    public function setPiece(?int $piece): static
+    public function setPiece(?float $piece): static
     {
+        if ($piece !== null) {
+            $batch = $this->getBatch();
+            // Se il lotto non supporta le mezze pelli, forziamo il valore a intero
+            if ($batch && $batch->getHalfPiecesCount() === null) {
+                $piece = (float)round($piece);
+            }
+        }
+
         if ($piece !== null && $this->getReason() && $this->getReason()->getReasonType() && $this->getReason()->getReasonType()->getMovementType() === '-') {
             $this->piece = -abs($piece);
         } else {

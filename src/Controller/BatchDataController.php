@@ -24,7 +24,9 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: 'batch')]
 final class BatchDataController extends AbstractController
 {
     private $createMethodsByInput;
@@ -236,7 +238,7 @@ final class BatchDataController extends AbstractController
 
         $amount = $batchData->getAmount();
         if ($amount > 0) {
-            $this->updateOrCreateCost($batchData, 'Acquisto', $amount);
+            $this->updateOrCreateCost($batchData, 'Acquisto', $amount, $batchData->getCurrency());
         }
 
         $shippingCost = $batchData->getShippingCost();
@@ -245,7 +247,7 @@ final class BatchDataController extends AbstractController
         }
     }
 
-    private function updateOrCreateCost(BatchData $batchData, string $typeName, float $amount): void
+    private function updateOrCreateCost(BatchData $batchData, string $typeName, float $amount, ?Currency $currency = null): void
     {
         $batch = $batchData->getBatch();
         $type = $this->batchCostTypeRepository->findOneBy(['name' => $typeName]);
@@ -259,21 +261,25 @@ final class BatchDataController extends AbstractController
         ]);
 
         if (!$batchCost) {
-            $euro = $this->currencyRepository->findOneBy(['abbreviation' => 'EUR']);
-            if (!$euro) {
-                $euro = $this->currencyRepository->findOneBy(['name' => 'Euro']);
-            }
-
             $batchCost = new BatchCost();
             $batchCost->setBatch($batch);
             $batchCost->setBatchCostType($type);
             $batchCost->setCurrencyExchange(1.0);
+        }
+
+        if ($currency) {
+            $batchCost->setCurrency($currency);
+        } else {
+            $euro = $this->currencyRepository->findOneBy(['abbreviation' => 'EUR']);
+            if (!$euro) {
+                $euro = $this->currencyRepository->findOneBy(['name' => 'Euro']);
+            }
             if ($euro) {
                 $batchCost->setCurrency($euro);
             }
         }
 
-        $batchCost->setCost($amount);
+        $batchCost->setCost($amount / ($batchData->getCurrencyExchange() ?? 1.0));
         $batchCost->setDate($batchData->getDeliveryDate() ?? new \DateTime());
 
         $this->doctrine->persist($batchCost);
@@ -281,6 +287,7 @@ final class BatchDataController extends AbstractController
 
     private function calculateWeights(BatchData $batchData): BatchData
     {
+
         $pallet = $batchData->getPallet();
         $palletNumber = $batchData->getPalletNumber();
 
@@ -288,15 +295,27 @@ final class BatchDataController extends AbstractController
             $palletWeight = $pallet->getWeight() * $palletNumber;
             $batchData->setPalletWeight($palletWeight);
 
-            $grossWeight = $batchData->getFoundedGrossWeight();
-            if ($grossWeight !== null) {
-                $netWeight = $grossWeight - $palletWeight;
-                $batchData->setFoundedNetWeight($netWeight);
+            $grossFoundedWeight = $batchData->getFoundedGrossWeight();
+            if ($grossFoundedWeight !== null) {
+                $netFoundedWeight = $grossFoundedWeight - $palletWeight;
+                $batchData->setFoundedNetWeight($netFoundedWeight);
 
                 $batch = $batchData->getBatch();
                 if ($batch && $batch->getPieces() > 0) {
-                    $averageWeight = $netWeight / $batch->getPieces();
-                    $batchData->setFoundedAverageWeight($averageWeight);
+                    $averageFoundedWeight = $netFoundedWeight / $batch->getPieces();
+                    $batchData->setFoundedAverageWeight($averageFoundedWeight);
+                }
+            }
+
+            $grossDeclaredWeight = $batchData->getDeclaredGrossWeight();
+            if ($grossDeclaredWeight !== null) {
+                $netDeclaredWeight = $grossDeclaredWeight - $palletWeight;
+                $batchData->setDeclaredNetWeight($netDeclaredWeight);
+
+                $batch = $batchData->getBatch();
+                if ($batch && $batch->getPieces() > 0) {
+                    $averageDeclaredWeight = $netDeclaredWeight / $batch->getPieces();
+                    $batchData->setDeclaredAverageWeight($averageDeclaredWeight);
                 }
             }
         }

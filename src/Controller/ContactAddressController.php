@@ -16,7 +16,9 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: 'contact')]
 final class ContactAddressController extends AbstractController
 {
     private $createMethodsByInput;
@@ -57,12 +59,64 @@ final class ContactAddressController extends AbstractController
         } else {
             $address = $contactAddressRepository->findBy([], ['address_name' => 'ASC']);
         }
+
         $results = $this->groupSerializer->serializeGroup($address, $id ? 'contact_address_detail' : 'contact_address_list');
 
         if ($id) {
             return new JsonResponse($this->doResponse->doResponse($results[0]));
         }
         return new JsonResponse($this->doResponse->doResponse($results));
+    }
+
+    #[Route('/contact/{id}/contact-address',
+        name: 'get_contact_address_list',
+        defaults: ['id' => null],
+        requirements: ['id' => '\d*'],
+        methods: ['GET', 'HEAD'])]
+    public function getContactAddressList(int $id): JsonResponse
+    {
+        $contactRepository = $this->doctrine->getRepository(Contact::class);
+
+        $contact = $contactRepository->find($id);
+        if (!$contact) {
+            return $this->doResponse->doErrorJsonResponse('Contact not found', 404);
+        }
+
+        $results = [];
+        $address = $contact->getContactAddresses();
+
+        foreach ($address as $addressItem) {
+            if ($addressItem->getDifferentDestination() != null){
+                $differentDestination = $addressItem->getDifferentDestination();
+                $nationSerialized = $this->groupSerializer->serializeGroup($differentDestination->getNation(), 'contact_address_list');
+                $clientOrderSerialized = $this->groupSerializer->serializeGroup($addressItem->getClientOrders(), 'contact_address_list');
+                $contactSerialized = $this->groupSerializer->serializeGroup($differentDestination->getContact(), 'contact_address_list');
+                $results[] = [
+                    'id' => $addressItem->getId(),
+                    'different_destination_id' => $differentDestination->getId(),
+                    'different_destination' => true,
+                    'contact' => $contactSerialized,
+                    'address_name' => $differentDestination->getAddressName(),
+                    'address' => $differentDestination->getAddress(),
+                    'address_2' => $differentDestination->getAddress2(),
+                    'address_3' => $differentDestination->getAddress3(),
+                    'address_4' => $differentDestination->getAddress4(),
+                    'client_orders' => $clientOrderSerialized,
+                    'nation' => $nationSerialized,
+                    'zip_code' => $differentDestination->getZipCode(),
+                    'default_address' => $addressItem->isDefaultAddress()
+                ];
+            } else{
+                $serializedAddress = $this->groupSerializer->serializeGroup($addressItem, 'contact_address_list');
+                $serializedAddress['different_destination'] = false;
+
+                $results[] = $serializedAddress;
+            }
+
+        }
+
+        return new JsonResponse($this->doResponse->doResponse($results));
+
     }
 
     #[Route('/contact-address',
@@ -78,7 +132,32 @@ final class ContactAddressController extends AbstractController
 
         try {
             $address = $this->handleRelations($address, $data);
-            $address = $this->createMethodsByInput->createMethods($address, $data);
+
+            if(isset($data['default_address'])){
+                if( $data['default_address'] == 'true'){
+                    $address->setDefaultAddress(true);
+                } else {
+                    $address->setDefaultAddress(false);
+                }
+                unset($data['default_address']);
+            }
+
+            if(isset($data['different_destination_id'])) {
+                $differentAddress = $this->doctrine->getRepository(ContactAddress::class)->find($data['different_destination_id']);
+                $address->setDifferentDestination($differentAddress);
+
+                $address->setAddressName('DEST. DIVERSA');
+                $address->setAddress($differentAddress->getAddress());
+                $address->setAddress2($differentAddress->getAddress2());
+                $address->setAddress3($differentAddress->getAddress3());
+                $address->setAddress4($differentAddress->getAddress4());
+                $address->setZipCode($differentAddress->getZipCode());
+                $address->setNation($differentAddress->getNation());
+
+                unset($data['different_destination_id']);
+            } else {
+                $address = $this->createMethodsByInput->createMethods($address, $data);
+            }
 
             $now = new \DateTimeImmutable();
             $address->setCreatedAt($now);
@@ -118,8 +197,36 @@ final class ContactAddressController extends AbstractController
         }
 
         try {
+            if(isset($data['default_address']) && $data['default_address'] === true) {
+                $allAddress = $address->getContact()->getContactAddresses();
+
+                foreach ($allAddress as $addr) {
+                    $addr->setDefaultAddress(false);
+
+                    $this->doctrine->persist($addr);
+                }
+
+                $address->setDefaultAddress(true);
+            }
             $address = $this->handleRelations($address, $data);
-            $address = $this->createMethodsByInput->createMethods($address, $data);
+
+            if(isset($data['different_destination_id'])) {
+                $differentAddress = $this->doctrine->getRepository(ContactAddress::class)->find($data['different_destination_id']);
+                $address->setDifferentDestination($differentAddress);
+
+                $address->setAddressName('DEST. DIVERSA');
+                $address->setAddress($differentAddress->getAddress());
+                $address->setAddress2($differentAddress->getAddress2());
+                $address->setAddress3($differentAddress->getAddress3());
+                $address->setAddress4($differentAddress->getAddress4());
+                $address->setZipCode($differentAddress->getZipCode());
+                $address->setNation($differentAddress->getNation());
+
+                unset($data['different_destination_id']);
+            } else {
+                $address = $this->createMethodsByInput->createMethods($address, $data);
+            }
+
             $address->setUpdatedAt(new \DateTimeImmutable());
 
             $errors = $validator->validate($address);
@@ -170,14 +277,6 @@ final class ContactAddressController extends AbstractController
                 $address->setNation($nation);
             }
             unset($data['nation_id']);
-        }
-
-        if (isset($data['town_id'])) {
-            $town = $this->doctrine->getRepository(Town::class)->find($data['town_id']);
-            if ($town) {
-                $address->setTown($town);
-            }
-            unset($data['town_id']);
         }
 
         return $address;

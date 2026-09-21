@@ -14,15 +14,15 @@ class WarehouseMovementReasonType
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['reason_type_list', 'reason_type_detail', 'reason_list', 'reason_detail'])]
+    #[Groups(['reason_type_list', 'reason_type_detail', 'reason_list', 'reason_detail', 'warehouse_movement_list', 'movement_detail'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['reason_type_list', 'reason_type_detail', 'reason_list', 'reason_detail'])]
+    #[Groups(['reason_type_list', 'reason_type_detail', 'reason_list', 'reason_detail', 'warehouse_movement_list', 'movement_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 5)]
-    #[Groups(['reason_type_list', 'reason_type_detail', 'reason_list', 'reason_detail'])]
+    #[Groups(['reason_type_list', 'reason_type_detail', 'reason_list', 'reason_detail', 'warehouse_movement_list', 'movement_detail'])]
     private ?string $movement_type = null;
 
     /**

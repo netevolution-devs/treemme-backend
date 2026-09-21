@@ -19,14 +19,20 @@ class Contact
     #[Groups(['contact_list','contact_detail','contact_type_detail', 'leather_list',
         'leather_detail','contact_client','contact_supplier',
         'contact_agent_list','contact_subcontractor_list','client_order_list', 'client_order_detail',
-        'article_list', 'article_detail', 'ddt_list', 'ddt_detail', 'batch_detail', 'color_list', 'color_detail', 'batch_data_detail'])]
+        'article_list', 'article_detail', 'ddt_list', 'ddt_detail', 'batch_detail', 'ddt_row_list',
+        'color_list', 'color_detail', 'batch_data_detail',
+        'client_order_row_list', 'client_summary_print', 'client_order_row_list', 'ddt_row_list_sold', 'external_processing_print',
+        'warehouse_movement_list', 'movement_detail', 'contact_address_list'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
     #[Groups(['contact_list','contact_detail','contact_type_detail','leather_list',
         'leather_detail','contact_client','contact_supplier',
         'contact_agent_list','contact_subcontractor_list','client_order_list', 'client_order_detail',
-        'article_list', 'article_detail', 'ddt_list', 'ddt_detail', 'batch_detail', 'color_list', 'color_detail', 'batch_data_detail'])]
+        'article_list', 'article_detail', 'ddt_list', 'ddt_detail', 'batch_detail', 'ddt_row_list',
+        'color_list', 'color_detail', 'batch_data_detail',
+        'client_order_row_list', 'client_summary_print', 'client_order_row_list', 'ddt_row_list_sold', 'external_processing_print',
+        'warehouse_movement_list', 'movement_detail', 'contact_address_list'])]
     private ?string $name = null;
 
     #[ORM\ManyToOne(inversedBy: 'contacts')]
@@ -41,7 +47,8 @@ class Contact
      * @var Collection<int, ContactAddress>
      */
     #[ORM\OneToMany(mappedBy: 'contact', targetEntity: ContactAddress::class, orphanRemoval: true)]
-    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list','contact_subcontractor_list'])]
+    #[ORM\OrderBy(['default_address' => 'DESC'])]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list','contact_subcontractor_list', 'client_summary_print'])]
     private Collection $contactAddresses;
 
     #[ORM\Column]
@@ -76,11 +83,11 @@ class Contact
     private ?float $tolerance_quantity = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['contact_detail','contact_client'])]
+    #[Groups(['contact_detail','contact_client', 'client_summary_print'])]
     private ?string $client_note = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list'])]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list','client_summary_print'])]
     private ?string $client_shipment_note = null;
 
     #[ORM\Column(nullable: true)]
@@ -100,7 +107,7 @@ class Contact
     private ?User $check_user = null;
 
     #[ORM\ManyToOne(inversedBy: 'clients')]
-    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list'])]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list', 'client_summary_print'])]
     private ?Payment $payment = null;
 
     #[ORM\Column]
@@ -124,7 +131,7 @@ class Contact
      * @var Collection<int, ContactAgent>
      */
     #[ORM\OneToMany(mappedBy: 'contact', targetEntity: ContactAgent::class, orphanRemoval: true)]
-    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier'])]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier', 'client_summary_print'])]
     private Collection $contactAgents;
 
     #[ORM\OneToMany(mappedBy: 'agent', targetEntity: ContactAgent::class, orphanRemoval: true)]
@@ -190,7 +197,7 @@ class Contact
     private Collection $ddtsFromClient;
 
     #[ORM\ManyToOne(inversedBy: 'contacts')]
-    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list'])]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list', 'client_summary_print'])]
     private ?ShipmentCondition $shipment_condition = null;
 
     /**
@@ -204,6 +211,17 @@ class Contact
      */
     #[ORM\OneToMany(mappedBy: 'client', targetEntity: Color::class)]
     private Collection $colors;
+
+    /**
+     * @var Collection<int, Processing>
+     */
+    #[ORM\ManyToMany(targetEntity: Processing::class, inversedBy: 'contacts')]
+    #[Groups(['contact_detail', 'contact_subcontractor_list'])]
+    private Collection $processings;
+
+    #[ORM\ManyToOne(inversedBy: 'contacts')]
+    #[Groups(['contact_detail', 'client_summary_print'])]
+    private ?ShippingCarrier $shipping_carrier = null;
 
     public function __construct()
     {
@@ -223,6 +241,7 @@ class Contact
         $this->ddtsFromClient = new ArrayCollection();
         $this->warehouseMovements = new ArrayCollection();
         $this->colors = new ArrayCollection();
+        $this->processings = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -927,6 +946,42 @@ class Contact
                 $color->setClient(null);
             }
         }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Processing>
+     */
+    public function getProcessings(): Collection
+    {
+        return $this->processings;
+    }
+
+    public function addProcessing(Processing $processing): static
+    {
+        if (!$this->processings->contains($processing)) {
+            $this->processings->add($processing);
+        }
+
+        return $this;
+    }
+
+    public function removeProcessing(Processing $processing): static
+    {
+        $this->processings->removeElement($processing);
+
+        return $this;
+    }
+
+    public function getShippingCarrier(): ?ShippingCarrier
+    {
+        return $this->shipping_carrier;
+    }
+
+    public function setShippingCarrier(?ShippingCarrier $shipping_carrier): static
+    {
+        $this->shipping_carrier = $shipping_carrier;
 
         return $this;
     }

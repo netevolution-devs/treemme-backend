@@ -27,7 +27,7 @@ class ArticleType
     private ?LeatherType $leather_type = null;
 
     #[ORM\ManyToOne(inversedBy: 'articleTypes')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true)]
     #[Groups(['article_list', 'article_detail', 'article_type_list', 'article_type_detail'])]
     private ?ArticleClass $article_class = null;
 
