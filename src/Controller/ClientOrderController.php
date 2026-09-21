@@ -2,11 +2,13 @@
 
 namespace App\Controller;
 
+use App\Entity\Article;
 use App\Entity\ClientOrder;
 use App\Entity\ClientOrderRow;
 use App\Entity\Contact;
 use App\Entity\ContactAddress;
 use App\Entity\Payment;
+use App\Entity\Product;
 use App\Entity\ShipmentCondition;
 use App\Entity\ShippingCarrier;
 use App\Entity\User;
@@ -87,34 +89,193 @@ final class ClientOrderController extends AbstractController
                 return $this->doResponse->doErrorJsonResponse('ClientOrder not found', 404);
             }
         } else {
-            $clientOrderNumber = $request->query->get('order_number');
-            $clientId = $request->query->get('client');
+            $orderNumber = $request->query->get('order_number') ?? $request->query->get('code');
+            $year = $request->query->get('year');
+            $client = $request->query->get('client_id') ?? $request->query->get('client');
+            $agent = $request->query->get('agent_id') ?? $request->query->get('agent');
+            $payment = $request->query->get('payment_id') ?? $request->query->get('payment');
+            $shipmentCondition = $request->query->get('shipment_condition_id') ?? $request->query->get('shipment_condition');
+            $shippingCarrier = $request->query->get('shipping_carrier_id') ?? $request->query->get('shipping_carrier');
+            $startDate = $request->query->get('start_date');
+            $endDate = $request->query->get('end_date');
+            $clientOrderNumber = $request->query->get('client_order_number');
+            $agentOrderNumber = $request->query->get('agent_order_number');
+            $article = $request->query->get('article_id') ?? $request->query->get('article');
+            $product = $request->query->get('product_id') ?? $request->query->get('product');
+            $processed = $request->query->get('processed');
+            $cancelled = $request->query->get('cancelled');
+            $checked = $request->query->get('checked');
+            $printed = $request->query->get('printed') ?? $request->query->get('print_status');
 
-            $qb = $clientOrderRepository->createQueryBuilder('c');
+            $hasFilters = $orderNumber !== null ||
+                $year !== null ||
+                $client !== null ||
+                $agent !== null ||
+                $payment !== null ||
+                $shipmentCondition !== null ||
+                $shippingCarrier !== null ||
+                $startDate !== null ||
+                $endDate !== null ||
+                $clientOrderNumber !== null ||
+                $agentOrderNumber !== null ||
+                $article !== null ||
+                $product !== null ||
+                $processed !== null ||
+                $cancelled !== null ||
+                $checked !== null ||
+                $printed !== null;
 
-            if ($clientOrderNumber) {
-                $qb->andWhere("REPLACE(c.order_number, '0', '') LIKE :order_number")
-                    ->setParameter('order_number', '%' . $clientOrderNumber . '%');
-            }
+            if ($hasFilters) {
+                $qb = $clientOrderRepository->createQueryBuilder('c')
+                    ->select('DISTINCT c');
 
-            if ($clientId) {
-                $qb->andWhere('c.client = :client')
-                    ->setParameter('client', $clientId);
-            }
-
-            $clientOrder = $qb->orderBy('c.order_number', 'ASC')
-                ->getQuery()
-                ->getResult();
-
-            if (empty($clientOrder) && ($clientOrderNumber || $clientId)) {
-                $message = 'Nessun ordine trovato';
-                if ($clientOrderNumber) {
-                    $message .= ' contenente il numero ' . $clientOrderNumber . ' (ignorando zeri)';
+                if ($orderNumber !== null && $orderNumber !== '') {
+                    $normalizedNumber = str_replace('0', '', (string)$orderNumber);
+                    $qb->andWhere("REPLACE(c.order_number, '0', '') LIKE :order_number")
+                        ->setParameter('order_number', '%' . $normalizedNumber . '%');
                 }
-                if ($clientId) {
-                    $message .= ($clientOrderNumber ? ' e' : '') . ' per il cliente specificato';
+
+                if ($year !== null && $year !== '') {
+                    $qb->andWhere('YEAR(c.order_date) = :year')
+                        ->setParameter('year', $year);
                 }
-                return $this->doResponse->doErrorJsonResponse($message, 404);
+
+                if ($startDate !== null && $startDate !== '') {
+                    try {
+                        $qb->andWhere('c.order_date >= :startDate')
+                            ->setParameter('startDate', new \DateTime($startDate));
+                    } catch (\Exception $e) {
+                    }
+                }
+
+                if ($endDate !== null && $endDate !== '') {
+                    try {
+                        $qb->andWhere('c.order_date <= :endDate')
+                            ->setParameter('endDate', new \DateTime($endDate));
+                    } catch (\Exception $e) {
+                    }
+                }
+
+                if ($client !== null && $client !== '') {
+                    $clientEntity = $this->doctrine->getRepository(Contact::class)->find($client);
+                    if ($clientEntity) {
+                        $qb->andWhere('c.client = :client')
+                            ->setParameter('client', $clientEntity);
+                    } else {
+                        $qb->andWhere('1 = 0');
+                    }
+                }
+
+                if ($agent !== null && $agent !== '') {
+                    $agentEntity = $this->doctrine->getRepository(Contact::class)->find($agent);
+                    if ($agentEntity) {
+                        $qb->andWhere('c.agent = :agent')
+                            ->setParameter('agent', $agentEntity);
+                    } else {
+                        $qb->andWhere('1 = 0');
+                    }
+                }
+
+                if ($payment !== null && $payment !== '') {
+                    $paymentEntity = $this->doctrine->getRepository(Payment::class)->find($payment);
+                    if ($paymentEntity) {
+                        $qb->andWhere('c.payment = :payment')
+                            ->setParameter('payment', $paymentEntity);
+                    } else {
+                        $qb->andWhere('1 = 0');
+                    }
+                }
+
+                if ($shipmentCondition !== null && $shipmentCondition !== '') {
+                    $shipmentConditionEntity = $this->doctrine->getRepository(ShipmentCondition::class)->find($shipmentCondition);
+                    if ($shipmentConditionEntity) {
+                        $qb->andWhere('c.shipment_condition = :shipment_condition')
+                            ->setParameter('shipment_condition', $shipmentConditionEntity);
+                    } else {
+                        $qb->andWhere('1 = 0');
+                    }
+                }
+
+                if ($shippingCarrier !== null && $shippingCarrier !== '') {
+                    $shippingCarrierEntity = $this->doctrine->getRepository(ShippingCarrier::class)->find($shippingCarrier);
+                    if ($shippingCarrierEntity) {
+                        $qb->andWhere('c.shipping_carrier = :shipping_carrier')
+                            ->setParameter('shipping_carrier', $shippingCarrierEntity);
+                    } else {
+                        $qb->andWhere('1 = 0');
+                    }
+                }
+
+                if ($clientOrderNumber !== null && $clientOrderNumber !== '') {
+                    $qb->andWhere('c.client_order_number LIKE :client_order_number')
+                        ->setParameter('client_order_number', '%' . $clientOrderNumber . '%');
+                }
+
+                if ($agentOrderNumber !== null && $agentOrderNumber !== '') {
+                    $qb->andWhere('c.agent_order_number LIKE :agent_order_number')
+                        ->setParameter('agent_order_number', '%' . $agentOrderNumber . '%');
+                }
+
+                if ($processed !== null && $processed !== '') {
+                    $isProcessed = filter_var($processed, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+                    if ($isProcessed !== null) {
+                        $qb->andWhere('c.processed = :processed')
+                            ->setParameter('processed', $isProcessed);
+                    }
+                }
+
+                if ($cancelled !== null && $cancelled !== '') {
+                    $isCancelled = filter_var($cancelled, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+                    if ($isCancelled !== null) {
+                        $qb->andWhere('c.cancelled = :cancelled')
+                            ->setParameter('cancelled', $isCancelled);
+                    }
+                }
+
+                if ($checked !== null && $checked !== '') {
+                    $isChecked = filter_var($checked, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+                    if ($isChecked !== null) {
+                        $qb->andWhere('c.checked = :checked')
+                            ->setParameter('checked', $isChecked);
+                    }
+                }
+
+                if ($printed !== null && $printed !== '') {
+                    if ($printed === 'printed' || $printed === '1' || $printed === 'true' || $printed === true) {
+                        $qb->andWhere('c.printed = true');
+                    } elseif ($printed === 'to_print' || $printed === '0' || $printed === 'false' || $printed === false) {
+                        $qb->andWhere('c.printed = false OR c.printed IS NULL');
+                    }
+                }
+
+                if (($article !== null && $article !== '') || ($product !== null && $product !== '')) {
+                    $qb->leftJoin('c.clientOrderRows', 'cor');
+                    if ($article !== null && $article !== '') {
+                        $articleEntity = $this->doctrine->getRepository(Article::class)->find($article);
+                        if ($articleEntity) {
+                            $qb->andWhere('cor.article = :article')
+                                ->setParameter('article', $articleEntity);
+                        } else {
+                            $qb->andWhere('1 = 0');
+                        }
+                    }
+                    if ($product !== null && $product !== '') {
+                        $productEntity = $this->doctrine->getRepository(Product::class)->find($product);
+                        if ($productEntity) {
+                            $qb->leftJoin('cor.article', 'a')
+                                ->andWhere('a.product = :product')
+                                ->setParameter('product', $productEntity);
+                        } else {
+                            $qb->andWhere('1 = 0');
+                        }
+                    }
+                }
+
+                $clientOrder = $qb->orderBy('c.order_number', 'ASC')
+                    ->getQuery()
+                    ->getResult();
+            } else {
+                $clientOrder = $clientOrderRepository->findBy([], ['order_number' => 'ASC']);
             }
         }
         $results = $this->groupSerializer->serializeGroup($clientOrder, $id ? 'client_order_detail' : 'client_order_list');
