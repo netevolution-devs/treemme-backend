@@ -1011,18 +1011,11 @@ final class BatchController extends AbstractController
         try {
             $batch = $this->handleRelations($batch, $data);
 
-            if ($batch->getBatchType() && ($batch->getBatchType()->getName() === 'Partita' || $batch->getBatchType()->getName() === 'Lotto')) {
-                $lastBatch = $this->doctrine->getRepository(Batch::class)->findOneBy(
-                    ['batch_type' => $batch->getBatchType()],
-                    ['id' => 'DESC']
-                );
-
-                $lastCode = $lastBatch ? $lastBatch->getBatchCode() : null;
-
-                $yearPrefix = $batch->getBatchType()->getPrefix() ?? (new \DateTimeImmutable())->format('y');
-                $nextCode = $this->nextSequentialCode($lastCode, $yearPrefix, 4);
-                $batch->setBatchCode($nextCode);
-            }
+            $yearPrefix = (new \DateTimeImmutable())->format('y');
+            $lastBatch = $this->doctrine->getRepository(Batch::class)->findLatestBatchByPrefix($yearPrefix);
+            $lastCode = $lastBatch ? $lastBatch->getBatchCode() : null;
+            $nextCode = $this->nextSequentialCode($lastCode, $yearPrefix, 4);
+            $batch->setBatchCode($nextCode);
             if ($batch->getMeasurementUnit()) {
                 $measurementUnit = $batch->getMeasurementUnit();
                 $pieces = (float)($data['pieces'] ?? $batch->getPieces() ?? 0);
@@ -1403,6 +1396,10 @@ final class BatchController extends AbstractController
 
     private function handleRelations(Batch $batch, array &$data): Batch
     {
+        if (isset($data['batch_code'])) {
+            unset($data['batch_code']);
+        }
+
         if (isset($data['batch_type_id'])) {
             $batchType = $this->doctrine->getRepository(BatchType::class)->find($data['batch_type_id']);
             if ($batchType) {
