@@ -3,8 +3,12 @@
 namespace App\Controller;
 
 use App\Entity\Ddt;
+use App\Entity\DdtRow;
 use App\Entity\Contact;
 use App\Entity\DdtReason;
+use App\Entity\WarehouseMovement;
+use App\Service\StockService;
+use App\Service\ClientOrderRowService;
 use App\Service\CreateMethodsByInput;
 use App\Service\DoResponseService;
 use App\Service\GroupSerializerService;
@@ -25,19 +29,25 @@ final class DdtController extends AbstractController
     private $doResponse;
     private $groupSerializer;
     private $validatorOutputFormatter;
+    private $stockService;
+    private $clientOrderRowService;
 
     public function __construct(
         CreateMethodsByInput     $createMethodsByInput,
         EntityManagerInterface   $entityManager,
         DoResponseService        $doResponseService,
         GroupSerializerService   $groupSerializer,
-        ValidatorOutputFormatter $validatorOutputFormatter
+        ValidatorOutputFormatter $validatorOutputFormatter,
+        StockService             $stockService,
+        ClientOrderRowService    $clientOrderRowService
     ) {
         $this->createMethodsByInput = $createMethodsByInput;
         $this->doctrine = $entityManager;
         $this->doResponse = $doResponseService;
         $this->groupSerializer = $groupSerializer;
         $this->validatorOutputFormatter = $validatorOutputFormatter;
+        $this->stockService = $stockService;
+        $this->clientOrderRowService = $clientOrderRowService;
     }
 
     #[Route('/ddt/{id}',
@@ -148,19 +158,87 @@ final class DdtController extends AbstractController
             return $this->doResponse->doErrorJsonResponse('DDT non trovato', 404);
         }
 
-        if($ddt->getDdtRows()->count() != 0){
-            $ddtRows = $ddt->getDdtRows();
+        $batchesToRecalculate = [];
+        $orderRowsToUpdate = [];
 
-            foreach($ddtRows as $ddtRow){
-                $this->doctrine->remove($ddtRow);
-                $this->doctrine->flush();
+        $ddtRows = $ddt->getDdtRows()->toArray();
+
+        foreach ($ddtRows as $ddtRow) {
+            $batch = $ddtRow->getBatch();
+            if ($batch) {
+                $batchesToRecalculate[$batch->getId()] = $batch;
+                foreach ($batch->getBatchOrders() as $batchOrder) {
+                    $orderRow = $batchOrder->getOrderRow();
+                    if ($orderRow) {
+                        $orderRowsToUpdate[$orderRow->getId()] = $orderRow;
+                    }
+                }
+            }
+
+            // Rimuoviamo tutti i movimenti di magazzino associati alla riga DDT
+            $this->removeWarehouseMovementsForDdtRow($ddtRow);
+
+            $this->doctrine->remove($ddtRow);
+        }
+
+        // Rimuoviamo eventuali altri movimenti di magazzino associati direttamente al DDT per numero DDT
+        if ($ddt->getDdtNumber()) {
+            $movementsByDdtNumber = $this->doctrine->getRepository(WarehouseMovement::class)->findBy([
+                'ddt_number' => $ddt->getDdtNumber()
+            ]);
+            foreach ($movementsByDdtNumber as $wm) {
+                if ($wm->getBatch()) {
+                    $batchesToRecalculate[$wm->getBatch()->getId()] = $wm->getBatch();
+                }
+                foreach ($wm->getSonWarehouseMovements() as $sonMovement) {
+                    $sonMovement->setFatherMovement(null);
+                }
+                $this->doctrine->remove($wm);
             }
         }
 
         $this->doctrine->remove($ddt);
         $this->doctrine->flush();
 
+        // Ricalcolo giacenze per tutti i lotti coinvolti
+        foreach ($batchesToRecalculate as $batch) {
+            $this->stockService->recalculateBatchStock($batch);
+            $this->stockService->updateBatchAverageFromMovements($batch);
+        }
+
+        // Aggiorna quantity_to_ship e stato per le righe ordine coinvolte
+        foreach ($orderRowsToUpdate as $orderRow) {
+            $this->clientOrderRowService->updateQuantityToShip($orderRow);
+        }
+
+        $this->doctrine->flush();
+
         return new JsonResponse($this->doResponse->doResponse(['message' => 'DDT eliminato con successo']));
+    }
+
+    private function removeWarehouseMovementsForDdtRow(DdtRow $ddtRow): void
+    {
+        $qb = $this->doctrine->getRepository(WarehouseMovement::class)->createQueryBuilder('wm');
+        $qb->where('wm.movement_note = :exactNote')
+           ->orWhere('wm.movement_note LIKE :likeNote1')
+           ->orWhere('wm.movement_note LIKE :likeNote2')
+           ->setParameter('exactNote', 'Riga DDT ' . $ddtRow->getId())
+           ->setParameter('likeNote1', '%riga DDT ' . $ddtRow->getId() . '%')
+           ->setParameter('likeNote2', '%Riga DDT ' . $ddtRow->getId() . '%');
+
+        if ($ddtRow->getRowNote() !== null && trim($ddtRow->getRowNote()) !== '') {
+            $qb->orWhere('(wm.movement_note = :rowNote AND wm.batch = :batch)')
+               ->setParameter('rowNote', $ddtRow->getRowNote())
+               ->setParameter('batch', $ddtRow->getBatch());
+        }
+
+        $movements = $qb->getQuery()->getResult();
+        foreach ($movements as $movement) {
+            foreach ($movement->getSonWarehouseMovements() as $sonMovement) {
+                $sonMovement->setFatherMovement(null);
+            }
+            $this->doctrine->remove($movement);
+        }
     }
 
     private function handleRelations(Ddt $ddt, array &$data): void

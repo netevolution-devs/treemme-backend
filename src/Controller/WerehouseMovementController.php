@@ -60,6 +60,7 @@ final class WerehouseMovementController extends AbstractController
             if (!$movement) {
                 return $this->doResponse->doErrorJsonResponse('Movimento magazzino non trovato', 404);
             }
+            $this->enrichMovementsWithDdtData([$movement]);
             $results = $this->groupSerializer->serializeGroup([$movement], 'movement_detail');
             return new JsonResponse($this->doResponse->doResponse($results[0]));
         }
@@ -78,11 +79,13 @@ final class WerehouseMovementController extends AbstractController
             $this->collectFatherBatches($batch, $allBatches);
 
             $movements = $repository->findBy(['batch' => $allBatches], ['date' => 'DESC']);
+            $this->enrichMovementsWithDdtData($movements);
             $results = $this->groupSerializer->serializeGroup($movements, 'warehouse_movement_list');
             return new JsonResponse($this->doResponse->doResponse($results));
         }
 
         $movements = $repository->findBy([], ['id' => 'ASC']);
+        $this->enrichMovementsWithDdtData($movements);
         $results = $this->groupSerializer->serializeGroup($movements, 'warehouse_movement_list');
         return new JsonResponse($this->doResponse->doResponse($results));
     }
@@ -121,6 +124,8 @@ final class WerehouseMovementController extends AbstractController
             $contact = $contactRepository->find($data['contactId']);
         }
 
+        $subcontractorDdtNumber = $data['subcontractor_ddt_number'] ?? $data['subcontractorDdtNumber'] ?? null;
+
         $movements = [];
         foreach ($data['batchIds'] as $batchId) {
             $batch = $batchRepository->find($batchId);
@@ -148,6 +153,7 @@ final class WerehouseMovementController extends AbstractController
             if (isset($data['ddtDate'])) {
                 $movement->setDdtDate(new \DateTime($data['ddtDate']));
             }
+            $movement->setSubcontractorDdtNumber($subcontractorDdtNumber);
             $movement->setMovementNote($data['note'] ?? 'Rientro da contolavoro massivo');
 
             if (isset($data['closed']) && $data['closed'] === true) {
@@ -164,6 +170,29 @@ final class WerehouseMovementController extends AbstractController
 
         $results = $this->groupSerializer->serializeGroup($movements, 'warehouse_movement_list');
         return new JsonResponse($this->doResponse->doResponse($results));
+    }
+
+    /**
+     * @param array<WarehouseMovement> $movements
+     */
+    private function enrichMovementsWithDdtData(array $movements): void
+    {
+        $ddtRepository = $this->doctrine->getRepository(\App\Entity\Ddt::class);
+        $ddtCache = [];
+
+        foreach ($movements as $movement) {
+            $ddtNumber = $movement->getDdtNumber();
+            if ($ddtNumber) {
+                if (!array_key_exists($ddtNumber, $ddtCache)) {
+                    $ddtCache[$ddtNumber] = $ddtRepository->findOneBy(['ddt_number' => $ddtNumber]);
+                }
+                $ddt = $ddtCache[$ddtNumber];
+                if ($ddt) {
+                    $movement->setDdtNumber($ddt->getDdtNumber());
+                    $movement->setDdtDate($ddt->getDdtDate());
+                }
+            }
+        }
     }
 
     private function collectFatherBatches(\App\Entity\Batch $batch, array &$collectedBatches): void

@@ -279,14 +279,7 @@ final class BatchController extends AbstractController
                     ];
                 }
                 
-                // Sottraiamo i pezzi che sono già stati assegnati a una selezione da questa composizione
                 $available = $composition->getFatherBatchPieceAvailable() ?? 0;
-                $selection = $composition->getSelection();
-                if ($selection && $selection->getThickness() && $selection->getThickness()->getId() === $thicknessId) {
-                    // Se la selezione della composizione ha lo stesso spessore, 
-                    // i pezzi sono già conteggiati o sottratti? 
-                    // In realtà father_batch_piece_available dovrebbe essere il residuo.
-                }
 
                 $thicknesses[$thicknessId]['total_pieces'] += $available;
             }
@@ -304,6 +297,15 @@ final class BatchController extends AbstractController
                     if ($bc->getFatherBatch() && $bc->getFatherBatch()->getId() === $batch->getId()) {
                          $isConsumedByComposition = true;
                          break;
+                    }
+                }
+
+                if (!$isConsumedByComposition) {
+                    foreach ($compositions as $comp) {
+                        if ($comp->getFatherBatch() && $comp->getFatherBatch()->getId() === $batch->getId() && $comp->getThickness()?->getId() === $thicknessId) {
+                            $isConsumedByComposition = true;
+                            break;
+                        }
                     }
                 }
 
@@ -1006,10 +1008,22 @@ final class BatchController extends AbstractController
     ): JsonResponse
     {
         $data = $request->request->all();
+        if (empty($data)) {
+            $data = $request->toArray();
+        }
         $batch = new Batch();
 
         try {
+            $thickness = null;
+            if (isset($data['thickness_id'])) {
+                $thickness = $this->doctrine->getRepository(LeatherThickness::class)->find($data['thickness_id']);
+            }
+
             $batch = $this->handleRelations($batch, $data);
+
+            if (!$thickness && $batch->getLeather() && $batch->getLeather()->getThickness()) {
+                $thickness = $batch->getLeather()->getThickness();
+            }
 
             $yearPrefix = (new \DateTimeImmutable())->format('y');
             $lastBatch = $this->doctrine->getRepository(Batch::class)->findLatestBatchByPrefix($yearPrefix);
@@ -1112,6 +1126,21 @@ final class BatchController extends AbstractController
             }
 
             $this->doctrine->persist($batch);
+
+            if ($batch->getBatchCompositions()->isEmpty() && $thickness) {
+                $composition = new BatchComposition();
+                $composition->setBatch($batch);
+                $composition->setFatherBatch($batch);
+                $composition->setFatherBatchPiece((float)($batch->getPieces() ?? 0));
+                $composition->setFatherBatchPieceAvailable((float)($batch->getPieces() ?? 0));
+                $composition->setFatherBatchQuantity((float)($batch->getQuantity() ?? 0));
+                $composition->setFatherBatchQuantityAvailable((float)($batch->getQuantity() ?? 0));
+                $composition->setThickness($thickness);
+                $composition->setDate(new \DateTime());
+                $composition->setCompositionNote('Composizione iniziale lotto ' . $batch->getBatchCode());
+                $batch->addBatchComposition($composition);
+                $this->doctrine->persist($composition);
+            }
 
             if ($batch->getBatchType() && ($batch->getBatchType()->getName() === 'Partita' || $batch->getBatchType()->getName() === 'Lotto')) {
                 $batchData = new BatchData();
@@ -1430,6 +1459,10 @@ final class BatchController extends AbstractController
                 $batch->setLeather($leather);
             }
             unset($data['leather_id']);
+        }
+
+        if (isset($data['thickness_id'])) {
+            unset($data['thickness_id']);
         }
 
         if (isset($data['batch_compositions'])) {
