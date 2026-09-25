@@ -75,6 +75,9 @@ class WarehouseMovement
     #[MaxDepth(1)]
     private ?Contact $contact = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $subcontractor_ddt_number = null;
+
     public function __construct()
     {
         $this->sonWarehouseMovements = new ArrayCollection();
@@ -284,6 +287,18 @@ class WarehouseMovement
     public function setContact(?Contact $contact): static
     {
         $this->contact = $contact;
+
+        return $this;
+    }
+
+    public function getSubcontractorDdtNumber(): ?string
+    {
+        return $this->subcontractor_ddt_number;
+    }
+
+    public function setSubcontractorDdtNumber(?string $subcontractor_ddt_number): static
+    {
+        $this->subcontractor_ddt_number = $subcontractor_ddt_number;
 
         return $this;
     }
