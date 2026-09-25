@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Service\StockService;
+use App\Service\ClientOrderRowService;
 use App\Entity\Contact;
 use App\Entity\Ddt;
 use App\Entity\DdtReason;
@@ -40,6 +41,7 @@ final class DdtRowController extends AbstractController
     private $validatorOutputFormatter;
     private $pdfGenerator;
     private $stockService;
+    private $clientOrderRowService;
 
     public function __construct(
         CreateMethodsByInput     $createMethodsByInput,
@@ -48,7 +50,8 @@ final class DdtRowController extends AbstractController
         GroupSerializerService   $groupSerializer,
         ValidatorOutputFormatter $validatorOutputFormatter,
         PdfGeneratorService      $pdfGenerator,
-        StockService             $stockService
+        StockService             $stockService,
+        ClientOrderRowService    $clientOrderRowService
     ) {
         $this->createMethodsByInput = $createMethodsByInput;
         $this->doctrine = $entityManager;
@@ -57,6 +60,7 @@ final class DdtRowController extends AbstractController
         $this->validatorOutputFormatter = $validatorOutputFormatter;
         $this->pdfGenerator = $pdfGenerator;
         $this->stockService = $stockService;
+        $this->clientOrderRowService = $clientOrderRowService;
     }
 
     #[Route('/ddt-row/{id}',
@@ -676,9 +680,11 @@ final class DdtRowController extends AbstractController
         $wearhouseMovement->setQuantity($convertedQuantity);
         $wearhouseMovement->setPiece($ddtRow->getPieces());
         $wearhouseMovement->setReason($ddtRow->getDdt()->getReason()->getWarehouseMovementReason());
+        $wearhouseMovement->setDdtNumber($ddt->getDdtNumber());
         $wearhouseMovement->setDdtDate($ddt->getDdtDate());
         $wearhouseMovement->setDate($ddt->getDdtDate());
         $wearhouseMovement->setMovementNote($ddtRow->getRowNote() ?: 'Riga DDT ' . $ddtRow->getId());
+        $wearhouseMovement->setSubcontractorDdtNumber($ddtRow->getSubcontractorDdtNumber());
 
         if ($ddt->getSubcontractor()) {
             $wearhouseMovement->setContact($ddt->getSubcontractor());
@@ -762,9 +768,22 @@ final class DdtRowController extends AbstractController
 
         // I ricalcoli di stock e media taglia sono gestiti dal WarehouseMovementListener
         // Dobbiamo però assicurarci che il movimento di magazzino esistente venga aggiornato
-        $warehouseMovement = $this->doctrine->getRepository(WarehouseMovement::class)->findOneBy(["movement_note" => $ddtRow->getRowNote()]);
-        if($warehouseMovement == null){
+        $warehouseMovement = null;
+        if ($ddtRow->getRowNote()) {
+            $warehouseMovement = $this->doctrine->getRepository(WarehouseMovement::class)->findOneBy(["movement_note" => $ddtRow->getRowNote()]);
+        }
+        if ($warehouseMovement == null) {
             $warehouseMovement = $this->doctrine->getRepository(WarehouseMovement::class)->findOneBy(["movement_note" => 'Riga DDT ' . $ddtRow->getId()]);
+        }
+        if ($warehouseMovement == null && $oldBatch) {
+            $warehouseMovement = $this->doctrine->getRepository(WarehouseMovement::class)->createQueryBuilder('wm')
+                ->where('wm.movement_note LIKE :likeNote')
+                ->andWhere('wm.batch = :batch')
+                ->setParameter('likeNote', '%riga DDT ' . $ddtRow->getId() . '%')
+                ->setParameter('batch', $oldBatch)
+                ->setMaxResults(1)
+                ->getQuery()
+                ->getOneOrNullResult();
         }
 
         if ($warehouseMovement) {
@@ -841,35 +860,59 @@ final class DdtRowController extends AbstractController
         }
 
         $batch = $ddtRow->getBatch();
-
-        // Rimuoviamo anche il movimento di magazzino associato
-        $warehouseMovement = $this->doctrine->getRepository(WarehouseMovement::class)->findOneBy([
-            'movement_note' => 'Riga DDT ' . $ddtRow->getId()
-        ]);
-        if ($warehouseMovement) {
-            $this->doctrine->remove($warehouseMovement);
-        }
-
-        // Ripristino QuantityToShip per DDT di vendita in caso di eliminazione
-        $ddt = $ddtRow->getDdt();
-        $movementReason = $ddt->getReason()?->getWarehouseMovementReason();
-        if ($movementReason && $movementReason->getReasonType()?->getMovementType() === 'Scarico') {
-            $batch = $ddtRow->getBatch();
-            if ($batch) {
-                foreach ($batch->getBatchOrders() as $batchOrder) {
-                    $orderRow = $batchOrder->getOrderRow();
-                    if ($orderRow) {
-                        $orderRow->setQuantityToShip((string)$orderRow->getQuantity());
-                        $this->doctrine->persist($orderRow);
-                    }
+        $orderRowsToUpdate = [];
+        if ($batch) {
+            foreach ($batch->getBatchOrders() as $batchOrder) {
+                $orderRow = $batchOrder->getOrderRow();
+                if ($orderRow) {
+                    $orderRowsToUpdate[$orderRow->getId()] = $orderRow;
                 }
             }
         }
 
+        // Rimuoviamo anche tutti i movimenti di magazzino associati
+        $this->removeWarehouseMovementsForDdtRow($ddtRow);
+
         $this->doctrine->remove($ddtRow);
         $this->doctrine->flush();
 
+        if ($batch) {
+            $this->stockService->recalculateBatchStock($batch);
+            $this->stockService->updateBatchAverageFromMovements($batch);
+        }
+
+        foreach ($orderRowsToUpdate as $orderRow) {
+            $this->clientOrderRowService->updateQuantityToShip($orderRow);
+        }
+
+        $this->doctrine->flush();
+
         return new JsonResponse($this->doResponse->doResponse(['message' => 'Riga DDT eliminata con successo']));
+    }
+
+    private function removeWarehouseMovementsForDdtRow(DdtRow $ddtRow): void
+    {
+        $qb = $this->doctrine->getRepository(WarehouseMovement::class)->createQueryBuilder('wm');
+        $qb->where('wm.movement_note = :exactNote')
+           ->orWhere('wm.movement_note LIKE :likeNote1')
+           ->orWhere('wm.movement_note LIKE :likeNote2')
+           ->setParameter('exactNote', 'Riga DDT ' . $ddtRow->getId())
+           ->setParameter('likeNote1', '%riga DDT ' . $ddtRow->getId() . '%')
+           ->setParameter('likeNote2', '%Riga DDT ' . $ddtRow->getId() . '%');
+
+        if ($ddtRow->getRowNote() !== null && trim($ddtRow->getRowNote()) !== '') {
+            $qb->orWhere('(wm.movement_note = :rowNote AND wm.batch = :batch)')
+               ->setParameter('rowNote', $ddtRow->getRowNote())
+               ->setParameter('batch', $ddtRow->getBatch());
+        }
+
+        $movements = $qb->getQuery()->getResult();
+        foreach ($movements as $movement) {
+            foreach ($movement->getSonWarehouseMovements() as $sonMovement) {
+                $sonMovement->setFatherMovement(null);
+            }
+            $this->doctrine->remove($movement);
+        }
     }
 
     #[Route('/ddt-row/{id}/return',
@@ -955,6 +998,11 @@ final class DdtRowController extends AbstractController
             return $this->doResponse->doErrorJsonResponse('Causale di magazzino "Carico" non trovata', 400);
         }
 
+        $subcontractorDdtNumber = $data['subcontractor_ddt_number'] ?? $data['subcontractorDdtNumber'] ?? $ddtRow->getSubcontractorDdtNumber() ?? null;
+        if ($subcontractorDdtNumber !== null) {
+            $ddtRow->setSubcontractorDdtNumber($subcontractorDdtNumber);
+        }
+
         $warehouseMovement = new WarehouseMovement();
         $warehouseMovement->setBatch($batch);
         $warehouseMovement->setQuantity($quantity);
@@ -964,6 +1012,7 @@ final class DdtRowController extends AbstractController
         $warehouseMovement->setDdtDate($ddtRow->getDdt()->getDdtDate());
         $warehouseMovement->setDate(new \DateTime());
         $warehouseMovement->setMovementNote('Rientro riga DDT ' . $ddtRow->getId() . ' del DDT ' . $ddtRow->getDdt()->getDdtNumber());
+        $warehouseMovement->setSubcontractorDdtNumber($subcontractorDdtNumber);
 
         if ($ddt->getSubcontractor()) {
             $warehouseMovement->setContact($ddt->getSubcontractor());
@@ -1073,6 +1122,11 @@ final class DdtRowController extends AbstractController
                 return $this->doResponse->doErrorJsonResponse('Causale di magazzino "Carico" non trovata', 400);
             }
 
+            $subcontractorDdtNumber = $rowData['subcontractor_ddt_number'] ?? $rowData['subcontractorDdtNumber'] ?? $data['subcontractor_ddt_number'] ?? $data['subcontractorDdtNumber'] ?? $ddtRow->getSubcontractorDdtNumber() ?? null;
+            if ($subcontractorDdtNumber !== null) {
+                $ddtRow->setSubcontractorDdtNumber($subcontractorDdtNumber);
+            }
+
             $warehouseMovement = new WarehouseMovement();
             $warehouseMovement->setBatch($batch);
             $warehouseMovement->setQuantity($quantity);
@@ -1082,6 +1136,7 @@ final class DdtRowController extends AbstractController
             $warehouseMovement->setDdtDate($ddtRow->getDdt()->getDdtDate());
             $warehouseMovement->setDate(new \DateTime());
             $warehouseMovement->setMovementNote('Rientro riga DDT ' . $ddtRow->getId() . ' del DDT ' . $ddtRow->getDdt()->getDdtNumber());
+            $warehouseMovement->setSubcontractorDdtNumber($subcontractorDdtNumber);
 
             if ($ddt->getSubcontractor()) {
                 $warehouseMovement->setContact($ddt->getSubcontractor());
@@ -1210,6 +1265,8 @@ final class DdtRowController extends AbstractController
         $movementIn->setDdtDate($ddtRow->getDdt()->getDdtDate());
         $movementIn->setDate(new \DateTime());
         $movementIn->setMovementNote('Rientro per trasferimento da riga DDT ' . $ddtRow->getId());
+        $subcontractorDdtNumber = $data['subcontractor_ddt_number'] ?? $data['subcontractorDdtNumber'] ?? $ddtRow->getSubcontractorDdtNumber() ?? null;
+        $movementIn->setSubcontractorDdtNumber($subcontractorDdtNumber);
         if ($ddtRow->getDdt()->getSubcontractor()) {
             $movementIn->setContact($ddtRow->getDdt()->getSubcontractor());
         }
