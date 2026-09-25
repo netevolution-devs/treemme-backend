@@ -16,11 +16,11 @@ class WarehouseMovement
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['batch_detail', 'warehouse_movement_list'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list', 'movement_detail'])]
     private ?int $id = null;
 
     #[ORM\Column]
-    #[Groups(['batch_detail', 'warehouse_movement_list'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list', 'movement_detail'])]
     private ?\DateTime $date = null;
 
     #[ORM\ManyToOne(inversedBy: 'warehouseMovements')]
@@ -30,35 +30,35 @@ class WarehouseMovement
 
     #[ORM\ManyToOne(inversedBy: 'warehouseMovements')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['batch_detail', 'warehouse_movement_list'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list', 'movement_detail'])]
     private ?WarehouseMovementReason $reason = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_detail', 'warehouse_movement_list'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list', 'movement_detail'])]
     private ?float $piece = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_detail', 'warehouse_movement_list'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list', 'movement_detail'])]
     private ?float $price = null;
 
     #[ORM\Column]
-    #[Groups(['batch_detail', 'warehouse_movement_list'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list', 'movement_detail'])]
     private ?float $quantity = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_detail', 'warehouse_movement_list'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list', 'movement_detail'])]
     private ?float $total_value = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['batch_detail', 'warehouse_movement_list'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list', 'movement_detail'])]
     private ?string $ddt_number = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['batch_detail', 'warehouse_movement_list'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list', 'movement_detail'])]
     private ?\DateTime $ddt_date = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['batch_detail', 'warehouse_movement_list'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list', 'movement_detail'])]
     private ?string $movement_note = null;
 
     #[ORM\ManyToOne(targetEntity: self::class, inversedBy: 'sonWarehouseMovements')]
@@ -71,9 +71,13 @@ class WarehouseMovement
     private Collection $sonWarehouseMovements;
 
     #[ORM\ManyToOne(inversedBy: 'warehouseMovements')]
-    #[Groups(['batch_detail', 'warehouse_movement_list'])]
+    #[Groups(['batch_detail', 'warehouse_movement_list', 'movement_detail'])]
     #[MaxDepth(1)]
     private ?Contact $contact = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['batch_detail', 'warehouse_movement_list', 'movement_detail'])]
+    private ?string $subcontractor_ddt_number = null;
 
     public function __construct()
     {
@@ -284,6 +288,18 @@ class WarehouseMovement
     public function setContact(?Contact $contact): static
     {
         $this->contact = $contact;
+
+        return $this;
+    }
+
+    public function getSubcontractorDdtNumber(): ?string
+    {
+        return $this->subcontractor_ddt_number;
+    }
+
+    public function setSubcontractorDdtNumber(?string $subcontractor_ddt_number): static
+    {
+        $this->subcontractor_ddt_number = $subcontractor_ddt_number;
 
         return $this;
     }
