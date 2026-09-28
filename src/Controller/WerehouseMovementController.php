@@ -67,9 +67,19 @@ final class WerehouseMovementController extends AbstractController
 
         $batchCode = $request->query->get('batch_code');
 
+
         if ($batchCode) {
             $batchRepository = $this->doctrine->getRepository(\App\Entity\Batch::class);
-            $batch = $batchRepository->findOneBy(['batch_code' => $batchCode]);
+            $normalizedCode = str_replace('0', '', $batchCode);
+            $batch = $batchRepository->createQueryBuilder('b')
+                ->where("REPLACE(b.batch_code, '0', '') LIKE :code")
+                ->setParameter('code', '%' . $normalizedCode . '%')
+                ->orderBy('b.id', 'DESC')
+                ->getQuery()
+                ->getResult();
+            if (empty($batch)) {
+                return $this->doResponse->doErrorJsonResponse('Nessun batch trovato contenente il codice ' . $batchCode . ' (ignorando zeri)', 404);
+            }
 
             if (!$batch) {
                 return $this->doResponse->doErrorJsonResponse('Lotto non trovato', 404);
