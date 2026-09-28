@@ -422,7 +422,9 @@ final class BatchController extends AbstractController
 
         $batches = [];
         foreach ($allAvailableBatches as $batch) {
-            if ($batch->getBatchType()->getName() === 'Spaccato' && $batch->getLeather()->getType()->getName() === "Fiore") {
+            if ($batch->getBatchType()?->getName() === 'Spaccato'
+                && $batch->getLeather()?->getType()?->getName() === 'Fiore'
+            ) {
                 $batches[] = $batch;
             }
         }
