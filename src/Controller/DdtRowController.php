@@ -281,10 +281,51 @@ final class DdtRowController extends AbstractController
             if (!isset($groupedData[$cId])) {
                 $groupedData[$cId] = [
                     'client' => $this->groupSerializer->serializeGroup($client, 'client_summary_print'),
+                    'raw_materials' => [],
+                    'finished_products' => [],
                     'rows' => []
                 ];
             }
-            $groupedData[$cId]['rows'][] = $this->groupSerializer->serializeGroup($row, 'client_summary_print');
+
+            $serializedRow = $this->groupSerializer->serializeGroup($row, 'client_summary_print');
+            
+            // Aggiungiamo esplicitamente campi utili per la stampa
+            $serializedRow['kg_weight'] = $row->getKGWeight();
+            $serializedRow['row_note'] = $row->getRowNote();
+            $serializedRow['order_note'] = $row->getOrderNote();
+
+            // Determinazione se Materia Prima (tipoPelle Crosta) o Prodotto Finito (TF/UF)
+            $batch = $row->getBatch();
+            $leather = $batch?->getLeather();
+            $leatherType = $leather?->getType();
+            $leatherTypeName = $leatherType?->getName() ?? '';
+            $leatherTypeCode = $leatherType?->getCode() ?? '';
+
+            $isCrosta = (stripos($leatherTypeName, 'crosta') !== false) || (stripos($leatherTypeCode, 'crosta') !== false);
+            
+            $batchCode = $batch?->getBatchCode() ?? '';
+            $batchTypePrefix = $batch?->getBatchType()?->getPrefix() ?? '';
+            $batchTypeName = $batch?->getBatchType()?->getName() ?? '';
+            $isTfUf = preg_match('/^(TF|UF)/i', $batchCode) || in_array(strtoupper($batchTypePrefix), ['TF', 'UF']) || in_array(strtoupper($batchTypeName), ['TINTURA', 'RIFINIZIONE']);
+
+            if ($isCrosta) {
+                $serializedRow['is_raw_material'] = true;
+                $groupedData[$cId]['raw_materials'][] = $serializedRow;
+            } elseif ($isTfUf) {
+                $serializedRow['is_raw_material'] = false;
+                $groupedData[$cId]['finished_products'][] = $serializedRow;
+            } else {
+                // Fallback: se non è esplicitamente Crosta né TF/UF, controlliamo se ha un articolo associato
+                if ($batch?->getArticle()) {
+                    $serializedRow['is_raw_material'] = false;
+                    $groupedData[$cId]['finished_products'][] = $serializedRow;
+                } else {
+                    $serializedRow['is_raw_material'] = true;
+                    $groupedData[$cId]['raw_materials'][] = $serializedRow;
+                }
+            }
+
+            $groupedData[$cId]['rows'][] = $serializedRow;
         }
 
         // Ordina i clienti per nome
@@ -294,7 +335,7 @@ final class DdtRowController extends AbstractController
             'data' => $groupedData,
             'start_date' => $startDate,
             'end_date' => $endDate,
-            'orientation' => 'landscape',
+            'orientation' => 'portrait',
             'coefficients' => $coefficients,
             'mq_um_id' => $mqUm ? $mqUm->getId() : null,
             'pq_um_id' => $pqUm ? $pqUm->getId() : null,
