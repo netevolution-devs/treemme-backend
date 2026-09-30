@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Stampa Lotti Venduti</title>
     <style>
-        @page { size: A4 landscape; margin: 0.5cm; }
+        @page { size: A4 portrait; margin: 0.5cm; }
         body { font-family: Arial, sans-serif; font-size: 8pt; color: #000; margin: 0; }
         .page { page-break-after: always; padding: 0; }
         .page:last-child { page-break-after: avoid; }
@@ -14,9 +14,12 @@
         .client-info-table td { padding: 4px; vertical-align: top; }
         .label { font-weight: bold; font-size: 7pt; color: #555; text-transform: uppercase; display: block; }
         
-        .rows-table { width: 100%; border-collapse: collapse; margin-top: 5px; }
-        .rows-table th { border-bottom: 1px solid #000; padding: 4px; text-align: left; font-size: 8pt; text-transform: uppercase; }
-        .rows-table td { padding: 4px; vertical-align: middle; font-size: 8pt; border: none; }
+        .section-title { font-weight: bold; font-size: 9pt; background-color: #f0f0f0; padding: 4px; margin-top: 8px; margin-bottom: 3px; border-left: 3px solid #333; text-transform: uppercase; }
+        
+        .rows-table { width: 100%; border-collapse: collapse; margin-top: 3px; margin-bottom: 8px; }
+        .rows-table th { border-bottom: 1px solid #000; padding: 4px; text-align: right; font-size: 7.5pt; text-transform: uppercase; }
+        .rows-table th:first-child { text-align: left; }
+        .rows-table td { padding: 3px 4px; vertical-align: middle; font-size: 7.5pt; border: none; }
         
         .text-right { text-align: right; }
         .text-center { text-align: center; }
@@ -29,124 +32,220 @@
 <body>
     <div class="page-content">
         
-        VENDITE {% if start_date or end_date %}
-            Dal: {{ start_date ? start_date|date('d/m/Y') : '-' }} Al: {{ end_date ? end_date|date('d/m/Y') : '-' }}
-        {% else %}
-            Tutto il periodo
-        {% endif %}
+        <div style="font-size: 10pt; font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #000; padding-bottom: 4px;">
+            ANALISI VENDITE {% if start_date or end_date %}
+                - Dal: {{ start_date ? start_date|date('d/m/Y') : '-' }} Al: {{ end_date ? end_date|date('d/m/Y') : '-' }}
+            {% else %}
+                - Tutto il periodo
+            {% endif %}
+        </div>
 
-        {% set grandTotalPieces = 0 %}
-        {% set grandTotalHalf = 0 %}
-        {% set grandTotalMQ = 0 %}
-        {% set grandTotalPQ = 0 %}
-
+        {% set hasRawMaterials = false %}
+        {% set hasFinishedProducts = false %}
         {% for clientGroup in data %}
-        <table class="rows-table" style="margin-top: 20px;">
-            <thead>
-                <tr>
-                    <th colspan="6" style="font-size: 10pt; border-bottom: 2px solid #000; padding-top: 10px;">{{ clientGroup.client.name }}</th>
-                </tr>
-                <tr>
-                    <th style="width: 40%;">LOTTO / ARTICOLO</th>
-                    <th class="text-right">PZ</th>
-                    <th class="text-right">MZ</th>
-                    <th class="text-right">MQ</th>
-                    <th class="text-right">PQ</th>
-                    <th class="text-right">Media PQ Trov.</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% set totalPieces = 0 %}
-                {% set totalHalf = 0 %}
-                {% set totalMQ = 0 %}
-                {% set totalPQ = 0 %}
-                
-                {% for row in clientGroup.rows %}
-                    {% set mq = 0 %}
-                    {% set pq = 0 %}
-                    
-                    {% set currentUmId = row.measurement_unit.id %}
-                    
-                    {# Calcolo MQ #}
-                    {% if row.measurement_unit.prefix == 'MQ' %}
-                        {% set mq = row.quantity %}
-                    {% else %}
-                        {# Cerco coefficiente da currentUmId a MQ #}
-                        {% set foundCoeff = false %}
-                        {% for c in coefficients %}
-                            {% if not foundCoeff and c.startUm.id == currentUmId and c.endUm.id == mq_um_id %}
-                                {% set mq = row.quantity * c.coefficient %}
-                                {% set foundCoeff = true %}
-                            {% endif %}
-                        {% endfor %}
-                        {% if not foundCoeff and (row.measurement_unit.prefix == 'PQ' or row.measurement_unit.prefix == 'SQFT') %}
-                             {% set mq = row.quantity / 10.764 %}
-                        {% endif %}
-                    {% endif %}
-                    
-                    {# Calcolo PQ #}
-                    {% if row.measurement_unit.prefix == 'PQ' or row.measurement_unit.prefix == 'SQFT' %}
-                        {% set pq = row.quantity %}
-                    {% else %}
-                        {# Cerco coefficiente da currentUmId a PQ #}
-                        {% set foundCoeff = false %}
-                        {% for c in coefficients %}
-                            {% if not foundCoeff and c.startUm.id == currentUmId and c.endUm.id == pq_um_id %}
-                                {% set pq = row.quantity * c.coefficient %}
-                                {% set foundCoeff = true %}
-                            {% endif %}
-                        {% endfor %}
-                        {% if not foundCoeff and row.measurement_unit.prefix == 'MQ' %}
-                             {% set pq = row.quantity * 10.764 %}
-                        {% endif %}
-                    {% endif %}
-                    
-                    <tr>
-                        <td>
-                            {{ row.batch.batch_code }} - {{ row.batch.article.client_code ?? row.batch.leather.name ?? '' }}
-                        </td>
-                        <td class="text-right">{{ row.pieces }}</td>
-                        <td class="text-right">{{ row.half_piece|default(0) }}</td>
-                        <td class="text-right">{{ mq|number_format(2, ',', '.') }}</td>
-                        <td class="text-right">{{ pq|number_format(2, ',', '.') }}</td>
-                        <td class="text-right">{{ row.batch.sq_ft_average_found }}</td>
-                    </tr>
-                    {% set totalPieces = totalPieces + row.pieces %}
-                    {% set totalHalf = totalHalf + (row.half_piece|default(0)) %}
-                    {% set totalMQ = totalMQ + mq %}
-                    {% set totalPQ = totalPQ + pq %}
-                {% endfor %}
-            </tbody>
-            <tfoot>
-                <tr>
-                    <td class="text-right font-bold" style="border-top: 1px solid #000;">TOTALE CLIENTE:</td>
-                    <td class="text-right font-bold" style="border-top: 1px solid #000;">{{ totalPieces }}</td>
-                    <td class="text-right font-bold" style="border-top: 1px solid #000;">{{ totalHalf }}</td>
-                    <td class="text-right font-bold" style="border-top: 1px solid #000;">{{ totalMQ|number_format(2, ',', '.') }}</td>
-                    <td class="text-right font-bold" style="border-top: 1px solid #000;">{{ totalPQ|number_format(2, ',', '.') }}</td>
-                    <td style="border-top: 1px solid #000;"></td>
-                </tr>
-            </tfoot>
-        </table>
-        
-        {% set grandTotalPieces = grandTotalPieces + totalPieces %}
-        {% set grandTotalHalf = grandTotalHalf + totalHalf %}
-        {% set grandTotalMQ = grandTotalMQ + totalMQ %}
-        {% set grandTotalPQ = grandTotalPQ + totalPQ %}
+            {% if clientGroup.raw_materials|length > 0 %}
+                {% set hasRawMaterials = true %}
+            {% endif %}
+            {% if clientGroup.finished_products|length > 0 %}
+                {% set hasFinishedProducts = true %}
+            {% endif %}
         {% endfor %}
 
-        <div style="margin-top: 30px; border-top: 2px solid #000; padding-top: 10px;">
-            <table class="rows-table">
-                <tfoot>
+        {% set grandTotalRawPieces = 0 %}
+        {% set grandTotalRawKg = 0 %}
+
+        {% set grandTotalFinPieces = 0 %}
+        {% set grandTotalFinKg = 0 %}
+        {% set grandTotalFinHalf = 0 %}
+        {% set grandTotalFinMQ = 0 %}
+        {% set grandTotalFinPQ = 0 %}
+
+        {# ========================================== #}
+        {# 1. SEZIONE MATERIE PRIME                  #}
+        {# ========================================== #}
+        {% if hasRawMaterials %}
+            <div style="margin-top: 10px; margin-bottom: 15px;">
+                <div class="section-title" style="font-size: 10pt; background-color: #e0e0e0; border-left: 4px solid #111; margin-bottom: 5px;">
+                    MATERIE PRIME
+                </div>
+
+                <table class="rows-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 45%;">LOTTO / PELLE</th>
+                            <th class="text-right" style="width: 12%;">PZ</th>
+                            <th class="text-right" style="width: 15%;">KG</th>
+                            <th style="width: 28%; text-align: left;">NOTE VENDITA</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for clientGroup in data %}
+                            {% if clientGroup.raw_materials|length > 0 %}
+                                <tr style="background-color: #f7f7f7;">
+                                    <td colspan="4" style="font-weight: bold; font-size: 8pt; padding: 3px 4px; border-bottom: 1px solid #ccc; color: #222;">
+                                        CLIENTE: {{ clientGroup.client.name }}
+                                    </td>
+                                </tr>
+                                {% for row in clientGroup.raw_materials %}
+                                    {% set rowKg = row.kg_weight|default(row.measurement_unit.prefix == 'KG' ? row.quantity : 0) %}
+                                    <tr>
+                                        <td>
+                                            {{ row.batch.batch_code }} - {{ row.batch.leather.name ?? row.batch.article.client_code ?? '' }}
+                                        </td>
+                                        <td class="text-right">{{ row.pieces }}</td>
+                                        <td class="text-right">{{ rowKg ? rowKg|number_format(2, ',', '.') : '-' }}</td>
+                                        <td>{{ row.row_note ?? row.order_note ?? '' }}</td>
+                                    </tr>
+                                    {% set grandTotalRawPieces = grandTotalRawPieces + row.pieces %}
+                                    {% set grandTotalRawKg = grandTotalRawKg + rowKg %}
+                                {% endfor %}
+                            {% endif %}
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td class="text-right font-bold" style="border-top: 2px solid #000;">TOTALE MATERIE PRIME:</td>
+                            <td class="text-right font-bold" style="border-top: 2px solid #000;">{{ grandTotalRawPieces }}</td>
+                            <td class="text-right font-bold" style="border-top: 2px solid #000;">{{ grandTotalRawKg|number_format(2, ',', '.') }}</td>
+                            <td style="border-top: 2px solid #000;"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        {% endif %}
+
+        {# ========================================== #}
+        {# 2. SEZIONE PRODOTTO FINITO                #}
+        {# ========================================== #}
+        {% if hasFinishedProducts %}
+            <div style="margin-top: 15px; margin-bottom: 15px;">
+                <div class="section-title" style="font-size: 10pt; background-color: #e0e0e0; border-left: 4px solid #111; margin-bottom: 5px;">
+                    PRODOTTO FINITO
+                </div>
+
+                <table class="rows-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 34%;">LOTTO / ARTICOLO</th>
+                            <th class="text-right" style="width: 10%;">PZ</th>
+                            <th class="text-right" style="width: 11%;">KG</th>
+                            <th class="text-right" style="width: 10%;">MZ</th>
+                            <th class="text-right" style="width: 11%;">MQ</th>
+                            <th class="text-right" style="width: 11%;">PQ</th>
+                            <th class="text-right" style="width: 13%;">PQM</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for clientGroup in data %}
+                            {% if clientGroup.finished_products|length > 0 %}
+                                <tr style="background-color: #f7f7f7;">
+                                    <td colspan="7" style="font-weight: bold; font-size: 8pt; padding: 3px 4px; border-bottom: 1px solid #ccc; color: #222;">
+                                        CLIENTE: {{ clientGroup.client.name }}
+                                    </td>
+                                </tr>
+                                {% for row in clientGroup.finished_products %}
+                                    {% set mq = 0 %}
+                                    {% set pq = 0 %}
+                                    {% set currentUmId = row.measurement_unit.id %}
+                                    
+                                    {# Calcolo MQ #}
+                                    {% if row.measurement_unit.prefix == 'MQ' %}
+                                        {% set mq = row.quantity %}
+                                    {% else %}
+                                        {% set foundCoeff = false %}
+                                        {% for c in coefficients %}
+                                            {% if not foundCoeff and c.startUm.id == currentUmId and c.endUm.id == mq_um_id %}
+                                                {% set mq = row.quantity * c.coefficient %}
+                                                {% set foundCoeff = true %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if not foundCoeff and (row.measurement_unit.prefix == 'PQ' or row.measurement_unit.prefix == 'SQFT') %}
+                                             {% set mq = row.quantity / 10.764 %}
+                                        {% endif %}
+                                    {% endif %}
+                                    
+                                    {# Calcolo PQ #}
+                                    {% if row.measurement_unit.prefix == 'PQ' or row.measurement_unit.prefix == 'SQFT' %}
+                                        {% set pq = row.quantity %}
+                                    {% else %}
+                                        {% set foundCoeff = false %}
+                                        {% for c in coefficients %}
+                                            {% if not foundCoeff and c.startUm.id == currentUmId and c.endUm.id == pq_um_id %}
+                                                {% set pq = row.quantity * c.coefficient %}
+                                                {% set foundCoeff = true %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if not foundCoeff and row.measurement_unit.prefix == 'MQ' %}
+                                             {% set pq = row.quantity * 10.764 %}
+                                        {% endif %}
+                                    {% endif %}
+
+                                    {% set rowKg = row.kg_weight|default(row.measurement_unit.prefix == 'KG' ? row.quantity : 0) %}
+
+                                    <tr>
+                                        <td>
+                                            {{ row.batch.batch_code }} - {{ row.batch.article.client_code ?? row.batch.leather.name ?? '' }}
+                                        </td>
+                                        <td class="text-right">{{ row.pieces }}</td>
+                                        <td class="text-right">{{ rowKg ? rowKg|number_format(2, ',', '.') : '-' }}</td>
+                                        <td class="text-right">{{ row.half_piece|default(0) }}</td>
+                                        <td class="text-right">{{ mq ? mq|number_format(2, ',', '.') : '-' }}</td>
+                                        <td class="text-right">{{ pq ? pq|number_format(2, ',', '.') : '-' }}</td>
+                                        <td class="text-right">{{ row.batch.sq_ft_average_found|default('-') }}</td>
+                                    </tr>
+                                    {% set grandTotalFinPieces = grandTotalFinPieces + row.pieces %}
+                                    {% set grandTotalFinKg = grandTotalFinKg + rowKg %}
+                                    {% set grandTotalFinHalf = grandTotalFinHalf + (row.half_piece|default(0)) %}
+                                    {% set grandTotalFinMQ = grandTotalFinMQ + mq %}
+                                    {% set grandTotalFinPQ = grandTotalFinPQ + pq %}
+                                {% endfor %}
+                            {% endif %}
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td class="text-right font-bold" style="border-top: 2px solid #000;">TOTALE PRODOTTO FINITO:</td>
+                            <td class="text-right font-bold" style="border-top: 2px solid #000;">{{ grandTotalFinPieces }}</td>
+                            <td class="text-right font-bold" style="border-top: 2px solid #000;">{{ grandTotalFinKg|number_format(2, ',', '.') }}</td>
+                            <td class="text-right font-bold" style="border-top: 2px solid #000;">{{ grandTotalFinHalf }}</td>
+                            <td class="text-right font-bold" style="border-top: 2px solid #000;">{{ grandTotalFinMQ|number_format(2, ',', '.') }}</td>
+                            <td class="text-right font-bold" style="border-top: 2px solid #000;">{{ grandTotalFinPQ|number_format(2, ',', '.') }}</td>
+                            <td style="border-top: 2px solid #000;"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        {% endif %}
+
+        {% set grandTotalPieces = grandTotalRawPieces + grandTotalFinPieces %}
+        {% set grandTotalHalf = grandTotalFinHalf %}
+        {% set grandTotalKg = grandTotalRawKg + grandTotalFinKg %}
+        {% set grandTotalMQ = grandTotalFinMQ %}
+        {% set grandTotalPQ = grandTotalFinPQ %}
+
+        <div style="margin-top: 20px; border-top: 2px solid #000; padding-top: 10px; page-break-inside: avoid;">
+            <div style="font-size: 10pt; font-weight: bold; margin-bottom: 5px;">TOTALE GENERALE:</div>
+            <table class="rows-table" style="background-color: #f7f7f7; border: 1px solid #000;">
+                <thead>
                     <tr>
-                        <td class="text-right font-bold" style="font-size: 11pt; width: 40%;">TOTALE GENERALE:</td>
-                        <td class="text-right font-bold" style="font-size: 11pt;">{{ grandTotalPieces }}</td>
-                        <td class="text-right font-bold" style="font-size: 11pt;">{{ grandTotalHalf }}</td>
-                        <td class="text-right font-bold" style="font-size: 11pt;">{{ grandTotalMQ|number_format(2, ',', '.') }}</td>
-                        <td class="text-right font-bold" style="font-size: 11pt;">{{ grandTotalPQ|number_format(2, ',', '.') }}</td>
-                        <td style="width: 10%;"></td>
+                        <th style="font-size: 8pt;">RIEPILOGO</th>
+                        <th class="text-right" style="font-size: 8pt;">TOT PZ</th>
+                        <th class="text-right" style="font-size: 8pt;">TOT MZ</th>
+                        <th class="text-right" style="font-size: 8pt;">TOT KG</th>
+                        <th class="text-right" style="font-size: 8pt;">TOT MQ</th>
+                        <th class="text-right" style="font-size: 8pt;">TOT PQ</th>
                     </tr>
-                </tfoot>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="font-bold" style="font-size: 8.5pt;">TOTALE COMPLESSIVO</td>
+                        <td class="text-right font-bold" style="font-size: 8.5pt;">{{ grandTotalPieces }}</td>
+                        <td class="text-right font-bold" style="font-size: 8.5pt;">{{ grandTotalHalf }}</td>
+                        <td class="text-right font-bold" style="font-size: 8.5pt;">{{ grandTotalKg|number_format(2, ',', '.') }}</td>
+                        <td class="text-right font-bold" style="font-size: 8.5pt;">{{ grandTotalMQ|number_format(2, ',', '.') }}</td>
+                        <td class="text-right font-bold" style="font-size: 8.5pt;">{{ grandTotalPQ|number_format(2, ',', '.') }}</td>
+                    </tr>
+                </tbody>
             </table>
         </div>
     </div>
