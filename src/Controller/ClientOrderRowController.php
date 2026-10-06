@@ -148,6 +148,10 @@ final class ClientOrderRowController extends AbstractController
         $qb = $this->doctrine->getRepository(ClientOrderRow::class)->createQueryBuilder('cor');
         $qb->join('cor.client_order', 'co')
             ->join('co.client', 'c')
+            ->join('cor.batchOrders', 'bo')
+            ->join('bo.batch', 'b')
+            ->andWhere('cor.quantity_to_ship > 0')
+            ->distinct()
             ->orderBy('c.name', 'ASC')
             ->addOrderBy('co.order_date', 'ASC')
             ->addOrderBy('cor.id', 'ASC');
