@@ -146,7 +146,8 @@ final class ClientOrderRowController extends AbstractController
         $printStatus = $request->query->get('print_status'); // 'to_print', 'printed'
 
         $qb = $this->doctrine->getRepository(ClientOrderRow::class)->createQueryBuilder('cor');
-        $qb->join('cor.client_order', 'co')
+        $qb->addSelect('c', 'co')
+            ->join('cor.client_order', 'co')
             ->join('co.client', 'c')
             ->join('cor.batchOrders', 'bo')
             ->join('bo.batch', 'b')
