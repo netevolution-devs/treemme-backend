@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Scadenze Spedizione</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin-top: 50px;
+            margin-bottom: 35px;
+            margin-left: 20px;
+            margin-right: 20px;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 8pt;
+            color: #000;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header-box {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1.5px solid #000;
+            margin-bottom: 5px;
+        }
+
+        .header-box td {
+            border: 1px solid #000;
+            padding: 4px 6px;
+            font-weight: bold;
+            font-size: 10pt;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .main-table {
+            width: 100%;
+            border-collapse: collapse;
+            border-top: 1.5px solid #000;
+            border-bottom: 1.5px solid #000;
+        }
+
+        .main-table th {
+            border-top: 1.5px solid #000;
+            border-bottom: 1.5px solid #000;
+            border-left: none;
+            border-right: 1px solid #000;
+            padding: 3px 4px;
+            font-size: 8.5pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            text-align: left;
+        }
+
+        .main-table th.th-last {
+            border-right: none;
+        }
+
+        .client-header-row td {
+            background-color: #f7f7f7;
+            border-top: 1px solid #000;
+            border-bottom: 1px solid #000;
+            border-left: none;
+            border-right: none;
+            padding: 3px 4px;
+            font-weight: bold;
+            font-size: 8.5pt;
+        }
+
+        .data-row td {
+            border-top: 1px solid #e0e0e0;
+            border-bottom: 1px solid #e0e0e0;
+            border-left: none;
+            border-right: none;
+            padding: 2px 4px;
+            font-size: 7.5pt;
+            vertical-align: middle;
+        }
+
+        .sub-col-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .sub-col-table td {
+            border: none;
+            padding: 0 2px;
+            font-size: 7.5pt;
+        }
+
+        .border-right-col {
+            border-right: 1px solid #000 !important;
+        }
+
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .text-left { text-align: left; }
+        .bold { font-weight: bold; }
+
+        .total-summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            border-top: 1.5px solid #000;
+            border-bottom: 1.5px solid #000;
+        }
+
+        .total-summary-table td {
+            padding: 5px;
+            font-size: 9pt;
+            font-weight: bold;
+        }
+
+        .footer-table {
+            position: fixed;
+            bottom: -20px;
+            left: 0;
+            right: 0;
+            width: 100%;
+            font-size: 7.5pt;
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Box -->
+    <table class="header-box">
+        <tr>
+            <td style="width: 20%; font-size: 11pt; text-align: left;">CONCERIA 3 EMME</td>
+            <td style="width: 18%;">SISTEMA QUALITA'</td>
+            <td style="width: 32%;">SCADENZE SPEDIZIONE AL {{ target_date ? target_date|date('d/m/Y') : '' }}</td>
+            <td style="width: 18%;">DOC M3-102 REV 1</td>
+            <td style="width: 12%;">{{ print_date|date('d/m/Y') }}</td>
+        </tr>
+    </table>
+
+    <!-- Main Table -->
+    <table class="main-table">
+        <thead>
+            <tr>
+                <th style="width: 16%;">CLIENTE</th>
+                <th style="width: 25%;">RIFERIMENTI ORDINE</th>
+                <th style="width: 28%;" class="border-right-col">CODICE PRODOTTO</th>
+                <th style="width: 10%;" class="text-right border-right-col">QTA</th>
+                <th style="width: 8%;" class="text-center border-right-col">DATA CF</th>
+                <th style="width: 13%;" class="th-last">NOTE</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for clientGroup in clientGroups %}
+                <!-- Riga Intestazione Cliente -->
+                <tr class="client-header-row">
+                    <td colspan="3" class="bold" style="font-size: 8.5pt; text-transform: uppercase;">
+                        {{ clientGroup.client.name }}
+                    </td>
+                    <td class="text-right bold border-right-col" style="font-size: 8.5pt;">
+                        {{ (clientGroup.total_quantity|default(0))|number_format(2, ',', '.') }}
+                    </td>
+                    <td class="text-center bold border-right-col" style="font-size: 8pt;">
+                        {{ clientGroup.first_confirmed_date ? clientGroup.first_confirmed_date|date('d/m/Y') : '' }}
+                    </td>
+                    <td class="bold" style="font-size: 8pt; white-space: normal;">
+                        {{ clientGroup.notes|default('') }}
+                    </td>
+                </tr>
+
+                <!-- Righe Ordine del Cliente -->
+                {% for item in clientGroup.rows %}
+                    <tr class="data-row">
+                        <!-- Colonna Riferimenti Ordine divisa (Numero riga / Codice ordine / Data ordine / Riferimento ordine cliente) -->
+                        <td colspan="2" style="padding: 0;">
+                            <table class="sub-col-table">
+                                <tr>
+                                    <td style="width: 12%; text-align: center;">{{ item.row_number|default('') }}</td>
+                                    <td style="width: 28%; text-align: left;">{{ item.order_number|default('') }}</td>
+                                    <td style="width: 28%; text-align: center;">{{ item.order_date ? item.order_date|date('d/m/Y') : '' }}</td>
+                                    <td style="width: 32%; text-align: left;">{{ item.client_reference|default('') }}</td>
+                                </tr>
+                            </table>
+                        </td>
+
+                        <!-- Colonna Articolo/Codice Prodotto senza righe interne divisorie -->
+                        <td class="border-right-col" style="text-align: left; padding-left: 4px;">
+                            {{ item.product_description|default('') }}
+                        </td>
+
+                        <!-- Colonna QTA (UM + Quantità) -->
+                        <td class="border-right-col" style="padding: 0;">
+                            <table class="sub-col-table">
+                                <tr>
+                                    <td style="width: 35%; text-align: left;">{{ item.unit_prefix|default('MQ') }}</td>
+                                    <td style="width: 65%; text-align: right; font-weight: normal;">{{ (item.quantity|default(0))|number_format(2, ',', '.') }}</td>
+                                </tr>
+                            </table>
+                        </td>
+
+                        <!-- Colonna DATA CF -->
+                        <td class="text-center border-right-col">
+                            {{ item.delivery_date_confirmed ? item.delivery_date_confirmed|date('d/m/Y') : '' }}
+                        </td>
+
+                        <!-- Colonna NOTE -->
+                        <td style="text-align: left; font-size: 7pt;">
+                            {{ item.notes|default('') }}
+                        </td>
+                    </tr>
+                {% endfor %}
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Totale Generale alla fine del report -->
+    <table class="total-summary-table">
+        <tr>
+            <td style="width: 20%; text-align: left; text-transform: uppercase;">
+                TOTALE GENERALE
+            </td>
+            <td style="width: 15%; text-align: left;">
+                RIGHE &nbsp; <span style="font-weight: bold;">{{ total_rows|default(0) }}</span>
+            </td>
+            <td style="width: 25%; text-align: right;">
+                QTA &nbsp; {{ total_unit|default('MQ') }} {{ (grand_total_quantity|default(0))|number_format(2, ',', '.') }}
+            </td>
+            <td style="width: 40%;"></td>
+        </tr>
+    </table>
+
+    <!-- Footer Fisso Standard Dompdf -->
+    <table class="footer-table">
+        <tr>
+            <td style="width: 35%; text-align: left;">NEO NETWORK ENTERPRISE ORGANIZER BY NEO-TEK</td>
+            <td style="width: 45%; text-align: center;">PROGRAMMAZIONE SPEDIZIONE ORDINI CLIENTI</td>
+            <td style="width: 20%; text-align: right;"></td>
+        </tr>
+    </table>
+</body>
+</html>

@@ -699,8 +699,16 @@ final class DdtRowController extends AbstractController
             return $this->doResponse->doErrorJsonResponse($this->validatorOutputFormatter->formatOutput($errors), 400);
         }
 
-        if ($ddtRow->getKGWeight() !== null && (float)$ddtRow->getKGWeight() > 0 && $ddtRow->getPrice() !== null && $ddtRow->getPieces() !== null) {
+        if ($ddtRow->getKGWeight() !== null && (float)$ddtRow->getKGWeight() > 0 && $ddtRow->getPrice() !== null && $ddtRow->getPieces() !== null && (float)$ddtRow->getPieces() > 0) {
             $priceKg = ($ddtRow->getPrice() * $ddtRow->getPieces()) / $ddtRow->getKGWeight();
+            $kgPz = $ddtRow->getKGWeight() / $ddtRow->getPieces();
+            $saleNote = 'PREZZO: ' . number_format($priceKg, 2, ',', '.') . ' €/KG x ' . number_format($kgPz, 2, ',', '.') . ' KG/PZ';
+            $existingNote = $ddtRow->getRowNote();
+            if ($existingNote && !str_starts_with($existingNote, 'PREZZO:')) {
+                $ddtRow->setRowNote($existingNote . ' - ' . $saleNote);
+            } else {
+                $ddtRow->setRowNote($saleNote);
+            }
             $ddtRow->setPrice($priceKg);
         }
 
@@ -800,6 +808,19 @@ final class DdtRowController extends AbstractController
         $errors = $validator->validate($ddtRow);
         if (count($errors) > 0) {
             return $this->doResponse->doErrorJsonResponse($this->validatorOutputFormatter->formatOutput($errors), 400);
+        }
+
+        if ($ddtRow->getKGWeight() !== null && (float)$ddtRow->getKGWeight() > 0 && $ddtRow->getPrice() !== null && $ddtRow->getPieces() !== null && (float)$ddtRow->getPieces() > 0) {
+            $priceKg = ($ddtRow->getPrice() * $ddtRow->getPieces()) / $ddtRow->getKGWeight();
+            $kgPz = $ddtRow->getKGWeight() / $ddtRow->getPieces();
+            $saleNote = 'PREZZO: ' . number_format($priceKg, 2, ',', '.') . ' €/KG x ' . number_format($kgPz, 2, ',', '.') . ' KG/PZ';
+            $existingNote = $ddtRow->getRowNote();
+            if ($existingNote && !str_starts_with($existingNote, 'PREZZO:')) {
+                $ddtRow->setRowNote($existingNote . ' - ' . $saleNote);
+            } else {
+                $ddtRow->setRowNote($saleNote);
+            }
+            $ddtRow->setPrice($priceKg);
         }
 
         $this->calculatePrices($ddtRow);
