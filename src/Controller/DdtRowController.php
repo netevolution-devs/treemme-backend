@@ -699,6 +699,11 @@ final class DdtRowController extends AbstractController
             return $this->doResponse->doErrorJsonResponse($this->validatorOutputFormatter->formatOutput($errors), 400);
         }
 
+        if ($ddtRow->getKGWeight() !== null && (float)$ddtRow->getKGWeight() > 0 && $ddtRow->getPrice() !== null && $ddtRow->getPieces() !== null) {
+            $priceKg = ($ddtRow->getPrice() * $ddtRow->getPieces()) / $ddtRow->getKGWeight();
+            $ddtRow->setPrice($priceKg);
+        }
+
         $this->calculatePrices($ddtRow);
 
         if($ddtRow->getHalfPiece() !== null) {
