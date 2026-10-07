@@ -1346,7 +1346,7 @@ final class DdtRowController extends AbstractController
         $newDdt->setDdtNumber($data['ddt_number'] ?? ('TRF-' . time()));
         $newDdt->setDdtDate(new \DateTime());
 
-        $ddtReason = $this->doctrine->getRepository(DdtReason::class)->findOneBy(['name' => 'Conto Lavorazione']);
+        $ddtReason = $this->doctrine->getRepository(DdtReason::class)->findOneBy(['name' => 'C/O Lavorazione']);
         if (!$ddtReason) {
             $ddtReason = $this->doctrine->getRepository(DdtReason::class)->findOneBy([]); // Prendo la prima se non trovo quella specifica
         }

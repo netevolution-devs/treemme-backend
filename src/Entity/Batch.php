@@ -190,6 +190,7 @@ class Batch
     private Collection $batchData;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['batch_list', 'batch_detail'])]
     private ?string $production_note = null;
 
     public function __construct()
@@ -216,7 +217,6 @@ class Batch
 
         return $this->getPieces() - $total;
     }
-
 
     public function getId(): ?int
     {
