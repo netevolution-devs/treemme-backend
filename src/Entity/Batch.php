@@ -159,7 +159,7 @@ class Batch
     /**
      * @var Collection<int, BatchOrder>
      */
-    #[ORM\OneToMany(mappedBy: 'batch', targetEntity: BatchOrder::class)]
+    #[ORM\OneToMany(mappedBy: 'batch', targetEntity: BatchOrder::class, orphanRemoval: true)]
     #[Groups(['ddt_row_list_sold', 'external_processing_print'])]
     private Collection $batchOrders;
 
@@ -188,6 +188,9 @@ class Batch
     #[ORM\OneToMany(mappedBy: 'batch', targetEntity: BatchData::class, orphanRemoval: true)]
     #[Groups(['batch_detail'])]
     private Collection $batchData;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $production_note = null;
 
     public function __construct()
     {
@@ -805,6 +808,18 @@ class Batch
                 $batchData->setBatch(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getProductionNote(): ?string
+    {
+        return $this->production_note;
+    }
+
+    public function setProductionNote(?string $production_note): static
+    {
+        $this->production_note = $production_note;
 
         return $this;
     }
