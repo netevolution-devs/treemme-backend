@@ -109,4 +109,53 @@ class ClientOrderRowRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * Recupera tutte le righe ordine che hanno almeno un lotto associato (BatchOrder / TF / UF)
+     * e che hanno ancora una quantità non spedita (quantity_to_ship > 0).
+     */
+    public function findRowsToShipForSchedule(?\DateTime $startDate = null, ?\DateTime $endDate = null, ?int $clientId = null, ?string $batchType = null): array
+    {
+        $qb = $this->createQueryBuilder('cor')
+            ->select('cor', 'co', 'c', 'a', 'bo', 'b')
+            ->innerJoin('cor.batchOrders', 'bo')
+            ->innerJoin('bo.batch', 'b')
+            ->leftJoin('b.batch_type', 'bt')
+            ->innerJoin('cor.client_order', 'co')
+            ->innerJoin('co.client', 'c')
+            ->leftJoin('cor.article', 'a')
+            ->leftJoin('cor.measurement_unit', 'mu')
+            ->where('cor.cancelled = false')
+            ->andWhere('co.cancelled = false')
+            ->andWhere('cor.processed = false')
+            ->andWhere('(cor.quantity_to_ship > 0 OR cor.quantity_to_ship IS NULL)');
+
+        if ($batchType) {
+            $qb->andWhere('bt.code = :batchType OR bt.name = :batchType')
+               ->setParameter('batchType', $batchType);
+        }
+
+        if ($startDate) {
+            $qb->andWhere('cor.delivery_date_confirmed >= :startDate OR (cor.delivery_date_confirmed IS NULL AND co.order_date >= :startDate)')
+                ->setParameter('startDate', $startDate->format('Y-m-d'));
+        }
+
+        if ($endDate) {
+            $qb->andWhere('cor.delivery_date_confirmed <= :endDate OR (cor.delivery_date_confirmed IS NULL AND co.order_date <= :endDate)')
+                ->setParameter('endDate', $endDate->format('Y-m-d 23:59:59'));
+        }
+
+        if ($clientId) {
+            $qb->andWhere('c.id = :clientId')
+                ->setParameter('clientId', $clientId);
+        }
+
+        return $qb->orderBy('c.name', 'ASC')
+            ->addOrderBy('co.order_date', 'ASC')
+            ->addOrderBy('co.order_number', 'ASC')
+            ->addOrderBy('cor.weight', 'ASC')
+            ->addOrderBy('cor.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

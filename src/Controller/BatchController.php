@@ -405,7 +405,15 @@ final class BatchController extends AbstractController
     public function getAvailableBatches(): JsonResponse
     {
         $batchRepository = $this->doctrine->getRepository(Batch::class);
-        $batches = $batchRepository->findAvailableStock();
+        $allAvailableBatches = $batchRepository->findAvailableStock();
+
+        $batches = [];
+        foreach ($allAvailableBatches as $batch) {
+            $leatherTypeName = $batch->getLeather()?->getType()?->getName();
+            if (in_array($leatherTypeName, ['Fiore', 'Crust'], true)) {
+                $batches[] = $batch;
+            }
+        }
 
         $results = $this->groupSerializer->serializeGroup($batches, 'batch_list');
 
@@ -1419,10 +1427,68 @@ final class BatchController extends AbstractController
             return $this->doResponse->doErrorJsonResponse('Batch not found', 404);
         }
 
-        $this->doctrine->remove($batch);
-        $this->doctrine->flush();
+        if (!$batch->getSonBatches()->isEmpty()) {
+            $ddtSonNumber = '';
+            foreach ($batch->getSonBatches() as $sonBatch) {
+                $ddtSonNumber .= $sonBatch->getBatchNumber() . ', ';
+            }
+            return $this->doResponse->doErrorJsonResponse('Impossibile eliminare il lotto perché ha dei lotti figli associati: ' . $ddtSonNumber, 400);
+        }
 
-        return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
+        if (!$batch->getDdtRows()->isEmpty()) {
+            $ddtNumber = '';
+            foreach ($batch->getDdtRows() as $ddtRow) {
+                $ddtNumber .= $ddtRow->getDdt()->getDdtNumber() . ', ';
+            }
+            return $this->doResponse->doErrorJsonResponse('Impossibile eliminare il lotto perché presente in uno o più DDT: ' . $ddtNumber, 400);
+        }
+
+        try {
+            // Gestione e rimozione delle composizioni (se il lotto corrente ha lotti padre)
+            foreach ($batch->getBatchCompositions() as $batchComposition) {
+                $fatherBatch = $batchComposition->getFatherBatch();
+                $selection = $batchComposition->getSelection();
+                $pieces = $batchComposition->getFatherBatchPiece();
+                $quantity = (float)($batchComposition->getFatherBatchQuantity() ?? 0.0);
+
+                if ($fatherBatch && $selection) {
+                    $selection->setStockQuantity(($selection->getStockQuantity() ?? 0.0) + $quantity);
+                    $selection->setStockPieces(($selection->getStockPieces() ?? 0.0) + (float)$pieces);
+                    $this->doctrine->persist($selection);
+                }
+
+                // Elimina i movimenti di carico/scarico generati dalla composizione
+                $noteToSearch = '(ID Comp: ' . $batchComposition->getId() . ')';
+                $compMovements = $this->doctrine->getRepository(WarehouseMovement::class)->createQueryBuilder('m')
+                    ->where('m.movement_note LIKE :note')
+                    ->setParameter('note', '%' . $noteToSearch . '%')
+                    ->getQuery()
+                    ->getResult();
+
+                foreach ($compMovements as $movement) {
+                    $this->doctrine->remove($movement);
+                }
+
+                $this->doctrine->remove($batchComposition);
+            }
+
+            // Elimina tutti i rimanenti movimenti di magazzino associati al lotto
+            foreach ($batch->getWarehouseMovements() as $warehouseMovement) {
+                $this->doctrine->remove($warehouseMovement);
+            }
+
+            // Elimina le associazioni con gli ordini cliente
+            foreach ($batch->getBatchOrders() as $batchOrder) {
+                $this->doctrine->remove($batchOrder);
+            }
+
+            $this->doctrine->remove($batch);
+            $this->doctrine->flush();
+
+            return new JsonResponse($this->doResponse->doResponse('delete_successfully'));
+        } catch (\Exception $e) {
+            return $this->doResponse->doErrorJsonResponse($e->getMessage());
+        }
     }
 
     private function handleRelations(Batch $batch, array &$data): Batch

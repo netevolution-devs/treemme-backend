@@ -22,17 +22,17 @@ class Currency
 
     #[ORM\Column(length: 10)]
     #[Groups(['currency_list', 'currency_detail', 'batch_cost_detail', 'client_order_row_detail', 'client_order_detail', 'ddt_row_detail',
-        'currency_change_list', 'currency_change_detail', 'batch_data_detail', 'client_order_row_list'])]
+        'currency_change_list', 'currency_change_detail', 'batch_data_detail', 'client_order_row_list', 'movement_detail'])]
     private ?string $abbreviation = null;
 
     #[ORM\Column(length: 255)]
     #[Groups(['currency_list', 'currency_detail', 'batch_cost_detail', 'client_order_row_detail', 'client_order_detail', 'ddt_row_detail',
-        'currency_change_list', 'currency_change_detail', 'batch_data_detail', 'client_order_row_list'])]
+        'currency_change_list', 'currency_change_detail', 'batch_data_detail', 'client_order_row_list', 'movement_detail'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 1)]
     #[Groups(['currency_list', 'currency_detail', 'batch_cost_detail', 'client_order_row_detail', 'client_order_detail', 'ddt_row_detail',
-        'currency_change_list', 'currency_change_detail', 'batch_data_detail', 'client_order_row_list', 'client_summary_print'])]
+        'currency_change_list', 'currency_change_detail', 'batch_data_detail', 'client_order_row_list', 'client_summary_print', 'movement_detail'])]
     private ?string $sign = null;
 
     /**
