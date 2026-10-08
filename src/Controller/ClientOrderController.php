@@ -372,6 +372,127 @@ final class ClientOrderController extends AbstractController
         ]);
     }
 
+    #[Route('/client-order/shipping-schedule/pdf',
+        name: 'get_client_order_shipping_schedule_pdf',
+        methods: ['GET'])]
+    public function generateShippingSchedulePdf(Request $request): Response
+    {
+        $startDateStr = $request->query->get('start_date');
+        $endDateStr = $request->query->get('end_date');
+        $targetDateStr = $request->query->get('target_date');
+        $clientId = $request->query->get('client_id') ? (int)$request->query->get('client_id') : null;
+        $batchType = $request->query->get('batch_type'); // ad es. 'TF' o 'UF' se specificato
+
+        $startDate = null;
+        if ($startDateStr) {
+            try {
+                $startDate = new \DateTime($startDateStr);
+            } catch (\Exception $e) {
+            }
+        }
+
+        $endDate = null;
+        if ($endDateStr) {
+            try {
+                $endDate = new \DateTime($endDateStr);
+            } catch (\Exception $e) {
+            }
+        }
+
+        $targetDate = null;
+        if ($targetDateStr) {
+            try {
+                $targetDate = new \DateTime($targetDateStr);
+            } catch (\Exception $e) {
+            }
+        } elseif ($endDate) {
+            $targetDate = $endDate;
+        }
+
+        /** @var ClientOrderRow[] $rows */
+        $rows = $this->doctrine->getRepository(ClientOrderRow::class)->findRowsToShipForSchedule($startDate, $endDate, $clientId, $batchType);
+
+        // Raggruppamento per cliente
+        $clientGroups = [];
+        $totalRowsCount = 0;
+        $grandTotalQuantity = 0.0;
+        $unitPrefix = 'MQ';
+
+        foreach ($rows as $row) {
+            $order = $row->getClientOrder();
+            if (!$order) {
+                continue;
+            }
+            $client = $order->getClient();
+            if (!$client) {
+                continue;
+            }
+
+            $clientIdKey = $client->getId();
+            if (!isset($clientGroups[$clientIdKey])) {
+                $clientGroups[$clientIdKey] = [
+                    'client' => $client,
+                    'total_quantity' => 0.0,
+                    'first_confirmed_date' => null,
+                    'notes' => $order->getOrderNote() ?? '',
+                    'rows' => []
+                ];
+            }
+
+            $qtyToShip = $row->getQuantityToShip();
+            if ($qtyToShip === null || $qtyToShip <= 0) {
+                $qtyToShip = (float)$row->getQuantity();
+            }
+
+            $clientGroups[$clientIdKey]['total_quantity'] += (float)$qtyToShip;
+            $grandTotalQuantity += (float)$qtyToShip;
+            $totalRowsCount++;
+
+            $confirmedDate = $row->getDeliveryDateConfirmed() ?? $order->getOrderDate();
+            if ($confirmedDate) {
+                if (!$clientGroups[$clientIdKey]['first_confirmed_date'] || $confirmedDate < $clientGroups[$clientIdKey]['first_confirmed_date']) {
+                    $clientGroups[$clientIdKey]['first_confirmed_date'] = $confirmedDate;
+                }
+            }
+
+            $article = $row->getArticle();
+            $productDesc = '';
+            if ($article) {
+                $productDesc = $article->getName();
+            }
+
+            $rowUnit = $row->getMeasurementUnit() ? $row->getMeasurementUnit()->getPrefix() : 'MQ';
+            $unitPrefix = $rowUnit;
+
+            $clientGroups[$clientIdKey]['rows'][] = [
+                'row_number' => $row->getWeight() ?? count($clientGroups[$clientIdKey]['rows']) + 1,
+                'order_number' => $order->getOrderNumber(),
+                'order_date' => $order->getOrderDate(),
+                'client_reference' => $order->getClientOrderNumber() ?? '',
+                'product_description' => $productDesc,
+                'unit_prefix' => $rowUnit,
+                'quantity' => (float)$qtyToShip,
+                'delivery_date_confirmed' => $confirmedDate,
+                'notes' => $row->getAdministrationRowNote() ?? $row->getIsoRowNote() ?? $row->getProductionRowNote() ?? ''
+            ];
+        }
+
+        $pdfContent = $this->pdfGenerator->generatePdf('print/shipping_schedule_pdf.html.twig', [
+            'clientGroups' => $clientGroups,
+            'total_rows' => $totalRowsCount,
+            'grand_total_quantity' => $grandTotalQuantity,
+            'total_unit' => $unitPrefix,
+            'target_date' => $targetDate,
+            'print_date' => new \DateTime(),
+            'app_root' => $this->getParameter('kernel.project_dir')
+        ], 'scadenze_spedizione.pdf');
+
+        return new Response($pdfContent, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="scadenze_spedizione.pdf"'
+        ]);
+    }
+
     #[Route('/client-order',
         name: 'post_client_order',
         methods: ['POST'])]
