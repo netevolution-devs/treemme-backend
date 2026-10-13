@@ -162,6 +162,7 @@ class ClientOrderRowRepository extends ServiceEntityRepository
     /**
      * Calcola i prezzi medi ponderati per PQ e MQ e i totali per un intervallo di date
      * (es. una settimana specifica) o per data ordine / data consegna.
+     * Raggruppa i risultati per tipo di pellame (LeatherType) e valuta (Currency).
      * Di default esclude i clienti interni ($internal = false).
      */
     public function getWeeklyPriceAverages(
@@ -173,13 +174,25 @@ class ClientOrderRowRepository extends ServiceEntityRepository
     ): array {
         $qb = $this->createQueryBuilder('cor')
             ->select('
+                lt.id as leather_type_id,
+                lt.name as leather_type_name,
+                lt.code as leather_type_code,
+                curr.id as currency_id,
+                curr.name as currency_name,
+                curr.abbreviation as currency_abbreviation,
+                curr.sign as currency_sign,
                 COUNT(cor.id) as rows_count,
                 SUM(cor.total_price) as total_amount,
+                SUM(cor.total_currency_price) as total_currency_amount,
                 SUM(cor.quantity_mq) as total_quantity_mq,
                 SUM(cor.quantity_pq) as total_quantity_pq
             ')
             ->join('cor.client_order', 'co')
             ->leftJoin('co.client', 'c')
+            ->leftJoin('cor.currency', 'curr')
+            ->leftJoin('cor.article', 'a')
+            ->leftJoin('a.article_type', 'at')
+            ->leftJoin('at.leather_type', 'lt')
             ->where('cor.cancelled = false')
             ->andWhere('co.cancelled = false');
 
@@ -206,23 +219,68 @@ class ClientOrderRowRepository extends ServiceEntityRepository
                 ->setParameter('endDate', $endDate->format('Y-m-d 23:59:59'));
         }
 
-        $res = $qb->getQuery()->getSingleResult();
+        $qb->groupBy('lt.id, lt.name, lt.code, curr.id, curr.name, curr.abbreviation, curr.sign')
+           ->orderBy('lt.name', 'ASC')
+           ->addOrderBy('curr.name', 'ASC');
 
-        $totalAmount = (float)($res['total_amount'] ?? 0.0);
-        $totalQuantityMq = (float)($res['total_quantity_mq'] ?? 0.0);
-        $totalQuantityPq = (float)($res['total_quantity_pq'] ?? 0.0);
-        $rowsCount = (int)($res['rows_count'] ?? 0);
+        $results = $qb->getQuery()->getResult();
 
-        $avgPriceMq = $totalQuantityMq > 0 ? round($totalAmount / $totalQuantityMq, 4) : 0.0;
-        $avgPricePq = $totalQuantityPq > 0 ? round($totalAmount / $totalQuantityPq, 4) : 0.0;
+        $rows = [];
+        $grandTotalAmount = 0.0;
+        $grandTotalQuantityMq = 0.0;
+        $grandTotalQuantityPq = 0.0;
+        $grandTotalRowsCount = 0;
+
+        foreach ($results as $res) {
+            $totalAmount = (float)($res['total_amount'] ?? 0.0);
+            $totalCurrencyAmount = (float)($res['total_currency_amount'] ?? 0.0);
+            $totalQuantityMq = (float)($res['total_quantity_mq'] ?? 0.0);
+            $totalQuantityPq = (float)($res['total_quantity_pq'] ?? 0.0);
+            $rowsCount = (int)($res['rows_count'] ?? 0);
+
+            $avgPriceMq = $totalQuantityMq > 0 ? round($totalAmount / $totalQuantityMq, 4) : 0.0;
+            $avgPricePq = $totalQuantityPq > 0 ? round($totalAmount / $totalQuantityPq, 4) : 0.0;
+
+            $rows[] = [
+                'leather_type' => $res['leather_type_id'] ? [
+                    'id' => (int)$res['leather_type_id'],
+                    'name' => $res['leather_type_name'],
+                    'code' => $res['leather_type_code'],
+                ] : null,
+                'currency' => $res['currency_id'] ? [
+                    'id' => (int)$res['currency_id'],
+                    'name' => $res['currency_name'],
+                    'abbreviation' => $res['currency_abbreviation'],
+                    'sign' => $res['currency_sign'],
+                ] : null,
+                'rows_count' => $rowsCount,
+                'total_amount' => round($totalAmount, 2),
+                'total_currency_amount' => round($totalCurrencyAmount, 2),
+                'total_quantity_mq' => round($totalQuantityMq, 4),
+                'total_quantity_pq' => round($totalQuantityPq, 4),
+                'avg_price_mq' => $avgPriceMq,
+                'avg_price_pq' => $avgPricePq,
+            ];
+
+            $grandTotalAmount += $totalAmount;
+            $grandTotalQuantityMq += $totalQuantityMq;
+            $grandTotalQuantityPq += $totalQuantityPq;
+            $grandTotalRowsCount += $rowsCount;
+        }
+
+        $overallAvgPriceMq = $grandTotalQuantityMq > 0 ? round($grandTotalAmount / $grandTotalQuantityMq, 4) : 0.0;
+        $overallAvgPricePq = $grandTotalQuantityPq > 0 ? round($grandTotalAmount / $grandTotalQuantityPq, 4) : 0.0;
 
         return [
-            'rows_count' => $rowsCount,
-            'total_amount' => round($totalAmount, 2),
-            'total_quantity_mq' => round($totalQuantityMq, 4),
-            'total_quantity_pq' => round($totalQuantityPq, 4),
-            'avg_price_mq' => $avgPriceMq,
-            'avg_price_pq' => $avgPricePq,
+            'items' => $rows,
+            'summary' => [
+                'rows_count' => $grandTotalRowsCount,
+                'total_amount' => round($grandTotalAmount, 2),
+                'total_quantity_mq' => round($grandTotalQuantityMq, 4),
+                'total_quantity_pq' => round($grandTotalQuantityPq, 4),
+                'avg_price_mq' => $overallAvgPriceMq,
+                'avg_price_pq' => $overallAvgPricePq,
+            ],
             'start_date' => $startDate ? $startDate->format('Y-m-d') : null,
             'end_date' => $endDate ? $endDate->format('Y-m-d') : null,
             'internal' => $internal,
