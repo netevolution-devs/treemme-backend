@@ -73,6 +73,108 @@ final class ClientOrderRowController extends AbstractController
     #[Route('/client-order-row/weekly-averages',
         name: 'get_client_order_row_weekly_averages',
         methods: ['GET'])]
+    #[OA\Get(
+        path: '/client-order-row/weekly-averages',
+        summary: 'Calcolo prezzi medi per PQ e MQ aggregati per settimana/date, raggruppati per tipo pellame e valuta',
+        parameters: [
+            new OA\Parameter(
+                name: 'start_date',
+                in: 'query',
+                description: 'Data inizio intervallo (formato YYYY-MM-DD). Default: Lunedì della settimana corrente',
+                required: false,
+                schema: new OA\Schema(type: 'string', format: 'date')
+            ),
+            new OA\Parameter(
+                name: 'end_date',
+                in: 'query',
+                description: 'Data fine intervallo (formato YYYY-MM-DD). Default: Domenica della settimana corrente',
+                required: false,
+                schema: new OA\Schema(type: 'string', format: 'date')
+            ),
+            new OA\Parameter(
+                name: 'client_id',
+                in: 'query',
+                description: 'Filtra per ID cliente specifico',
+                required: false,
+                schema: new OA\Schema(type: 'integer')
+            ),
+            new OA\Parameter(
+                name: 'date_field',
+                in: 'query',
+                description: 'Campo data su cui filtrare: order_date (default) o delivery_date_confirmed',
+                required: false,
+                schema: new OA\Schema(type: 'string', enum: ['order_date', 'delivery_date_confirmed'], default: 'order_date')
+            ),
+            new OA\Parameter(
+                name: 'internal',
+                in: 'query',
+                description: 'Filtro clienti interni: false (default, esclude interni), true (solo interni), all (tutti)',
+                required: false,
+                schema: new OA\Schema(type: 'string', enum: ['false', 'true', 'all'], default: 'false')
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Statistiche e medie ponderate per tipo pellame e valuta, più riepilogo complessivo',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'items',
+                            type: 'array',
+                            items: new OA\Items(
+                                properties: [
+                                    new OA\Property(
+                                        property: 'leather_type',
+                                        type: 'object',
+                                        nullable: true,
+                                        properties: [
+                                            new OA\Property(property: 'id', type: 'integer'),
+                                            new OA\Property(property: 'name', type: 'string'),
+                                            new OA\Property(property: 'code', type: 'string', nullable: true)
+                                        ]
+                                    ),
+                                    new OA\Property(
+                                        property: 'currency',
+                                        type: 'object',
+                                        nullable: true,
+                                        properties: [
+                                            new OA\Property(property: 'id', type: 'integer'),
+                                            new OA\Property(property: 'name', type: 'string'),
+                                            new OA\Property(property: 'abbreviation', type: 'string', nullable: true),
+                                            new OA\Property(property: 'sign', type: 'string', nullable: true)
+                                        ]
+                                    ),
+                                    new OA\Property(property: 'rows_count', type: 'integer'),
+                                    new OA\Property(property: 'total_amount', type: 'number', format: 'float'),
+                                    new OA\Property(property: 'total_currency_amount', type: 'number', format: 'float'),
+                                    new OA\Property(property: 'total_quantity_mq', type: 'number', format: 'float'),
+                                    new OA\Property(property: 'total_quantity_pq', type: 'number', format: 'float'),
+                                    new OA\Property(property: 'avg_price_mq', type: 'number', format: 'float'),
+                                    new OA\Property(property: 'avg_price_pq', type: 'number', format: 'float')
+                                ]
+                            )
+                        ),
+                        new OA\Property(
+                            property: 'summary',
+                            type: 'object',
+                            properties: [
+                                new OA\Property(property: 'rows_count', type: 'integer'),
+                                new OA\Property(property: 'total_amount', type: 'number', format: 'float'),
+                                new OA\Property(property: 'total_quantity_mq', type: 'number', format: 'float'),
+                                new OA\Property(property: 'total_quantity_pq', type: 'number', format: 'float'),
+                                new OA\Property(property: 'avg_price_mq', type: 'number', format: 'float'),
+                                new OA\Property(property: 'avg_price_pq', type: 'number', format: 'float')
+                            ]
+                        ),
+                        new OA\Property(property: 'start_date', type: 'string', format: 'date', nullable: true),
+                        new OA\Property(property: 'end_date', type: 'string', format: 'date', nullable: true),
+                        new OA\Property(property: 'internal', type: 'boolean', nullable: true)
+                    ]
+                )
+            )
+        ]
+    )]
     public function getWeeklyPriceAverages(Request $request): JsonResponse
     {
         $startDateStr = $request->query->get('start_date');
@@ -113,6 +215,22 @@ final class ClientOrderRowController extends AbstractController
     #[Route('/client-order-row-report',
         name: 'get_client_order_row_report',
         methods: ['GET'])]
+    #[OA\Get(
+        path: '/client-order-row-report',
+        summary: 'Report righe ordini cliente con filtri stato spedizione, produzione, stampa e clienti interni',
+        parameters: [
+            new OA\Parameter(name: 'start_date', in: 'query', description: 'Data inizio (YYYY-MM-DD)', required: false, schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter(name: 'end_date', in: 'query', description: 'Data fine (YYYY-MM-DD)', required: false, schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter(name: 'shipping_status', in: 'query', description: 'Stato spedizione: to_ship, shipped', required: false, schema: new OA\Schema(type: 'string', enum: ['to_ship', 'shipped'])),
+            new OA\Parameter(name: 'production_status', in: 'query', description: 'Stato produzione: to_produce, produced', required: false, schema: new OA\Schema(type: 'string', enum: ['to_produce', 'produced'])),
+            new OA\Parameter(name: 'print_status', in: 'query', description: 'Stato stampa: to_print, printed', required: false, schema: new OA\Schema(type: 'string', enum: ['to_print', 'printed'])),
+            new OA\Parameter(name: 'client_id', in: 'query', description: 'ID Cliente', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'internal', in: 'query', description: 'Filtro clienti interni: true (solo interni), false (escludi interni), all (tutti)', required: false, schema: new OA\Schema(type: 'string', enum: ['true', 'false', 'all']))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Lista righe ordine filtrate')
+        ]
+    )]
     public function getClientOrderRowsReport(Request $request): JsonResponse
     {
         $startDate = $request->query->get('start_date');
@@ -186,6 +304,22 @@ final class ClientOrderRowController extends AbstractController
     #[Route('/client/client-order-row-summary-print',
         name: 'get_client_order_row_summary_print',
         methods: ['GET'])]
+    #[OA\Get(
+        path: '/client/client-order-row-summary-print',
+        summary: 'Generazione PDF riepilogo ordini cliente con filtri stato spedizione, produzione, stampa e clienti interni',
+        parameters: [
+            new OA\Parameter(name: 'client_id', in: 'query', description: 'ID Cliente', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'start_date', in: 'query', description: 'Data inizio (YYYY-MM-DD)', required: false, schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter(name: 'end_date', in: 'query', description: 'Data fine (YYYY-MM-DD)', required: false, schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter(name: 'shipping_status', in: 'query', description: 'Stato spedizione: to_ship, shipped', required: false, schema: new OA\Schema(type: 'string', enum: ['to_ship', 'shipped'])),
+            new OA\Parameter(name: 'production_status', in: 'query', description: 'Stato produzione: to_produce, produced', required: false, schema: new OA\Schema(type: 'string', enum: ['to_produce', 'produced'])),
+            new OA\Parameter(name: 'print_status', in: 'query', description: 'Stato stampa: to_print, printed', required: false, schema: new OA\Schema(type: 'string', enum: ['to_print', 'printed'])),
+            new OA\Parameter(name: 'internal', in: 'query', description: 'Filtro clienti interni: true (solo interni), false (escludi interni), all (tutti)', required: false, schema: new OA\Schema(type: 'string', enum: ['true', 'false', 'all']))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'File PDF generato')
+        ]
+    )]
     public function getClientSummaryPrint(Request $request): \Symfony\Component\HttpFoundation\Response
     {
         $clientId = $request->query->get('client_id');
