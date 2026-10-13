@@ -106,6 +106,7 @@ final class ClientOrderController extends AbstractController
             $cancelled = $request->query->get('cancelled');
             $checked = $request->query->get('checked');
             $printed = $request->query->get('printed') ?? $request->query->get('print_status');
+            $internal = $request->query->get('internal');
 
             $hasFilters = $orderNumber !== null ||
                 $year !== null ||
@@ -123,7 +124,8 @@ final class ClientOrderController extends AbstractController
                 $processed !== null ||
                 $cancelled !== null ||
                 $checked !== null ||
-                $printed !== null;
+                $printed !== null ||
+                $internal !== null;
 
             if ($hasFilters) {
                 $qb = $clientOrderRepository->createQueryBuilder('c')
@@ -245,6 +247,16 @@ final class ClientOrderController extends AbstractController
                         $qb->andWhere('c.printed = true');
                     } elseif ($printed === 'to_print' || $printed === '0' || $printed === 'false' || $printed === false) {
                         $qb->andWhere('c.printed = false OR c.printed IS NULL');
+                    }
+                }
+
+                if ($internal !== null && $internal !== '' && $internal !== 'all') {
+                    $qb->leftJoin('c.client', 'cl');
+                    $isInternal = filter_var($internal, FILTER_VALIDATE_BOOLEAN);
+                    if ($isInternal) {
+                        $qb->andWhere('cl.is_internal = true');
+                    } else {
+                        $qb->andWhere('cl.is_internal = false OR cl.is_internal IS NULL');
                     }
                 }
 
