@@ -158,4 +158,74 @@ class ClientOrderRowRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * Calcola i prezzi medi ponderati per PQ e MQ e i totali per un intervallo di date
+     * (es. una settimana specifica) o per data ordine / data consegna.
+     * Di default esclude i clienti interni ($internal = false).
+     */
+    public function getWeeklyPriceAverages(
+        ?\DateTimeInterface $startDate = null,
+        ?\DateTimeInterface $endDate = null,
+        ?int $clientId = null,
+        string $dateField = 'order_date', // 'order_date' oppure 'delivery_date_confirmed'
+        ?bool $internal = false // false: escludi interni, true: solo interni, null: tutti
+    ): array {
+        $qb = $this->createQueryBuilder('cor')
+            ->select('
+                COUNT(cor.id) as rows_count,
+                SUM(cor.total_price) as total_amount,
+                SUM(cor.quantity_mq) as total_quantity_mq,
+                SUM(cor.quantity_pq) as total_quantity_pq
+            ')
+            ->join('cor.client_order', 'co')
+            ->leftJoin('co.client', 'c')
+            ->where('cor.cancelled = false')
+            ->andWhere('co.cancelled = false');
+
+        if ($internal === true) {
+            $qb->andWhere('c.is_internal = true');
+        } elseif ($internal === false) {
+            $qb->andWhere('(c.is_internal = false OR c.is_internal IS NULL)');
+        }
+
+        if ($clientId) {
+            $qb->andWhere('co.client = :clientId')
+                ->setParameter('clientId', $clientId);
+        }
+
+        $dateColumn = ($dateField === 'delivery_date_confirmed') ? 'cor.delivery_date_confirmed' : 'co.order_date';
+
+        if ($startDate) {
+            $qb->andWhere("$dateColumn >= :startDate")
+                ->setParameter('startDate', $startDate->format('Y-m-d 00:00:00'));
+        }
+
+        if ($endDate) {
+            $qb->andWhere("$dateColumn <= :endDate")
+                ->setParameter('endDate', $endDate->format('Y-m-d 23:59:59'));
+        }
+
+        $res = $qb->getQuery()->getSingleResult();
+
+        $totalAmount = (float)($res['total_amount'] ?? 0.0);
+        $totalQuantityMq = (float)($res['total_quantity_mq'] ?? 0.0);
+        $totalQuantityPq = (float)($res['total_quantity_pq'] ?? 0.0);
+        $rowsCount = (int)($res['rows_count'] ?? 0);
+
+        $avgPriceMq = $totalQuantityMq > 0 ? round($totalAmount / $totalQuantityMq, 4) : 0.0;
+        $avgPricePq = $totalQuantityPq > 0 ? round($totalAmount / $totalQuantityPq, 4) : 0.0;
+
+        return [
+            'rows_count' => $rowsCount,
+            'total_amount' => round($totalAmount, 2),
+            'total_quantity_mq' => round($totalQuantityMq, 4),
+            'total_quantity_pq' => round($totalQuantityPq, 4),
+            'avg_price_mq' => $avgPriceMq,
+            'avg_price_pq' => $avgPricePq,
+            'start_date' => $startDate ? $startDate->format('Y-m-d') : null,
+            'end_date' => $endDate ? $endDate->format('Y-m-d') : null,
+            'internal' => $internal,
+        ];
+    }
 }

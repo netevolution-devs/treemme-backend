@@ -129,6 +129,22 @@ class ClientOrderRow
     #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
     private ?float $quantity_to_ship = null;
 
+    #[ORM\Column(nullable: true)]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
+    private ?float $price_pq = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
+    private ?float $price_mq = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
+    private ?float $quantity_pq = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['client_order_row_list', 'client_order_row_detail', 'client_order_detail', 'client_summary_print'])]
+    private ?float $quantity_mq = null;
+
     public function __construct()
     {
         $this->batchOrders = new ArrayCollection();
@@ -482,6 +498,54 @@ class ClientOrderRow
     public function setQuantityToShip(?float $quantity_to_ship): static
     {
         $this->quantity_to_ship = $quantity_to_ship;
+
+        return $this;
+    }
+
+    public function getPricePq(): ?float
+    {
+        return $this->price_pq;
+    }
+
+    public function setPricePq(?float $price_pq): static
+    {
+        $this->price_pq = $price_pq !== null ? round($price_pq, 4) : null;
+
+        return $this;
+    }
+
+    public function getPriceMq(): ?float
+    {
+        return $this->price_mq;
+    }
+
+    public function setPriceMq(?float $price_mq): static
+    {
+        $this->price_mq = $price_mq !== null ? round($price_mq, 4) : null;
+
+        return $this;
+    }
+
+    public function getQuantityPq(): ?float
+    {
+        return $this->quantity_pq;
+    }
+
+    public function setQuantityPq(?float $quantity_pq): static
+    {
+        $this->quantity_pq = $quantity_pq !== null ? round($quantity_pq, 4) : null;
+
+        return $this;
+    }
+
+    public function getQuantityMq(): ?float
+    {
+        return $this->quantity_mq;
+    }
+
+    public function setQuantityMq(?float $quantity_mq): static
+    {
+        $this->quantity_mq = $quantity_mq !== null ? round($quantity_mq, 4) : null;
 
         return $this;
     }
