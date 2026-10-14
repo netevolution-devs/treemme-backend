@@ -258,10 +258,8 @@ class ClientOrderRowRepository extends ServiceEntityRepository
                 'rows_count' => $rowsCount,
                 'total_quantity_mq' => round($totalQuantityMq, 4),
                 'total_quantity_pq' => round($totalQuantityPq, 4),
-                'avg_price_pq_currency' => $avgPricePqCurrency,
-                'avg_price_pq_lire' => $avgPricePqBase,
-                'avg_price_mq_currency' => $avgPriceMqCurrency,
-                'avg_price_mq_lire' => $avgPriceMqBase,
+                'avg_price_pq_lire' => $avgPricePqBase * 1936.27,
+                'avg_price_mq_lire' => $avgPriceMqBase * 1936.27,
                 'avg_price_mq' => $avgPriceMqBase,
                 'avg_price_pq' => $avgPricePqBase,
             ];
