@@ -240,8 +240,15 @@ class ClientOrderRowRepository extends ServiceEntityRepository
 
             $avgPriceMqBase = $totalQuantityMq > 0 ? round($totalAmount / $totalQuantityMq, 4) : 0.0;
             $avgPricePqBase = $totalQuantityPq > 0 ? round($totalAmount / $totalQuantityPq, 4) : 0.0;
+
             $avgPriceMqCurrency = $totalQuantityMq > 0 ? round($totalCurrencyAmount / $totalQuantityMq, 4) : 0.0;
             $avgPricePqCurrency = $totalQuantityPq > 0 ? round($totalCurrencyAmount / $totalQuantityPq, 4) : 0.0;
+
+            $currencyAbbreviation = strtoupper((string)($res['currency_abbreviation'] ?? ''));
+            $isEuroCurrency = in_array($currencyAbbreviation, ['EUR', 'EURO', '€'], true);
+
+            $avgPriceMqLireBase = $isEuroCurrency ? $avgPriceMqBase : $avgPriceMqCurrency;
+            $avgPricePqLireBase = $isEuroCurrency ? $avgPricePqBase : $avgPricePqCurrency;
 
             $rows[] = [
                 'leather_type' => $res['leather_type_id'] ? [
@@ -258,8 +265,8 @@ class ClientOrderRowRepository extends ServiceEntityRepository
                 'rows_count' => $rowsCount,
                 'total_quantity_mq' => round($totalQuantityMq, 4),
                 'total_quantity_pq' => round($totalQuantityPq, 4),
-                'avg_price_pq_lire' => $avgPricePqBase * 1936.27,
-                'avg_price_mq_lire' => $avgPriceMqBase * 1936.27,
+                'avg_price_pq_lire' => round($avgPricePqLireBase * 1936.27, 4),
+                'avg_price_mq_lire' => round($avgPriceMqLireBase * 1936.27, 4),
                 'avg_price_mq' => $avgPriceMqBase,
                 'avg_price_pq' => $avgPricePqBase,
             ];
