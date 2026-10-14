@@ -256,8 +256,6 @@ class ClientOrderRowRepository extends ServiceEntityRepository
                     'sign' => $res['currency_sign'],
                 ] : null,
                 'rows_count' => $rowsCount,
-                'total_amount' => round($totalAmount, 2),
-                'total_currency_amount' => round($totalCurrencyAmount, 2),
                 'total_quantity_mq' => round($totalQuantityMq, 4),
                 'total_quantity_pq' => round($totalQuantityPq, 4),
                 'avg_price_pq_currency' => $avgPricePqCurrency,
