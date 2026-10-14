@@ -79,6 +79,10 @@ class Contact
     private ?bool $client = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['contact_list','contact_detail','contact_client','contact_supplier','contact_agent_list', 'client_summary_print', 'client_order_list', 'client_order_detail'])]
+    private ?bool $is_internal = false;
+
+    #[ORM\Column(nullable: true)]
     #[Groups(['contact_detail','contact_client'])]
     private ?float $tolerance_quantity = null;
 
@@ -419,6 +423,18 @@ class Contact
     public function setClient(bool $client): static
     {
         $this->client = $client;
+
+        return $this;
+    }
+
+    public function isInternal(): ?bool
+    {
+        return $this->is_internal;
+    }
+
+    public function setIsInternal(?bool $is_internal): static
+    {
+        $this->is_internal = $is_internal;
 
         return $this;
     }

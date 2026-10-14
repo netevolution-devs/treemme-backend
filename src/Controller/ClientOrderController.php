@@ -79,6 +79,34 @@ final class ClientOrderController extends AbstractController
         defaults: ['id' => null],
         requirements: ['id' => '\d*'],
         methods: ['GET', 'HEAD'])]
+    #[OA\Get(
+        path: '/client-order/{id}',
+        summary: 'Recupera un ordine cliente specifico per ID o cerca ordini cliente filtrati',
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', description: 'ID Ordine cliente', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'order_number', in: 'query', description: 'Numero ordine', required: false, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'year', in: 'query', description: 'Anno ordine', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'client_id', in: 'query', description: 'ID Cliente', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'agent_id', in: 'query', description: 'ID Agente', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'payment_id', in: 'query', description: 'ID Pagamento', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'shipment_condition_id', in: 'query', description: 'ID Condizione di spedizione', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'shipping_carrier_id', in: 'query', description: 'ID Vettore', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'start_date', in: 'query', description: 'Data ordine da (YYYY-MM-DD)', required: false, schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter(name: 'end_date', in: 'query', description: 'Data ordine a (YYYY-MM-DD)', required: false, schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter(name: 'client_order_number', in: 'query', description: 'Rif. ordine cliente', required: false, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'agent_order_number', in: 'query', description: 'Rif. ordine agente', required: false, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'article_id', in: 'query', description: 'ID Articolo', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'product_id', in: 'query', description: 'ID Prodotto', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'processed', in: 'query', description: 'Evaso (true/false)', required: false, schema: new OA\Schema(type: 'boolean')),
+            new OA\Parameter(name: 'cancelled', in: 'query', description: 'Annullato (true/false)', required: false, schema: new OA\Schema(type: 'boolean')),
+            new OA\Parameter(name: 'checked', in: 'query', description: 'Controllato (true/false)', required: false, schema: new OA\Schema(type: 'boolean')),
+            new OA\Parameter(name: 'printed', in: 'query', description: 'Stampato (true/false)', required: false, schema: new OA\Schema(type: 'boolean')),
+            new OA\Parameter(name: 'internal', in: 'query', description: 'Filtro clienti interni: true (solo interni), false (escludi interni), all (tutti)', required: false, schema: new OA\Schema(type: 'string', enum: ['true', 'false', 'all']))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Dettaglio ordine o elenco ordini cliente')
+        ]
+    )]
     public function getClientOrder(?int $id, Request $request): JsonResponse
     {
         $clientOrderRepository = $this->doctrine->getRepository(ClientOrder::class);
@@ -106,6 +134,7 @@ final class ClientOrderController extends AbstractController
             $cancelled = $request->query->get('cancelled');
             $checked = $request->query->get('checked');
             $printed = $request->query->get('printed') ?? $request->query->get('print_status');
+            $internal = $request->query->get('internal');
 
             $hasFilters = $orderNumber !== null ||
                 $year !== null ||
@@ -123,7 +152,8 @@ final class ClientOrderController extends AbstractController
                 $processed !== null ||
                 $cancelled !== null ||
                 $checked !== null ||
-                $printed !== null;
+                $printed !== null ||
+                $internal !== null;
 
             if ($hasFilters) {
                 $qb = $clientOrderRepository->createQueryBuilder('c')
@@ -245,6 +275,16 @@ final class ClientOrderController extends AbstractController
                         $qb->andWhere('c.printed = true');
                     } elseif ($printed === 'to_print' || $printed === '0' || $printed === 'false' || $printed === false) {
                         $qb->andWhere('c.printed = false OR c.printed IS NULL');
+                    }
+                }
+
+                if ($internal !== null && $internal !== '' && $internal !== 'all') {
+                    $qb->leftJoin('c.client', 'cl');
+                    $isInternal = filter_var($internal, FILTER_VALIDATE_BOOLEAN);
+                    if ($isInternal) {
+                        $qb->andWhere('cl.is_internal = true');
+                    } else {
+                        $qb->andWhere('cl.is_internal = false OR cl.is_internal IS NULL');
                     }
                 }
 

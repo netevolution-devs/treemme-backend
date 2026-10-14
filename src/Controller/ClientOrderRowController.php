@@ -70,9 +70,167 @@ final class ClientOrderRowController extends AbstractController
         return new JsonResponse($this->doResponse->doResponse(['message' => 'Riga ordine chiusa con successo']));
     }
 
+    #[Route('/client-order-row/weekly-averages',
+        name: 'get_client_order_row_weekly_averages',
+        methods: ['GET'])]
+    #[OA\Get(
+        path: '/client-order-row/weekly-averages',
+        summary: 'Calcolo prezzi medi per PQ e MQ aggregati per settimana/date, raggruppati per tipo pellame e valuta',
+        parameters: [
+            new OA\Parameter(
+                name: 'start_date',
+                in: 'query',
+                description: 'Data inizio intervallo (formato YYYY-MM-DD). Default: Lunedì della settimana corrente',
+                required: false,
+                schema: new OA\Schema(type: 'string', format: 'date')
+            ),
+            new OA\Parameter(
+                name: 'end_date',
+                in: 'query',
+                description: 'Data fine intervallo (formato YYYY-MM-DD). Default: Domenica della settimana corrente',
+                required: false,
+                schema: new OA\Schema(type: 'string', format: 'date')
+            ),
+            new OA\Parameter(
+                name: 'client_id',
+                in: 'query',
+                description: 'Filtra per ID cliente specifico',
+                required: false,
+                schema: new OA\Schema(type: 'integer')
+            ),
+            new OA\Parameter(
+                name: 'date_field',
+                in: 'query',
+                description: 'Campo data su cui filtrare: order_date (default) o delivery_date_confirmed',
+                required: false,
+                schema: new OA\Schema(type: 'string', enum: ['order_date', 'delivery_date_confirmed'], default: 'order_date')
+            ),
+            new OA\Parameter(
+                name: 'internal',
+                in: 'query',
+                description: 'Filtro clienti interni: false (default, esclude interni), true (solo interni), all (tutti)',
+                required: false,
+                schema: new OA\Schema(type: 'string', enum: ['false', 'true', 'all'], default: 'false')
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Statistiche e medie ponderate per tipo pellame e valuta, più riepilogo complessivo',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'items',
+                            type: 'array',
+                            items: new OA\Items(
+                                properties: [
+                                    new OA\Property(
+                                        property: 'leather_type',
+                                        type: 'object',
+                                        nullable: true,
+                                        properties: [
+                                            new OA\Property(property: 'id', type: 'integer'),
+                                            new OA\Property(property: 'name', type: 'string'),
+                                            new OA\Property(property: 'code', type: 'string', nullable: true)
+                                        ]
+                                    ),
+                                    new OA\Property(
+                                        property: 'currency',
+                                        type: 'object',
+                                        nullable: true,
+                                        properties: [
+                                            new OA\Property(property: 'id', type: 'integer'),
+                                            new OA\Property(property: 'name', type: 'string'),
+                                            new OA\Property(property: 'abbreviation', type: 'string', nullable: true),
+                                            new OA\Property(property: 'sign', type: 'string', nullable: true)
+                                        ]
+                                    ),
+                                    new OA\Property(property: 'rows_count', type: 'integer'),
+                                    new OA\Property(property: 'total_amount', type: 'number', format: 'float'),
+                                    new OA\Property(property: 'total_currency_amount', type: 'number', format: 'float'),
+                                    new OA\Property(property: 'total_quantity_mq', type: 'number', format: 'float'),
+                                    new OA\Property(property: 'total_quantity_pq', type: 'number', format: 'float'),
+                                    new OA\Property(property: 'avg_price_mq', type: 'number', format: 'float'),
+                                    new OA\Property(property: 'avg_price_pq', type: 'number', format: 'float')
+                                ]
+                            )
+                        ),
+                        new OA\Property(
+                            property: 'summary',
+                            type: 'object',
+                            properties: [
+                                new OA\Property(property: 'rows_count', type: 'integer'),
+                                new OA\Property(property: 'total_amount', type: 'number', format: 'float'),
+                                new OA\Property(property: 'total_quantity_mq', type: 'number', format: 'float'),
+                                new OA\Property(property: 'total_quantity_pq', type: 'number', format: 'float'),
+                                new OA\Property(property: 'avg_price_mq', type: 'number', format: 'float'),
+                                new OA\Property(property: 'avg_price_pq', type: 'number', format: 'float')
+                            ]
+                        ),
+                        new OA\Property(property: 'start_date', type: 'string', format: 'date', nullable: true),
+                        new OA\Property(property: 'end_date', type: 'string', format: 'date', nullable: true),
+                        new OA\Property(property: 'internal', type: 'boolean', nullable: true)
+                    ]
+                )
+            )
+        ]
+    )]
+    public function getWeeklyPriceAverages(Request $request): JsonResponse
+    {
+        $startDateStr = $request->query->get('start_date');
+        $endDateStr = $request->query->get('end_date');
+        $clientId = $request->query->get('client_id') ? (int)$request->query->get('client_id') : null;
+        $dateField = $request->query->get('date_field', 'order_date');
+        $internalParam = $request->query->get('internal'); // 'true', 'false', 'all' o null (default false: esclude interni)
+
+        $internal = false;
+        if ($internalParam !== null && $internalParam !== '') {
+            if ($internalParam === 'all') {
+                $internal = null;
+            } else {
+                $internal = filter_var($internalParam, FILTER_VALIDATE_BOOLEAN);
+            }
+        }
+
+        // Se le date non sono specificate, prendiamo di default la settimana corrente (da lunedì a domenica)
+        if (!$startDateStr && !$endDateStr) {
+            $startDate = new \DateTime('monday this week');
+            $endDate = new \DateTime('sunday this week');
+        } else {
+            $startDate = $startDateStr ? new \DateTime($startDateStr) : null;
+            $endDate = $endDateStr ? new \DateTime($endDateStr) : null;
+        }
+
+        $averages = $this->doctrine->getRepository(ClientOrderRow::class)->getWeeklyPriceAverages(
+            $startDate,
+            $endDate,
+            $clientId,
+            $dateField,
+            $internal
+        );
+
+        return new JsonResponse($this->doResponse->doResponse($averages));
+    }
+
     #[Route('/client-order-row-report',
         name: 'get_client_order_row_report',
         methods: ['GET'])]
+    #[OA\Get(
+        path: '/client-order-row-report',
+        summary: 'Report righe ordini cliente con filtri stato spedizione, produzione, stampa e clienti interni',
+        parameters: [
+            new OA\Parameter(name: 'start_date', in: 'query', description: 'Data inizio (YYYY-MM-DD)', required: false, schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter(name: 'end_date', in: 'query', description: 'Data fine (YYYY-MM-DD)', required: false, schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter(name: 'shipping_status', in: 'query', description: 'Stato spedizione: to_ship, shipped', required: false, schema: new OA\Schema(type: 'string', enum: ['to_ship', 'shipped'])),
+            new OA\Parameter(name: 'production_status', in: 'query', description: 'Stato produzione: to_produce, produced', required: false, schema: new OA\Schema(type: 'string', enum: ['to_produce', 'produced'])),
+            new OA\Parameter(name: 'print_status', in: 'query', description: 'Stato stampa: to_print, printed', required: false, schema: new OA\Schema(type: 'string', enum: ['to_print', 'printed'])),
+            new OA\Parameter(name: 'client_id', in: 'query', description: 'ID Cliente', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'internal', in: 'query', description: 'Filtro clienti interni: true (solo interni), false (escludi interni), all (tutti)', required: false, schema: new OA\Schema(type: 'string', enum: ['true', 'false', 'all']))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Lista righe ordine filtrate')
+        ]
+    )]
     public function getClientOrderRowsReport(Request $request): JsonResponse
     {
         $startDate = $request->query->get('start_date');
@@ -81,6 +239,7 @@ final class ClientOrderRowController extends AbstractController
         $productionStatus = $request->query->get('production_status'); // 'to_produce', 'produced'
         $printStatus = $request->query->get('print_status'); // 'to_print', 'printed'
         $clientId = $request->query->get('client_id');
+        $internalParam = $request->query->get('internal'); // 'true', 'false', 'all' o null
 
         $qb = $this->doctrine->getRepository(ClientOrderRow::class)->createQueryBuilder('cor');
         $qb->join('cor.client_order', 'co')
@@ -98,6 +257,15 @@ final class ClientOrderRowController extends AbstractController
         if ($clientId) {
             $qb->andWhere('c.id = :clientId')
                ->setParameter('clientId', $clientId);
+        }
+
+        if ($internalParam !== null && $internalParam !== '' && $internalParam !== 'all') {
+            $isInternal = filter_var($internalParam, FILTER_VALIDATE_BOOLEAN);
+            if ($isInternal) {
+                $qb->andWhere('c.is_internal = true');
+            } else {
+                $qb->andWhere('c.is_internal = false OR c.is_internal IS NULL');
+            }
         }
 
         if ($shippingStatus === 'to_ship') {
@@ -136,6 +304,22 @@ final class ClientOrderRowController extends AbstractController
     #[Route('/client/client-order-row-summary-print',
         name: 'get_client_order_row_summary_print',
         methods: ['GET'])]
+    #[OA\Get(
+        path: '/client/client-order-row-summary-print',
+        summary: 'Generazione PDF riepilogo ordini cliente con filtri stato spedizione, produzione, stampa e clienti interni',
+        parameters: [
+            new OA\Parameter(name: 'client_id', in: 'query', description: 'ID Cliente', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'start_date', in: 'query', description: 'Data inizio (YYYY-MM-DD)', required: false, schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter(name: 'end_date', in: 'query', description: 'Data fine (YYYY-MM-DD)', required: false, schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter(name: 'shipping_status', in: 'query', description: 'Stato spedizione: to_ship, shipped', required: false, schema: new OA\Schema(type: 'string', enum: ['to_ship', 'shipped'])),
+            new OA\Parameter(name: 'production_status', in: 'query', description: 'Stato produzione: to_produce, produced', required: false, schema: new OA\Schema(type: 'string', enum: ['to_produce', 'produced'])),
+            new OA\Parameter(name: 'print_status', in: 'query', description: 'Stato stampa: to_print, printed', required: false, schema: new OA\Schema(type: 'string', enum: ['to_print', 'printed'])),
+            new OA\Parameter(name: 'internal', in: 'query', description: 'Filtro clienti interni: true (solo interni), false (escludi interni), all (tutti)', required: false, schema: new OA\Schema(type: 'string', enum: ['true', 'false', 'all']))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'File PDF generato')
+        ]
+    )]
     public function getClientSummaryPrint(Request $request): \Symfony\Component\HttpFoundation\Response
     {
         $clientId = $request->query->get('client_id');
@@ -144,6 +328,7 @@ final class ClientOrderRowController extends AbstractController
         $shippingStatus = $request->query->get('shipping_status'); // 'to_ship', 'shipped'
         $productionStatus = $request->query->get('production_status'); // 'to_produce', 'produced'
         $printStatus = $request->query->get('print_status'); // 'to_print', 'printed'
+        $internalParam = $request->query->get('internal'); // 'true', 'false', 'all' o null
 
         $qb = $this->doctrine->getRepository(ClientOrderRow::class)->createQueryBuilder('cor');
         $qb->join('cor.client_order', 'co')
@@ -163,6 +348,15 @@ final class ClientOrderRowController extends AbstractController
         if ($clientId) {
             $qb->andWhere('c.id = :clientId')
                 ->setParameter('clientId', $clientId);
+        }
+
+        if ($internalParam !== null && $internalParam !== '' && $internalParam !== 'all') {
+            $isInternal = filter_var($internalParam, FILTER_VALIDATE_BOOLEAN);
+            if ($isInternal) {
+                $qb->andWhere('c.is_internal = true');
+            } else {
+                $qb->andWhere('c.is_internal = false OR c.is_internal IS NULL');
+            }
         }
 
         if ($shippingStatus === 'to_ship') {
@@ -471,29 +665,7 @@ final class ClientOrderRowController extends AbstractController
 
     private function calculatePrices(ClientOrderRow $clientOrderRow): void
     {
-
-        $quantity = $clientOrderRow->getQuantity() ?: 0;
-        $currencyPrice = $clientOrderRow->getCurrencyPrice(); // Valuta estera per unità
-        $currencyExchange = $clientOrderRow->getCurrencyExchange() ?: 1.0; // quanta valuta estera per 1 EUR
-
-        // Se arriva currencyPrice, ricalcola sempre price (EUR)
-        if ($currencyPrice !== null) {
-            $price = $currencyExchange != 0 ? round($currencyPrice / $currencyExchange, 2) : 0.0;
-            $clientOrderRow->setPrice($price);
-            $clientOrderRow->setCurrencyExchange($currencyExchange);
-            $clientOrderRow->setCurrencyPrice(round($currencyPrice, 4));
-        } else {
-            $price = $clientOrderRow->getPrice() ?: 0.0;
-            $currencyPrice = round($price * $currencyExchange, 4);
-            $clientOrderRow->setCurrencyPrice($currencyPrice);
-        }
-
-        // Totali
-        $totalPrice = round($quantity * $price, 4);
-        $totalCurrencyPrice = round($quantity * $currencyPrice, 4);
-
-        $clientOrderRow->setTotalPrice($totalPrice);
-        $clientOrderRow->setTotalCurrencyPrice($totalCurrencyPrice);
+        $this->clientOrderRowService->calculatePricesAndUnits($clientOrderRow);
     }
 }
 

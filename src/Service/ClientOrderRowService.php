@@ -3,6 +3,8 @@
 namespace App\Service;
 
 use App\Entity\ClientOrderRow;
+use App\Entity\MeasurementUnit;
+use App\Entity\MeasurementUnitCoefficient;
 use Doctrine\ORM\EntityManagerInterface;
 
 class ClientOrderRowService
@@ -103,5 +105,122 @@ class ClientOrderRowService
             $order->setProcessed($allProcessed);
             $this->entityManager->persist($order);
         }
+    }
+
+    /**
+     * Calcola prezzi (EUR / Valuta estera), totali e normalizzazione prezzi/quantità per PQ e MQ.
+     */
+    public function calculatePricesAndUnits(ClientOrderRow $clientOrderRow): void
+    {
+        $quantity = (float)($clientOrderRow->getQuantity() ?: 0.0);
+        $currencyPrice = $clientOrderRow->getCurrencyPrice();
+        $currencyExchange = (float)($clientOrderRow->getCurrencyExchange() ?: 1.0);
+
+        if ($currencyPrice !== null) {
+            $price = $currencyExchange != 0 ? round($currencyPrice / $currencyExchange, 4) : 0.0;
+            $clientOrderRow->setPrice(round($price, 2));
+            $clientOrderRow->setCurrencyExchange($currencyExchange);
+            $clientOrderRow->setCurrencyPrice(round($currencyPrice, 4));
+        } else {
+            $price = (float)($clientOrderRow->getPrice() ?: 0.0);
+            $currencyPrice = round($price * $currencyExchange, 4);
+            $clientOrderRow->setCurrencyPrice($currencyPrice);
+        }
+
+        // Totali
+        $totalPrice = round($quantity * $price, 4);
+        $totalCurrencyPrice = round($quantity * $currencyPrice, 4);
+
+        $clientOrderRow->setTotalPrice($totalPrice);
+        $clientOrderRow->setTotalCurrencyPrice($totalCurrencyPrice);
+
+        // Calcolo quantità normalizzate MQ e PQ
+        $unit = $clientOrderRow->getMeasurementUnit();
+        $quantityMq = $this->convertToMq($quantity, $unit);
+        $quantityPq = $this->convertToPq($quantity, $unit);
+
+        $clientOrderRow->setQuantityMq($quantityMq);
+        $clientOrderRow->setQuantityPq($quantityPq);
+
+        // Calcolo prezzi unitari per MQ e PQ (in EUR base)
+        // price_mq = total_price / quantity_mq
+        // price_pq = total_price / quantity_pq
+        if ($quantityMq > 0) {
+            $clientOrderRow->setPriceMq(round($totalPrice / $quantityMq, 4));
+        } elseif ($quantity == 0 && $price > 0 && $unit) {
+            $unitMq = $this->convertToMq(1.0, $unit);
+            $clientOrderRow->setPriceMq($unitMq > 0 ? round($price / $unitMq, 4) : null);
+        } else {
+            $clientOrderRow->setPriceMq(null);
+        }
+
+        if ($quantityPq > 0) {
+            $clientOrderRow->setPricePq(round($totalPrice / $quantityPq, 4));
+        } elseif ($quantity == 0 && $price > 0 && $unit) {
+            $unitPq = $this->convertToPq(1.0, $unit);
+            $clientOrderRow->setPricePq($unitPq > 0 ? round($price / $unitPq, 4) : null);
+        } else {
+            $clientOrderRow->setPricePq(null);
+        }
+    }
+
+    /**
+     * Converte una quantità in Metri Quadri (MQ).
+     */
+    public function convertToMq(float $quantity, ?MeasurementUnit $unit): float
+    {
+        if (!$unit) {
+            return $quantity;
+        }
+
+        $prefix = strtoupper((string)$unit->getPrefix());
+        if ($prefix === 'MQ') {
+            return $quantity;
+        }
+
+        // Cerca coefficiente diretto verso unità con prefisso MQ
+        foreach ($unit->getMeasurementUnitCoefficients() as $coeff) {
+            $end = $coeff->getEndUm();
+            if ($end && strtoupper((string)$end->getPrefix()) === 'MQ' && $coeff->getCoefficient() > 0) {
+                return round($quantity * (float)$coeff->getCoefficient(), 4);
+            }
+        }
+
+        // Fallback standard: PQ -> MQ
+        if ($prefix === 'PQ') {
+            return round($quantity / 10.764, 4);
+        }
+
+        return round($quantity, 4);
+    }
+
+    /**
+     * Converte una quantità in Piedi Quadri (PQ).
+     */
+    public function convertToPq(float $quantity, ?MeasurementUnit $unit): float
+    {
+        if (!$unit) {
+            return $quantity;
+        }
+
+        $prefix = strtoupper((string)$unit->getPrefix());
+        if ($prefix === 'PQ') {
+            return $quantity;
+        }
+
+        // Cerca coefficiente diretto verso unità con prefisso PQ
+        foreach ($unit->getMeasurementUnitCoefficients() as $coeff) {
+            $end = $coeff->getEndUm();
+            if ($end && strtoupper((string)$end->getPrefix()) === 'PQ' && $coeff->getCoefficient() > 0) {
+                return round($quantity * (float)$coeff->getCoefficient(), 4);
+            }
+        }
+
+        // Fallback standard: MQ -> PQ
+        if ($prefix === 'MQ') {
+            return round($quantity * 10.764, 4);
+        }
+
+        return round($quantity, 4);
     }
 }
