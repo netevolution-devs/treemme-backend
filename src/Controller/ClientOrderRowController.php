@@ -150,6 +150,10 @@ final class ClientOrderRowController extends AbstractController
                                     new OA\Property(property: 'total_currency_amount', type: 'number', format: 'float'),
                                     new OA\Property(property: 'total_quantity_mq', type: 'number', format: 'float'),
                                     new OA\Property(property: 'total_quantity_pq', type: 'number', format: 'float'),
+                                    new OA\Property(property: 'avg_price_pq_currency', type: 'number', format: 'float', description: 'Prezzo medio PQ nella valuta della riga'),
+                                    new OA\Property(property: 'avg_price_pq_lire', type: 'number', format: 'float', description: 'Prezzo medio PQ in lire/valuta base'),
+                                    new OA\Property(property: 'avg_price_mq_currency', type: 'number', format: 'float', description: 'Prezzo medio MQ nella valuta della riga'),
+                                    new OA\Property(property: 'avg_price_mq_lire', type: 'number', format: 'float', description: 'Prezzo medio MQ in lire/valuta base'),
                                     new OA\Property(property: 'avg_price_mq', type: 'number', format: 'float'),
                                     new OA\Property(property: 'avg_price_pq', type: 'number', format: 'float')
                                 ]
@@ -163,6 +167,8 @@ final class ClientOrderRowController extends AbstractController
                                 new OA\Property(property: 'total_amount', type: 'number', format: 'float'),
                                 new OA\Property(property: 'total_quantity_mq', type: 'number', format: 'float'),
                                 new OA\Property(property: 'total_quantity_pq', type: 'number', format: 'float'),
+                                new OA\Property(property: 'avg_price_pq_lire', type: 'number', format: 'float'),
+                                new OA\Property(property: 'avg_price_mq_lire', type: 'number', format: 'float'),
                                 new OA\Property(property: 'avg_price_mq', type: 'number', format: 'float'),
                                 new OA\Property(property: 'avg_price_pq', type: 'number', format: 'float')
                             ]

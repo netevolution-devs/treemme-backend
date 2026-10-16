@@ -238,8 +238,17 @@ class ClientOrderRowRepository extends ServiceEntityRepository
             $totalQuantityPq = (float)($res['total_quantity_pq'] ?? 0.0);
             $rowsCount = (int)($res['rows_count'] ?? 0);
 
-            $avgPriceMq = $totalQuantityMq > 0 ? round($totalAmount / $totalQuantityMq, 4) : 0.0;
-            $avgPricePq = $totalQuantityPq > 0 ? round($totalAmount / $totalQuantityPq, 4) : 0.0;
+            $avgPriceMqBase = $totalQuantityMq > 0 ? round($totalAmount / $totalQuantityMq, 4) : 0.0;
+            $avgPricePqBase = $totalQuantityPq > 0 ? round($totalAmount / $totalQuantityPq, 4) : 0.0;
+
+            $avgPriceMqCurrency = $totalQuantityMq > 0 ? round($totalCurrencyAmount / $totalQuantityMq, 4) : 0.0;
+            $avgPricePqCurrency = $totalQuantityPq > 0 ? round($totalCurrencyAmount / $totalQuantityPq, 4) : 0.0;
+
+            $currencyAbbreviation = strtoupper((string)($res['currency_abbreviation'] ?? ''));
+            $isEuroCurrency = in_array($currencyAbbreviation, ['EUR', 'EURO', '€'], true);
+
+            $avgPriceMqLireBase = $isEuroCurrency ? $avgPriceMqBase : $avgPriceMqCurrency;
+            $avgPricePqLireBase = $isEuroCurrency ? $avgPricePqBase : $avgPricePqCurrency;
 
             $rows[] = [
                 'leather_type' => $res['leather_type_id'] ? [
@@ -254,12 +263,12 @@ class ClientOrderRowRepository extends ServiceEntityRepository
                     'sign' => $res['currency_sign'],
                 ] : null,
                 'rows_count' => $rowsCount,
-                'total_amount' => round($totalAmount, 2),
-                'total_currency_amount' => round($totalCurrencyAmount, 2),
                 'total_quantity_mq' => round($totalQuantityMq, 4),
                 'total_quantity_pq' => round($totalQuantityPq, 4),
-                'avg_price_mq' => $avgPriceMq,
-                'avg_price_pq' => $avgPricePq,
+                'avg_price_pq_lire' => round($avgPricePqLireBase * 1936.27, 4),
+                'avg_price_mq_lire' => round($avgPriceMqLireBase * 1936.27, 4),
+                'avg_price_mq' => $avgPriceMqBase,
+                'avg_price_pq' => $avgPricePqBase,
             ];
 
             $grandTotalAmount += $totalAmount;
@@ -278,6 +287,8 @@ class ClientOrderRowRepository extends ServiceEntityRepository
                 'total_amount' => round($grandTotalAmount, 2),
                 'total_quantity_mq' => round($grandTotalQuantityMq, 4),
                 'total_quantity_pq' => round($grandTotalQuantityPq, 4),
+                'avg_price_pq_lire' => $overallAvgPricePq,
+                'avg_price_mq_lire' => $overallAvgPriceMq,
                 'avg_price_mq' => $overallAvgPriceMq,
                 'avg_price_pq' => $overallAvgPricePq,
             ],
